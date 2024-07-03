@@ -29,7 +29,7 @@ popd
 
 Optionally, you might want to build mesh (which is currently not on conda-forge yet)
 
-TODO: On plafrim this does not work because they are lacking down internet access. We should package this on conda-forge instead.
+TODO: On plafrim this does not work because they are locking down internet access. We should package this on conda-forge instead.
 
 ```
 git clone https://github.com/plasma-umass/mesh
