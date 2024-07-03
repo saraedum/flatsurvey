@@ -176,10 +176,17 @@ class Worker:
         try:
             await objects.provide(Worker).start()
         except Restart as restart:
-            await Worker.work(bindings=bindings, goals=goals, reporters=reporters, commands=[
-                restart.rewrite_command(command, objects=objects)
-                for command in commands
-            ])
+            bindings = [restart.rewrite_binding(binding, objects=objects) for binding in bindings]
+            goals = [restart.rewrite_goal(goal, objects=objects) for goal in goals]
+            reporters = [restart.rewrite_reporter(reporter, objects=objects) for reporter in reporters]
+            for command in commands:
+                command = restart.rewrite_command(command, objects=objects)
+
+                bindings.extend(command["bindings"])
+                goals.extend(command["goals"])
+                reporters.extend(command["reporters"])
+
+            await Worker.work(bindings=bindings, goals=goals, reporters=reporters, commands=[])
 
     @classmethod
     def make_object_graph(cls, /, bindings=[], goals=[], reporters=[], commands=[]):

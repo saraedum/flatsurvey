@@ -59,11 +59,13 @@ class Log(Reporter, Command):
 
     @copy_args_to_internal_fields
     def __init__(self, surface, stream=None):
-        import sys
+        super().__init__()
 
-        self._stream = stream or sys.stdout
+        if self._stream is None:
+            import sys
+            self._stream = sys.stdout
 
-    def _prefix(self, source):
+    def _log_prefix(self, source):
         return f"[{self._surface}] [{type(source).__name__}]"
 
     def _log(self, message):
@@ -84,7 +86,7 @@ class Log(Reporter, Command):
             [Ngon([1, 1, 1])] [Ngon] Hello World (extra: data) (lot: 1337)
 
         """
-        message = f"{self._prefix(source)} {message}"
+        message = f"{self._log_prefix(source)} {message}"
         for k, v in kwargs.items():
             message += f" ({k}: {v})"
         self._log(message)
@@ -120,8 +122,9 @@ class Log(Reporter, Command):
         ]
 
     def deform(self, deformation):
+        from flatsurvey.pipeline.util import FactoryBindingSpec
         return {
-            "bindings": Log.bindings(output=self._stream),
+            "bindings": [FactoryBindingSpec("log", lambda surface: self)],
             "reporters": [Log],
         }
 
@@ -207,12 +210,12 @@ class LogBindingSpec(BindingSpec):
     def provide_log(self, surface):
         if self._output == "-" or (self._output is None and self._prefix is None):
             import sys
-            output = sys.stdout
+            stream = None
         elif self._output is not None:
-            output = open(self._output, "w")
+            stream = open(self._output, "w")
         elif self._prefix is not None:
             import os.path
 
-            output = open(os.path.join(self._prefix, f"{surface.basename()}.log"), "w")
+            stream = open(os.path.join(self._prefix, f"{surface.basename()}.log"), "w")
 
-        return Log(surface, output)
+        return Log(surface, stream=stream)

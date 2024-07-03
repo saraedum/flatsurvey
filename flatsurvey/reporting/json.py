@@ -60,9 +60,12 @@ class Json(Reporter, Command):
     def __init__(self, surface, stream=None):
         super().__init__()
 
-        import sys
-
-        self._stream = stream or sys.stdout
+        if stream is None:
+            # TODO: For a strange reason, this code path is executed when a deformation restart happens.
+            # It's probably something internal to pinject because the resulting
+            # Json object with the stdout stream is then never used.
+            import sys
+            self._stream = sys.stdout
 
         self._data = {"surface": surface}
 
@@ -95,6 +98,13 @@ class Json(Reporter, Command):
         return [
             JsonBindingSpec(output=output, prefix=prefix)
         ]
+
+    def deform(self, deformation):
+        from flatsurvey.pipeline.util import FactoryBindingSpec
+        return {
+            "bindings": [FactoryBindingSpec("json", lambda surface: self)],
+            "reporters": [Json],
+        }
 
     async def result(self, source, result, **kwargs):
         r"""
@@ -224,4 +234,4 @@ class JsonBindingSpec(BindingSpec):
 
             output = os.path.join(prefix, f"{surface.basename()}.json")
 
-        return Json(surface, open(output, "w"))
+        return Json(surface, stream=open(output, "w"))
