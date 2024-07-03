@@ -101,11 +101,26 @@ class Cache(Command):
         self._shas = {}
 
     @staticmethod
+    def _is_empty(file):
+        pos = file.tell()
+
+        import os
+        file.seek(0, os.SEEK_END)
+        if file.tell() == 0:
+            return True
+
+        file.seek(pos)
+        return False
+
+    @staticmethod
     def load(file):
         r"""
         Load a JSON file with orjson if installed, otherwise with Python's
         standard json.
         """
+        if Cache._is_empty(file):
+            return {}
+
         try:
             import orjson
 

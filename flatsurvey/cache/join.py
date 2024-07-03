@@ -60,6 +60,10 @@ class Join(Goal, Command):
 
         for json in self._jsons:
             with open(json) as input:
+                from flatsurvey.cache.cache import Cache
+                if Cache._is_empty(input):
+                    continue
+
                 parsed = flatsurvey.cache.cache.Cache.load(input)
 
                 surface = None
