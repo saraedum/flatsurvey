@@ -34,25 +34,25 @@ class ExternalizePickles(Goal, Command):
     """
 
     @copy_args_to_internal_fields
-    def __init__(self, jsons, in_place, pickle_dir, report):
+    def __init__(self, jsons, pickle_dir, report):
         super().__init__(producers=[], report=report, cache=None)
 
     @classmethod
     @click.command(name="externalize-pickles")
     @click.argument("jsons", nargs=-1)
-    @click.option("--inplace", default=False, is_flag=True)
     @click.option(
         "--pickles",
-        required=True,
+        required=False,
+        default=None,
         type=click.Path(exists=True),
         help="output directory",
     )
-    def click(jsons, inplace, pickles):
+    def click(jsons, pickles):
         return {
             "goals": [ExternalizePickles],
             "bindings": [
                 PartialBindingSpec(ExternalizePickles)(
-                    jsons=jsons, in_place=inplace, pickle_dir=pickles
+                    jsons=jsons, pickle_dir=pickles
                 )
             ],
         }
@@ -76,12 +76,15 @@ class ExternalizePickles(Goal, Command):
 
                         import os.path
 
-                        fname = os.path.join(self._pickle_dir, f"{hash}.pickle.gz")
+                        if self._pickle_dir is not None:
+                            fname = os.path.join(self._pickle_dir, f"{hash}.pickle.gz")
 
-                        import gzip
+                            import gzip
 
-                        with gzip.open(fname, mode="w") as compressed:
-                            compressed.write(value)
+                            with gzip.open(fname, mode="w") as compressed:
+                                compressed.write(value)
+                        else:
+                            hash = "dropped"
 
                         json["pickle"] = hash
 

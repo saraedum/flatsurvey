@@ -90,7 +90,15 @@ Start the survey:
 
 ```
 mkdir -p /beegfs/jrueth/flatsurvey
-flatsurvey --scheduler=/beegfs/jrueth/scheduler.json ngons --vertices 3 orbit-closure --deform json --prefix=/beegfs/jrueth/flatsurvey/
+flatsurvey --scheduler=/beegfs/jrueth/scheduler.json ngons --vertices 3 cache /beegfs/jrueth/flatsurvey/orbit-closure.json orbit-closure --deform json --prefix=/beegfs/jrueth/flatsurvey/
+```
+
+Post-process the survey:
+
+```
+flatsurvey-maintenance externalize-pickles /beegfs/jrueth/flatsurvey/ngon-*.json
+flatsurvey-maintenance join /beegfs/jrueth/flatsurvey/*.json
+rm /beegfs/jrueth/flatsurvey/ngon-*.json
 ```
 
 ...
