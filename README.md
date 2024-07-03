@@ -17,6 +17,82 @@ nice flatsurvey ngons --vertices 3 ngons --vertices 4 ngons --vertices 5 orbit-c
 
 # Run Surveys in a Cluster
 
+Install the requirements and flatsurvey in a place that is accessible to all workers.
+
+```
+pushd flatsurvey
+mamba env create -n flatsurvey environment.yml
+mamba activate flatsurvey
+pip install -e .
+popd
+```
+
+Optionally, you might want to build mesh (which is currently not on conda-forge yet)
+
+TODO: On plafrim this does not work because they are lacking down internet access. We should package this on conda-forge instead.
+
+```
+git clone https://github.com/plasma-umass/mesh
+pushd mesh
+make
+popd
+```
+
+Reserve resources in your cluster (this is a slurm specific command):
+
+```
+salloc --ntasks=64 --time=0:30:00 --constraint="diablo|bora|brise|sirocco|zonda|miriel|souris"
+```
+
+Spawn a dask scheduler:
+
+```
+dask-scheduler --scheduler-file=/beegfs/jrueth/scheduler.json --port 30821
+```
+
+Make the shared environment fast (usually the shared environment created above
+is on some NFS that is slow, so we copy it to local disk):
+
+TODO: This script could be a bit smarter about doing the work exactly once on each host.
+
+```
+$ cat establish-conda.sh
+#!/usr/bin/bash
+cd /tmp
+
+touch /tmp/jrueth.flock
+
+conda list --prefix /tmp/flatsurvey-tmp && exit 0
+
+echo "Deleting cloned environment..."
+
+rm -rf /tmp/flatsurvey-tmp
+
+sleep 10
+
+echo | flock /tmp/jrueth.flock mamba create --prefix /tmp/flatsurvey-tmp --quiet --copy --offline --clone flatsurvey || echo "Failed to create environment. It probably already exists."
+$ srun sh establish-conda.sh
+```
+
+Spawn dask workers:
+
+```
+$ cat spawn-worker.sh
+#!/usr/bin/bash
+cd /tmp
+
+echo "Connecting to scheduler.json$1"
+LD_PRELOAD=~/TODO/libmesh MKL_NUM_THREADS=1 SAGE_NUM_THREADS=1 OMP_NUM_THREADS=1 DOT_SAGE=/tmp/sage.jrueth$1 DASK_DISTRIBUTED__WORKER__PRELOAD=sage.all mamba run --prefix /tmp/flatsurvey-tmp dask-worker --scheduler-file /beegfs/jrueth/scheduler.json$1 --nthreads 1 --nworkers 1 --no-nanny --preload flatsurvey.worker.dask
+$ srun sh spawn-worker.sh
+```
+
+Start the survey:
+
+```
+mkdir -p /beegfs/jrueth/flatsurvey
+flatsurvey --scheduler=/beegfs/jrueth/scheduler.json ngons --vertices 3 orbit-closure --deform json --prefix=/beegfs/jrueth/flatsurvey/
+```
+
 ...
 
 # Troubleshooting
