@@ -387,13 +387,7 @@ class OrbitClosure(Goal, Command):
                     import cppyy
 
                     # What is a good vector to use to deform? See #3.
-                    # n = upper_bound(tangent) * scale
-                    n = upper_bound(tangent) // 4
-
-                    # What is a good bound here? See #3.
-                    # if n > 1e20:
-                    #     print("Cannot deform. Deformation would lead to too much coefficient blowup.")
-                    #     continue
+                    n = upper_bound(tangent) * scale
 
                     eligibles = True
 
@@ -432,7 +426,7 @@ class OrbitClosure(Goal, Command):
                         )
                         continue
 
-                scale *= 2
+                scale += 1
 
                 if not eligibles:
                     self._progress.progress(message="failed to deform surface")
