@@ -98,7 +98,7 @@ from flatsurvey.ui.group import CommandWithGroups
     "--queue",
     "-q",
     type=int,
-    default=128,
+    default=1024,
     help="Jobs to prepare in the background for scheduling.",
 )
 @click.option(
