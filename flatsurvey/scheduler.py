@@ -211,9 +211,8 @@ class Scheduler:
                 # Everything could be answered from cached data. Proceed to next surface.
                 continue
 
-            from flatsurvey.pipeline.util import FactoryBindingSpec, ListBindingSpec
-
             bindings = list(self._bindings)
+            bindings = [binding for binding in bindings if not hasattr(binding, "provide_cache")]
             bindings.append(SurfaceBindingSpec(surface))
 
             from flatsurvey.worker.dask import DaskTask
