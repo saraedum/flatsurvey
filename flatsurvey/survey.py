@@ -107,7 +107,12 @@ from flatsurvey.ui.group import CommandWithGroups
     count=True,
     help="Enable verbose message, repeat for debug message.",
 )
-def survey(dry_run, debug, queue, verbose):
+@click.option(
+    "--scheduler",
+    default=None,
+    type=str,
+)
+def survey(dry_run, debug, queue, verbose, scheduler):
     r"""
     Main command, runs a survey; specific survey objects and goals are
     registered automatically as subcommands.
@@ -120,6 +125,8 @@ def survey(dry_run, debug, queue, verbose):
     _ = queue
     # For technical reasons, verbose needs to be a parameter here. It is consumed by process() below.
     _ = verbose
+    # For technical reasons, scheduler needs to be a parameter here. It is consumed by process() below.
+    _ = scheduler
 
 
 # Register objects and goals as subcommans of "survey".
@@ -134,7 +141,7 @@ for commands in [
 
 
 @survey.result_callback()
-def process(subcommands, dry_run=False, debug=False, queue=128, verbose=0):
+def process(subcommands, dry_run=False, debug=False, queue=128, verbose=0, scheduler=None):
     r"""
     Run the specified subcommands of ``survey``.
 
@@ -187,6 +194,7 @@ def process(subcommands, dry_run=False, debug=False, queue=128, verbose=0):
                     queue=queue,
                     dry_run=dry_run,
                     debug=debug,
+                    scheduler=scheduler,
                 ).start()
             )
         )
