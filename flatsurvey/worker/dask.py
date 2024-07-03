@@ -11,6 +11,15 @@ class DaskTask:
     def __call__(self):
         DaskWorker.process(self)
 
+    def __repr__(self):
+        from pickle import loads
+        args, kwargs =loads(self._dump)
+
+        args = ", ".join(repr(a) for a in args)
+        kwargs = ", ".join(f"{key}={repr(value)}" for (key, value) in kwargs.items())
+
+        return f"DaskTask({', '.join([args, kwargs])})"
+
     def run(self):
         from pickle import loads
         args, kwargs =loads(self._dump)
