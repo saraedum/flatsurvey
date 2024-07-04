@@ -122,13 +122,17 @@ class Cache(Command):
             return {}
 
         try:
-            import orjson
+            try:
+                import orjson
 
-            return orjson.loads(file.read())
-        except ModuleNotFoundError:
-            import json
+                return orjson.loads(file.read())
+            except ModuleNotFoundError:
+                import json
 
-            return json.loads(file.read())
+                return json.loads(file.read())
+        except Exception:
+            print(f"Failed to parse {file}. Ignoring.")
+            return {}
 
     @classmethod
     @click.command(
