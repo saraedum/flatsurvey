@@ -63,30 +63,31 @@ class ExternalizePickles(Goal, Command):
                 if "pickle" in json:
                     value = json["pickle"]
 
-                    import base64
+                    if value != "dropped":
+                        import base64
 
-                    value = base64.decodebytes(value.encode("ascii"))
+                        value = base64.decodebytes(value.encode("ascii"))
 
-                    if len(value) > 128:
-                        from hashlib import sha256
+                        if len(value) > 128:
+                            from hashlib import sha256
 
-                        sha = sha256()
-                        sha.update(value)
-                        hash = sha.hexdigest()
+                            sha = sha256()
+                            sha.update(value)
+                            hash = sha.hexdigest()
 
-                        import os.path
+                            import os.path
 
-                        if self._pickle_dir is not None:
-                            fname = os.path.join(self._pickle_dir, f"{hash}.pickle.gz")
+                            if self._pickle_dir is not None:
+                                fname = os.path.join(self._pickle_dir, f"{hash}.pickle.gz")
 
-                            import gzip
+                                import gzip
 
-                            with gzip.open(fname, mode="w") as compressed:
-                                compressed.write(value)
-                        else:
-                            hash = "dropped"
+                                with gzip.open(fname, mode="w") as compressed:
+                                    compressed.write(value)
+                            else:
+                                hash = "dropped"
 
-                        json["pickle"] = hash
+                            json["pickle"] = hash
 
                 for value in json.values():
                     externalize(value)
