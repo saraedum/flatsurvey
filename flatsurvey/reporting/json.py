@@ -57,7 +57,7 @@ class Json(Reporter, Command):
     """
 
     @copy_args_to_internal_fields
-    def __init__(self, surface, stream=None):
+    def __init__(self, surface, stream=None, pickles=False):
         super().__init__()
 
         if stream is None:
@@ -87,16 +87,18 @@ class Json(Reporter, Command):
         type=click.Path(exists=True, file_okay=False, dir_okay=True, allow_dash=False),
         default=None,
     )
-    def click(output, prefix):
+    @click.option(
+        "--pickles/--no-pickles", default=False)
+    def click(output, prefix, pickles):
         return {
-            "bindings": Json.bindings(output=output, prefix=prefix),
+            "bindings": Json.bindings(output=output, prefix=prefix, pickles=pickles),
             "reporters": [Json],
         }
 
     @classmethod
-    def bindings(cls, output, prefix=None):
+    def bindings(cls, output, prefix=None, pickles=False):
         return [
-            JsonBindingSpec(output=output, prefix=prefix)
+            JsonBindingSpec(output=output, prefix=prefix, pickles=pickles)
         ]
 
     def deform(self, deformation):
@@ -156,9 +158,12 @@ class Json(Reporter, Command):
             characteristics = obj._flatsurvey_characteristics()
 
         characteristics.setdefault("type", type(obj).__name__)
-        characteristics.setdefault(
-            "pickle", base64.encodebytes(dumps(obj)).decode("utf-8").strip()
-        )
+        if self._pickles:
+            characteristics.setdefault(
+                "pickle", base64.encodebytes(dumps(obj)).decode("utf-8").strip()
+            )
+        else:
+            characteristics["pickle"] = "dropped"
 
         return characteristics
 
@@ -220,9 +225,10 @@ class JsonBindingSpec(BindingSpec):
     scope = "DEFAULT"
     name = "json"
 
-    def __init__(self, output, prefix):
+    def __init__(self, output, prefix, pickles):
         self._output = output
         self._prefix = prefix
+        self._pickles = pickles
 
     def provide_json(self, surface):
         if self._output is not None:
@@ -234,4 +240,4 @@ class JsonBindingSpec(BindingSpec):
 
             output = os.path.join(prefix, f"{surface.basename()}.json")
 
-        return Json(surface, stream=open(output, "w"))
+        return Json(surface, stream=open(output, "w"), pickles=self._pickles)
