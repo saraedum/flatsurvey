@@ -17,88 +17,50 @@ nice flatsurvey ngons --vertices 3 ngons --vertices 4 ngons --vertices 5 orbit-c
 
 # Run Surveys in a Cluster
 
-Install the requirements and flatsurvey in a place that is accessible to all workers.
+Install the requirements and flatsurvey and package it for the workers:
 
 ```
-pushd flatsurvey
-mamba env create -n flatsurvey environment.yml
-mamba activate flatsurvey
-pip install -e .
-popd
-```
-
-Optionally, you might want to build mesh (which is currently not on conda-forge yet)
-
-TODO: On plafrim this does not work because they are locking down internet access. We should package this on conda-forge instead.
-
-```
-git clone https://github.com/plasma-umass/mesh
-pushd mesh
-make
-popd
-```
-
-Reserve resources in your cluster (this is a slurm specific command):
-
-```
-salloc --ntasks=64 --time=0:30:00 --constraint="diablo|bora|brise|sirocco|zonda|miriel|souris"
+sh plafrim/create-env.sh
 ```
 
 Spawn a dask scheduler:
 
 ```
-dask-scheduler --scheduler-file=/beegfs/jrueth/scheduler.json --port 30821
+sh plafrim/spawn-scheduler.sh flatsurvey-3
 ```
 
-Make the shared environment fast (usually the shared environment created above
-is on some NFS that is slow, so we copy it to local disk):
-
-TODO: This script could be a bit smarter about doing the work exactly once on each host.
+Reserve resources in your cluster (this is a slurm specific command):
 
 ```
-$ cat establish-conda.sh
-#!/usr/bin/bash
-cd /tmp
-
-touch /tmp/jrueth.flock
-
-conda list --prefix /tmp/flatsurvey-tmp && exit 0
-
-echo "Deleting cloned environment..."
-
-rm -rf /tmp/flatsurvey-tmp
-
-sleep 10
-
-echo | flock /tmp/jrueth.flock mamba create --prefix /tmp/flatsurvey-tmp --quiet --copy --offline --clone flatsurvey || echo "Failed to create environment. It probably already exists."
-$ srun sh establish-conda.sh
+salloc --ntasks=768 --time=0:30:00 --constraint="diablo|bora|brise|sirocco|zonda|miriel|souris"
 ```
 
-Spawn dask workers:
+Spawn the workers:
 
 ```
-$ cat spawn-worker.sh
-#!/usr/bin/bash
-cd /tmp
-
-echo "Connecting to scheduler.json$1"
-LD_PRELOAD=~/TODO/libmesh MKL_NUM_THREADS=1 SAGE_NUM_THREADS=1 OMP_NUM_THREADS=1 DOT_SAGE=/tmp/sage.jrueth$1 DASK_DISTRIBUTED__WORKER__PRELOAD=sage.all mamba run --prefix /tmp/flatsurvey-tmp dask-worker --scheduler-file /beegfs/jrueth/scheduler.json$1 --nthreads 1 --nworkers 1 --no-nanny --preload flatsurvey.worker.dask
-$ srun sh spawn-worker.sh
+for host in $(scontrol show hostnames); do srun --nodes=1 --ntasks=1 --exclusive -w $host sh plafrim/provision-env.sh flatsurvey-3 & done
+wait
+srun sh plafrim/spawn-worker.sh flatsurvey-3
 ```
 
 Start the survey:
 
 ```
+MINIFORGE=/tmp/jrueth/miniforge
+source "${MINIFORGE}/etc/profile.d/conda.sh"
+conda activate flatsurvey
+
 mkdir -p /beegfs/jrueth/flatsurvey
-flatsurvey --scheduler=/beegfs/jrueth/scheduler.json ngons --vertices 3 cache /beegfs/jrueth/flatsurvey/orbit-closure.json orbit-closure --deform json --prefix=/beegfs/jrueth/flatsurvey/
+flatsurvey --scheduler=/beegfs/jrueth/scheduler.flatsurvey-3.json ngons --vertices 3 local-cache --json /beegfs/jrueth/flatsurvey/orbit-closure.json orbit-closure --deform json --prefix=/beegfs/jrueth/flatsurvey/
 ```
 
 Post-process the survey:
 
 ```
-flatsurvey-maintenance externalize-pickles /beegfs/jrueth/flatsurvey/ngon-*.json
-flatsurvey-maintenance join /beegfs/jrueth/flatsurvey/*.json
-rm /beegfs/jrueth/flatsurvey/ngon-*.json
+pushd /beegfs/jrueth/flatsurvey
+flatsurvey-maintenance externalize-pickles ngon-*.json
+flatsurvey-maintenance join *.json
+rm ngon-*.json
 ```
 
 ...
