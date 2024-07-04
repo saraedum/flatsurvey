@@ -361,7 +361,7 @@ class OrbitClosure(Goal, Command):
 
             return Goal.COMPLETED
 
-        if dimension != self.dimension and not self._deformed and self.dimension > 3:
+        if not self._deformed and self.dimension > 3 and self._directions >= self._limit:
             self._progress.progress(message="deforming surface")
 
             tangents = [
@@ -379,7 +379,7 @@ class OrbitClosure(Goal, Command):
 
             tangents.sort(key=upper_bound)
 
-            scale = 2
+            scale = 1
             while True:
                 eligibles = False
 
@@ -421,6 +421,7 @@ class OrbitClosure(Goal, Command):
 
                         raise Deformation.Restart(surface, old=self._surface)
                     except cppyy.gbl.std.invalid_argument:
+                        print(f"Failed to deform {orbit_closure._surface} with {n}")
                         self._progress.progress(
                             message="failed to deform surface, retrying"
                         )
