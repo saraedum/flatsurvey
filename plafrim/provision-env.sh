@@ -1,5 +1,7 @@
 set -eo pipefail
 
+conda deactivate || true
+
 ENV=/tmp/jrueth/$1
 
 rm -rf $ENV
@@ -15,4 +17,3 @@ source $ENV/bin/activate
 conda-unpack
 
 python -c 'import cppyy'
-
