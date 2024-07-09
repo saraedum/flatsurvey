@@ -13,10 +13,10 @@ EXAMPLES::
     Usage: worker orbit-closure [OPTIONS]
       Determines the GL₂(R) orbit closure of ``surface``.
     Options:
-      --limit INTEGER         abort search after processing that many flow
+      --stale-limit INTEGER         abort search after processing that many flow
                               decompositions with cylinders without an increase in
                               dimension  [default: 32]
-      --expansions INTEGER    when the --limit has been reached, restart the search
+      --expansions-limit INTEGER    when the --stale-limit has been reached, restart the search
                               with random saddle connections that are twice as long
                               as the ones used previously; repeat this doubling
                               process EXPANSIONS many times  [default: 4]
@@ -32,7 +32,7 @@ EXAMPLES::
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
-#        Copyright (C) 2020-2022 Julian Rüth
+#        Copyright (C) 2020-2024 Julian Rüth
 #
 #  flatsurvey is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -72,8 +72,10 @@ class OrbitClosure(Goal, Command):
         orbit-closure
 
     """
-    DEFAULT_LIMIT = 32
-    DEFAULT_EXPANSIONS = 4
+    DEFAULT_STALE_LIMIT = 32
+    DEFAULT_EXPANSIONS_LIMIT = 4
+    # TODO: Implement on the level of worker.
+    DEFAULT_TIME_LIMIT = None
     DEFAULT_DEFORM = False
 
     @copy_args_to_internal_fields
@@ -84,8 +86,9 @@ class OrbitClosure(Goal, Command):
         flow_decompositions,
         saddle_connections,
         cache,
-        limit=DEFAULT_LIMIT,
-        expansions=DEFAULT_EXPANSIONS,
+        stale_limit=DEFAULT_STALE_LIMIT,
+        expansions_limit=DEFAULT_EXPANSIONS_LIMIT,
+        time_limit=DEFAULT_TIME_LIMIT,
         deform=DEFAULT_DEFORM,
         cache_only=Goal.DEFAULT_CACHE_ONLY,
     ):
@@ -100,6 +103,7 @@ class OrbitClosure(Goal, Command):
         self._directions_with_cylinders = 0
         self._directions = 0
         self._expansions_performed = 0
+        self._start = None
         self._deformed = not deform
 
         self._reported = False
@@ -194,18 +198,25 @@ class OrbitClosure(Goal, Command):
         help=__doc__.split("EXAMPLES")[0],
     )
     @click.option(
-        "--limit",
+        "--stale-limit",
         type=int,
-        default=DEFAULT_LIMIT,
+        default=DEFAULT_STALE_LIMIT,
         show_default=True,
         help="abort search after processing that many flow decompositions with cylinders without an increase in dimension",
     )
     @click.option(
-        "--expansions",
+        "--expansions-limit",
         type=int,
-        default=DEFAULT_EXPANSIONS,
+        default=DEFAULT_EXPANSIONS_LIMIT,
         show_default=True,
-        help="when the --limit has been reached, restart the search with random saddle connections that are twice as long as the ones used previously; repeat this doubling process EXPANSIONS many times",
+        help="when the --stale-limit has been reached, restart the search with random saddle connections that are twice as long as the ones used previously; repeat this doubling process EXPANSIONS many times",
+    )
+    @click.option(
+        "--time-limit",
+        type=int,
+        default=DEFAULT_TIME_LIMIT,
+        show_default=False,
+        help="when the --time-limit in seconds has been reached, abort the computation as inconclusive"
     )
     @click.option(
         "--deform/--no-deform",
@@ -213,19 +224,19 @@ class OrbitClosure(Goal, Command):
         help="When set, we deform the input surface as soon as we found a third dimension in the tangent space and restart. This is often beneficial if the input surface has lots of symmetries and also when the Boshernitzan criterion can rarely be applied due to SAF=0.",
     )
     @Goal._cache_only_option
-    def click(limit, expansions, deform, cache_only):
+    def click(stale_limit, expansions_limit, time_limit, deform, cache_only):
         return {
             "goals": [OrbitClosure],
             "bindings": OrbitClosure.bindings(
-                limit=limit, expansions=expansions, deform=deform, cache_only=cache_only
+                stale_limit=stale_limit, expansions_limit=expansions_limit, time_limit=time_limit, deform=deform, cache_only=cache_only
             ),
         }
 
     @classmethod
-    def bindings(cls, limit, expansions, deform, cache_only):
+    def bindings(cls, stale_limit, expansions_limit, time_limit, deform, cache_only):
         return [
             PartialBindingSpec(OrbitClosure)(
-                limit=limit, expansions=expansions, deform=deform, cache_only=cache_only
+                stale_limit=stale_limit, expansions_limit=expansions_limit, time_limit=time_limit, deform=deform, cache_only=cache_only
             )
         ]
 
@@ -233,8 +244,9 @@ class OrbitClosure(Goal, Command):
         return {
             "goals": [OrbitClosure],
             "bindings": OrbitClosure.bindings(
-                limit=self._limit,
-                expansions=self._expansions,
+                stale_limit=self._stale_limit,
+                expansions_limit=self._expansions_limit,
+                time_limit=self._time_limit,
                 deform=False,
                 cache_only=self._cache_only,
             ),
@@ -295,6 +307,14 @@ class OrbitClosure(Goal, Command):
             {"surface": {"angles": [1, 3, 5], "type": "Ngon", "pickle": "..."}, "orbit-closure": [{"timestamp": ..., "dimension": 6, "directions": 1, "directions_with_cylinders": 1, "dense": true, "value": {"type": "GL2ROrbitClosure", "pickle": "..."}}]}
 
         """
+        from time import time
+        now = time()
+        if self._start is None:
+            self._start = now
+        if self._time_limit is not None:
+            if now - self._start > self._time_limit:
+                return Goal.COMPLETED
+
         self._directions += 1
 
         import pyflatsurf
@@ -334,8 +354,8 @@ class OrbitClosure(Goal, Command):
             await self.report()
             return Goal.COMPLETED
 
-        if self._cylinders_without_increase >= self._limit:
-            if self._expansions_performed < self._expansions:
+        if self._cylinders_without_increase >= self._stale_limit:
+            if self._expansions_performed < self._expansions_limit:
                 self._expansions_performed += 1
 
                 self._report.log(self, "Found too many cylinders without improvements.")
@@ -361,7 +381,7 @@ class OrbitClosure(Goal, Command):
 
             return Goal.COMPLETED
 
-        if not self._deformed and self.dimension > 3 and self._directions >= self._limit:
+        if not self._deformed and self.dimension > 3 and self._directions >= self._stale_limit:
             self._progress.progress(message="deforming surface")
 
             tangents = [
