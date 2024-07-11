@@ -1,6 +1,11 @@
+import click
+
 import multiprocessing
 forkserver = multiprocessing.get_context("forkserver")
 multiprocessing.set_forkserver_preload(["sage.all"])
+
+
+limits = []
 
 
 class DaskTask:
@@ -16,6 +21,10 @@ class DaskTask:
     def run(self):
         from pickle import loads
         args, kwargs =loads(self._dump)
+
+        assert "limits" not in kwargs
+
+        kwargs["limits"] = limits
 
         from flatsurvey.worker.worker import Worker
 
@@ -61,3 +70,24 @@ class DaskWorker:
         DaskWorker._ensure_started()
         DaskWorker._singleton._work_queue.put(task)
         return DaskWorker._singleton._result_queue.get()
+
+
+@click.command()
+@click.option(
+    # We cannot call this --memory-limit because dask-worker uses this already.
+    "--mem-limit",
+    default=None,
+    help="Gracefully stop a task when the memory consumption exceeds this amount")
+@click.option(
+    "--time-limit",
+    default=None,
+    help="Gracefully stop a task when the wall time elapsed exceeds this amount")
+def dask_setup(mem_limit, time_limit):
+    global limits
+    if mem_limit is not None:
+        from flasturvey.limits import MemoryLimit
+        limits.append(MemoryLimit(MemoryLimit.parse_limit(mem_limit)))
+
+    if time_limit is not None:
+        from flatsurvey.limits import TimeLimit
+        limits.append(TimeLimit(TimeLimit.parse_limit(time_limit)))

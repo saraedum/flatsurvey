@@ -25,3 +25,4 @@ dependencies:
   - sage-flatsurf >=0.5.2,<0.6
   - pip:
     - pinject
+    - datasize

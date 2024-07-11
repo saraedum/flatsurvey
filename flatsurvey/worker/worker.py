@@ -14,8 +14,12 @@ TESTS::
       Explore a surface.
     Options:
       --debug
-      --help         Show this message and exit.
-      -v, --verbose  Enable verbose message, repeat for debug message.
+      --help             Show this message and exit.
+      --mem-limit TEXT   Gracefully stop the worker when the memory consumption
+                         exceeds this amount
+      --time-limit TEXT  Gracefully stop the worker when the wall time elapsed
+                         exceeds this amount
+      -v, --verbose      Enable verbose message, repeat for debug message.
     Cache:
       local-cache  A cache of previous results stored in local JSON files.
       pickles      Access a database of pickles storing parts of previous
@@ -87,12 +91,20 @@ from flatsurvey.worker.restart import Restart
 )
 @click.option("--debug", is_flag=True)
 @click.option(
+    "--mem-limit",
+    default=None,
+    help="Gracefully stop the worker when the memory consumption exceeds this amount")
+@click.option(
+    "--time-limit",
+    default=None,
+    help="Gracefully stop the worker when the wall time elapsed exceeds this amount")
+@click.option(
     "--verbose",
     "-v",
     count=True,
     help="Enable verbose message, repeat for debug message.",
 )
-def worker(debug, verbose):
+def worker(debug, mem_limit, time_limit, verbose):
     r"""
     Main command to invoke the worker; specific objects and goals are
     registered automatically as subcommands.
@@ -112,7 +124,7 @@ for kind in [
 
 
 @worker.result_callback()
-def process(commands, debug, verbose):
+def process(commands, debug, mem_limit, time_limit, verbose):
     r"""
     Run the specified subcommands of ``worker``.
 
@@ -139,9 +151,18 @@ def process(commands, debug, verbose):
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG if verbose > 1 else logging.INFO)
 
+    limits = []
+    if mem_limit is not None:
+        from flasturvey.limits import MemoryLimit
+        limits.append(MemoryLimit(MemoryLimit.parse_limit(mem_limit)))
+
+    if time_limit is not None:
+        from flatsurvey.limits import TimeLimit
+        limits.append(TimeLimit(TimeLimit.parse_limit(time_limit)))
+
     try:
         import asyncio
-        asyncio.run(Worker.work(commands=commands))
+        asyncio.run(Worker.work(commands=commands, limits=limits))
     except Exception:
         if debug:
             pdb.post_mortem()
@@ -170,11 +191,11 @@ class Worker:
         pass
 
     @classmethod
-    async def work(cls, /, bindings=[], goals=[], reporters=[], commands=[]):
+    async def work(cls, /, bindings=[], goals=[], reporters=[], commands=[], limits=[]):
         objects = Worker.make_object_graph(bindings=bindings, goals=goals, reporters=reporters, commands=commands)
 
         try:
-            await objects.provide(Worker).start()
+            await objects.provide(Worker).start(limits=limits)
         except Restart as restart:
             bindings = [restart.rewrite_binding(binding, objects=objects) for binding in bindings]
             goals = [restart.rewrite_goal(goal, objects=objects) for goal in goals]
@@ -186,7 +207,7 @@ class Worker:
                 goals.extend(command["goals"])
                 reporters.extend(command["reporters"])
 
-            await Worker.work(bindings=bindings, goals=goals, reporters=reporters, commands=[])
+            await Worker.work(bindings=bindings, goals=goals, reporters=reporters, commands=[], limits=limits)
 
     @classmethod
     def make_object_graph(cls, /, bindings=[], goals=[], reporters=[], commands=[]):
@@ -217,10 +238,13 @@ class Worker:
             binding_specs=bindings,
         )
 
-    async def start(self):
+    async def start(self, limits=[]):
         r"""
         Run until all our goals are resolved.
         """
+        if limits != []:
+            raise NotImplementedError
+
         try:
             for goal in self._goals:
                 await goal.consume_cache()
