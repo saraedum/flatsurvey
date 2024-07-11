@@ -9,8 +9,9 @@ EXAMPLES::
     Usage: worker json [OPTIONS]
       Writes results in JSON format.
     Options:
-      --output FILE       [default: derived from surface name]
+      --output FILE              [default: derived from surface name]
       --prefix DIRECTORY
+      --pickles / --no-pickles
       --help              Show this message and exit.
 
 """
@@ -143,7 +144,7 @@ class Json(Reporter, Command):
             >>> from flatsurvey.reporting.json import Json
             >>> from flatsurvey.surfaces import Ngon
             >>> surface = Ngon((1, 1, 1))
-            >>> json = Json(surface)
+            >>> json = Json(surface, pickles=True)
 
             >>> json._serialize_to_pickle(True)
             {'type': 'bool', 'pickle': 'gASILg=='}

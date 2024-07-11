@@ -274,7 +274,7 @@ class CompletelyCylinderPeriodic(Goal, Command):
             {"surface": {...}, "completely-cylinder-periodic": [{"timestamp": ..., "cylinder_periodic_directions": 0, "undetermined_directions": 0, "value": false}]}
 
         """
-        if self._resolved != Goal.COMPLETED:
+        if not self.reported():
             await self._report.result(
                 self,
                 result,

@@ -182,6 +182,35 @@ class Consumer:
 
         return Consumer.COMPLETED
 
+    def reported(self):
+        r"""
+        Return whether this consumer has already reported results.
+
+        EXAMPLES::
+
+            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.reporting import Log, Report
+            >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections, OrbitClosure
+            >>> surface = Ngon((1, 3, 5))
+            >>> connections = SaddleConnections(surface, report=None)
+            >>> log = Log(surface=surface)
+            >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(connections, report=None))
+            >>> oc = OrbitClosure(surface=surface, report=Report([log]), flow_decompositions=flow_decompositions, saddle_connections=connections, cache=None)
+
+            >>> oc.reported()
+            False
+
+            >>> import asyncio
+            >>> report = oc.report()
+            >>> asyncio.run(report)
+            [Ngon([1, 3, 5])] [OrbitClosure] GL(2,R)-orbit closure of dimension at least 2 in H_3(4) (ambient dimension 6) (dimension: 2) (directions: 0) (directions_with_cylinders: 0) (dense: None)
+
+            >>> oc.reported()
+            True
+
+        """
+        return self in self._report._reported
+
     async def report(self):
         r"""
         Report the current state of this consumer to the reporter. Typically
@@ -205,4 +234,3 @@ class Consumer:
             [Ngon([1, 3, 5])] [OrbitClosure] GL(2,R)-orbit closure of dimension at least 2 in H_3(4) (ambient dimension 6) (dimension: 2) (directions: 0) (directions_with_cylinders: 0) (dense: None)
 
         """
-        pass

@@ -13,20 +13,23 @@ EXAMPLES::
     Usage: worker orbit-closure [OPTIONS]
       Determines the GL₂(R) orbit closure of ``surface``.
     Options:
-      --stale-limit INTEGER         abort search after processing that many flow
-                              decompositions with cylinders without an increase in
-                              dimension  [default: 32]
-      --expansions-limit INTEGER    when the --stale-limit has been reached, restart the search
-                              with random saddle connections that are twice as long
-                              as the ones used previously; repeat this doubling
-                              process EXPANSIONS many times  [default: 4]
-      --deform / --no-deform  When set, we deform the input surface as soon as we
-                              found a third dimension in the tangent space and
-                              restart. This is often beneficial if the input surface
-                              has lots of symmetries and also when the Boshernitzan
-                              criterion can rarely be applied due to SAF=0.
-      --cache-only            Do not perform any computation. Only query the cache.
-      --help                  Show this message and exit.
+      --stale-limit INTEGER       abort search after processing that many flow
+                                  decompositions with cylinders without an increase
+                                  in dimension  [default: 32]
+      --expansions-limit INTEGER  when the --stale-limit has been reached, restart
+                                  the search with random saddle connections that are
+                                  twice as long as the ones used previously; repeat
+                                  this doubling process EXPANSIONS many times
+                                  [default: 4]
+      --deform / --no-deform      When set, we deform the input surface as soon as
+                                  we found a third dimension in the tangent space
+                                  and restart. This is often beneficial if the input
+                                  surface has lots of symmetries and also when the
+                                  Boshernitzan criterion can rarely be applied due
+                                  to SAF=0.
+      --cache-only                Do not perform any computation. Only query the
+                                  cache.
+      --help                      Show this message and exit.
 
 """
 # *********************************************************************
@@ -74,8 +77,6 @@ class OrbitClosure(Goal, Command):
     """
     DEFAULT_STALE_LIMIT = 32
     DEFAULT_EXPANSIONS_LIMIT = 4
-    # TODO: Implement on the level of worker.
-    DEFAULT_TIME_LIMIT = None
     DEFAULT_DEFORM = False
 
     @copy_args_to_internal_fields
@@ -88,7 +89,6 @@ class OrbitClosure(Goal, Command):
         cache,
         stale_limit=DEFAULT_STALE_LIMIT,
         expansions_limit=DEFAULT_EXPANSIONS_LIMIT,
-        time_limit=DEFAULT_TIME_LIMIT,
         deform=DEFAULT_DEFORM,
         cache_only=Goal.DEFAULT_CACHE_ONLY,
     ):
@@ -103,10 +103,7 @@ class OrbitClosure(Goal, Command):
         self._directions_with_cylinders = 0
         self._directions = 0
         self._expansions_performed = 0
-        self._start = None
         self._deformed = not deform
-
-        self._reported = False
 
         import pyflatsurf
 
@@ -212,31 +209,24 @@ class OrbitClosure(Goal, Command):
         help="when the --stale-limit has been reached, restart the search with random saddle connections that are twice as long as the ones used previously; repeat this doubling process EXPANSIONS many times",
     )
     @click.option(
-        "--time-limit",
-        type=int,
-        default=DEFAULT_TIME_LIMIT,
-        show_default=False,
-        help="when the --time-limit in seconds has been reached, abort the computation as inconclusive"
-    )
-    @click.option(
         "--deform/--no-deform",
         default=DEFAULT_DEFORM,
         help="When set, we deform the input surface as soon as we found a third dimension in the tangent space and restart. This is often beneficial if the input surface has lots of symmetries and also when the Boshernitzan criterion can rarely be applied due to SAF=0.",
     )
     @Goal._cache_only_option
-    def click(stale_limit, expansions_limit, time_limit, deform, cache_only):
+    def click(stale_limit, expansions_limit, deform, cache_only):
         return {
             "goals": [OrbitClosure],
             "bindings": OrbitClosure.bindings(
-                stale_limit=stale_limit, expansions_limit=expansions_limit, time_limit=time_limit, deform=deform, cache_only=cache_only
+                stale_limit=stale_limit, expansions_limit=expansions_limit, deform=deform, cache_only=cache_only
             ),
         }
 
     @classmethod
-    def bindings(cls, stale_limit, expansions_limit, time_limit, deform, cache_only):
+    def bindings(cls, stale_limit, expansions_limit, deform, cache_only):
         return [
             PartialBindingSpec(OrbitClosure)(
-                stale_limit=stale_limit, expansions_limit=expansions_limit, time_limit=time_limit, deform=deform, cache_only=cache_only
+                stale_limit=stale_limit, expansions_limit=expansions_limit, deform=deform, cache_only=cache_only
             )
         ]
 
@@ -246,7 +236,6 @@ class OrbitClosure(Goal, Command):
             "bindings": OrbitClosure.bindings(
                 stale_limit=self._stale_limit,
                 expansions_limit=self._expansions_limit,
-                time_limit=self._time_limit,
                 deform=False,
                 cache_only=self._cache_only,
             ),
@@ -307,14 +296,6 @@ class OrbitClosure(Goal, Command):
             {"surface": {"angles": [1, 3, 5], "type": "Ngon", "pickle": "..."}, "orbit-closure": [{"timestamp": ..., "dimension": 6, "directions": 1, "directions_with_cylinders": 1, "dense": true, "value": {"type": "GL2ROrbitClosure", "pickle": "..."}}]}
 
         """
-        from time import time
-        now = time()
-        if self._start is None:
-            self._start = now
-        if self._time_limit is not None:
-            if now - self._start > self._time_limit:
-                return Goal.COMPLETED
-
         self._directions += 1
 
         import pyflatsurf
@@ -496,7 +477,7 @@ class OrbitClosure(Goal, Command):
         return True if any(result for result in results) else None
 
     async def report(self):
-        if not self._reported:
+        if not self.reported():
             await self._report.result(
                 self,
                 self._surface.orbit_closure(),
@@ -505,5 +486,3 @@ class OrbitClosure(Goal, Command):
                 directions_with_cylinders=self._directions_with_cylinders,
                 dense=self.dense,
             )
-
-            self._reported = True

@@ -18,6 +18,7 @@ TESTS::
     Options:
       --debug
       --help               Show this message and exit.
+      --scheduler TEXT
       -N, --dry-run        Do not spawn any workers.
       -q, --queue INTEGER  Jobs to prepare in the background for scheduling.
       -v, --verbose        Enable verbose message, repeat for debug message.

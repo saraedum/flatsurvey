@@ -408,14 +408,15 @@ class BoshernitzanConjecture(Goal, Command):
             {"surface": {"angles": [1, 1, 1], "type": "Ngon", "pickle": "..."}}
 
         """
-        if result is not None:
-            raise NotImplementedError(
-                "boshernitzan-conjecture has no default reporting yet"
-            )
+        if not self.reported():
+            if result is not None:
+                raise NotImplementedError(
+                    "boshernitzan-conjecture has no default reporting yet"
+                )
 
-        for assertion in self._verdict:
-            if (
-                self._verdict[assertion] is None
-                and self._saddle_connection_orientations.exhausted
-            ):
-                await self._report_assertion(result=True, assertion=assertion, **kwargs)
+            for assertion in self._verdict:
+                if (
+                    self._verdict[assertion] is None
+                    and self._saddle_connection_orientations.exhausted
+                ):
+                    await self._report_assertion(result=True, assertion=assertion, **kwargs)

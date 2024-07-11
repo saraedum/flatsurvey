@@ -54,6 +54,7 @@ class Report(Command):
 
     def __init__(self, reporters, ignore=None):
         self._reporters = reporters
+        self._reported = set()
         self._ignore = ignore or []
 
     @classmethod
@@ -97,6 +98,7 @@ class Report(Command):
 
             >>> from flatsurvey.surfaces import Ngon
             >>> surface = Ngon((1, 1, 1))
+            >>> _ = surface.polygon()  # called to make hashing work below
 
             >>> import asyncio
             >>> from flatsurvey.reporting import Log
@@ -110,8 +112,11 @@ class Report(Command):
         """
         if self.ignore(source):
             return
+
         for reporter in self._reporters:
             await reporter.result(source, result, **kwargs)
+
+        self._reported.add(source)
 
     def progress(
         self,

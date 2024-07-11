@@ -245,7 +245,7 @@ class CylinderPeriodicAsymptotics(Goal, Command):
         return not Goal.COMPLETED
 
     async def report(self, result=None, **kwargs):
-        if self._resolved != Goal.COMPLETED:
+        if not self.reported():
             distribution = self._results
 
             undetermineds = len([r for r in distribution if r is None])
