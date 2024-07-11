@@ -32,7 +32,7 @@ sh plafrim/spawn-scheduler.sh flatsurvey-3
 Reserve resources in your cluster (this is a slurm specific command):
 
 ```
-salloc --ntasks=768 --time=1:00:00 --mem-per-cpu=16G --constraint="diablo|bora|brise|sirocco|zonda|miriel|souris"
+salloc --ntasks=768 --time=13:30:00 --mem-per-cpu=16G --constraint="diablo|bora|brise|sirocco|zonda|miriel|souris"
 ```
 
 Spawn the workers:
