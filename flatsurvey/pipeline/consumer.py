@@ -180,6 +180,9 @@ class Consumer:
             else:
                 return not Consumer.COMPLETED
 
+            import asyncio
+            await asyncio.sleep(0)
+
         return Consumer.COMPLETED
 
     def reported(self):

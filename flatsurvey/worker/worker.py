@@ -153,7 +153,7 @@ def process(commands, debug, mem_limit, time_limit, verbose):
 
     limits = []
     if mem_limit is not None:
-        from flasturvey.limits import MemoryLimit
+        from flatsurvey.limits import MemoryLimit
         limits.append(MemoryLimit(MemoryLimit.parse_limit(mem_limit)))
 
     if time_limit is not None:
@@ -242,17 +242,29 @@ class Worker:
         r"""
         Run until all our goals are resolved.
         """
-        if limits != []:
-            raise NotImplementedError
+        def callback():
+            for goal in self._goals:
+                from flatsurvey.pipeline.goal import Goal
+                goal._resolved = Goal.COMPLETED
+
+        from flatsurvey.limits import LimitChecker
+        checks = [LimitChecker(limit, callback) for limit in limits]
+
+        for check in checks:
+            check.start()
 
         try:
-            for goal in self._goals:
-                await goal.consume_cache()
-            for goal in self._goals:
-                await goal.resolve()
+            try:
+                for goal in self._goals:
+                    await goal.consume_cache()
+                for goal in self._goals:
+                    await goal.resolve()
+            finally:
+                for goal in self._goals:
+                    await goal.report()
         finally:
-            for goal in self._goals:
-                await goal.report()
+            for check in checks:
+                check.stop()
 
         for reporter in self._reporters:
             reporter.flush()
