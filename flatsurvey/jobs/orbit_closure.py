@@ -368,7 +368,6 @@ class OrbitClosure(Goal, Command):
             tangents = [
                 orbit_closure.lift(v) for v in orbit_closure.tangent_space_basis()[2:]
             ]
-            tangents = [sum(t for t in tangents)]
 
             def upper_bound(v):
                 length = sum(abs(x.parent().number_field(x)) for x in v) / len(v)
@@ -378,7 +377,12 @@ class OrbitClosure(Goal, Command):
                     n *= 2
                 return n
 
-            tangents.sort(key=upper_bound)
+            def height(v):
+                bound = upper_bound(v)
+
+                return max(c.height() for x in v for c in (x.parent().number_field(x) / bound).list())
+
+            tangents.sort(key=height)
 
             scale = 1
             while True:
