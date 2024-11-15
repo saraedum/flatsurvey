@@ -82,7 +82,7 @@ class DaskWorker:
     "--time-limit",
     default=None,
     help="Gracefully stop a task when the wall time elapsed exceeds this amount")
-def dask_setup(mem_limit, time_limit):
+def dask_setup(dask, mem_limit, time_limit):
     global limits
     if mem_limit is not None:
         from flasturvey.limits import MemoryLimit

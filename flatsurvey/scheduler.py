@@ -233,7 +233,10 @@ class Scheduler:
             return False
 
         for job in completed:
-            await job
+            try:
+                await job
+            except Exception as e:
+                logging.error(f"Task crashed with {e}. Skipping.")
 
         return True
 

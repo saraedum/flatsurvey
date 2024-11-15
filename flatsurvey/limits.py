@@ -11,7 +11,7 @@ class Limit:
 
 
 class LimitChecker:
-    def __init__(self, limit, callback, period=1):
+    def __init__(self, limit, callback, period=30):
         self._limit = limit
         self._callback = callback
         self._period = period
@@ -82,6 +82,9 @@ class MemoryLimit(Limit):
         cpus = psutil.cpu_count()
 
         if limit == "conservative":
+            return int(ram / cpus / 2)
+
+        if limit == "standard":
             return int(ram / cpus)
 
         if limit == "overcommit":

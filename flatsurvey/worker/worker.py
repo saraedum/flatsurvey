@@ -268,3 +268,7 @@ class Worker:
 
         for reporter in self._reporters:
             reporter.flush()
+
+
+if __name__ == "__main__":
+    worker()

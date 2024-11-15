@@ -32,13 +32,13 @@ sh plafrim/spawn-scheduler.sh flatsurvey-3
 Reserve resources in your cluster (this is a slurm specific command):
 
 ```
-salloc --ntasks=768 --time=13:30:00 --mem-per-cpu=16G --constraint="diablo|bora|brise|sirocco|zonda|miriel|souris"
+salloc --ntasks=768 --time=13:30:00 --constraint="diablo|bora|brise|sirocco|zonda|miriel|souris|kona"
 ```
 
 Spawn the workers:
 
 ```
-for host in $(scontrol show hostnames); do srun --nodes=1 --ntasks=1 --exclusive -w $host sh plafrim/provision-env.sh flatsurvey-3 & done
+for host in $(scontrol show hostnames); do sleep 1; srun --nodes=1 --ntasks=1 --exclusive -w $host sh plafrim/provision-env.sh flatsurvey-3 & done
 wait
 srun sh plafrim/spawn-worker.sh flatsurvey-3
 ```
@@ -46,20 +46,13 @@ srun sh plafrim/spawn-worker.sh flatsurvey-3
 Start the survey:
 
 ```
-MINIFORGE=/tmp/jrueth/miniforge
-source "${MINIFORGE}/etc/profile.d/conda.sh"
-conda activate flatsurvey
-
-mkdir -p /beegfs/jrueth/flatsurvey
-flatsurvey --scheduler=/beegfs/jrueth/scheduler.flatsurvey-3.json ngons --vertices 3 local-cache --json /beegfs/jrueth/flatsurvey/orbit-closure.json orbit-closure --deform json --prefix=/beegfs/jrueth/flatsurvey/
+sh plafrim/survey.sh 3
 ```
 
 Post-process the survey:
 
 ```
-pushd /beegfs/jrueth/flatsurvey
-flatsurvey-maintenance join *.json
-rm ngon-*.json
+sh plafrim/postprocess.sh
 ```
 
 ...

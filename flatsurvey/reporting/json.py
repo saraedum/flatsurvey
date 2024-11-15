@@ -58,15 +58,8 @@ class Json(Reporter, Command):
     """
 
     @copy_args_to_internal_fields
-    def __init__(self, surface, stream=None, pickles=False):
+    def __init__(self, surface, output="-", pickles=False):
         super().__init__()
-
-        if stream is None:
-            # TODO: For a strange reason, this code path is executed when a deformation restart happens.
-            # It's probably something internal to pinject because the resulting
-            # Json object with the stdout stream is then never used.
-            import sys
-            self._stream = sys.stdout
 
         self._data = {"surface": surface}
 
@@ -213,8 +206,10 @@ class Json(Reporter, Command):
         """
         import json
 
-        self._stream.write(json.dumps(self._data, default=self._serialize_to_pickle))
-        self._stream.flush()
+        from contextlib import nullcontext
+        with (open(self._output, "w") if self._output != "-" else nullcontext(sys.stdout)) as stream:
+            stream.write(json.dumps(self._data, default=self._serialize_to_pickle))
+            stream.flush()
 
 
 class JsonBindingSpec(BindingSpec):
@@ -241,4 +236,4 @@ class JsonBindingSpec(BindingSpec):
 
             output = os.path.join(prefix, f"{surface.basename()}.json")
 
-        return Json(surface, stream=open(output, "w"), pickles=self._pickles)
+        return Json(surface, output=output, pickles=self._pickles)
