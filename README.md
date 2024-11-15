@@ -15,6 +15,18 @@ mkdir -p surveyname
 nice flatsurvey ngons --vertices 3 ngons --vertices 4 ngons --vertices 5 orbit-closure --deform json --prefix=./surveyname
 ```
 
+To use the results of this survey to speed up a future survey, we collect the results in one `orbit_closure.json`:
+
+```
+flatsurvey-maintenance join surveyname/*.json
+```
+
+And then use that JSON file as a database for the next run:
+
+```
+nice flatsurvey ngons --vertices 3 ngons --vertices 4 ngons --vertices 5 orbit-closure --deform local-cach --json orbit_closure.json json --prefix=./surveyname
+```
+
 # Run Surveys in a Cluster
 
 Install the requirements and flatsurvey and package it for the workers:

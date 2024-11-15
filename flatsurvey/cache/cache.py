@@ -167,7 +167,7 @@ class Cache(Command):
                     for f in files:
                         if f.endswith(".json"):
                             jsons.append(open(os.path.join(root, f), "rb"))
-            if hasattr(j, "fileno"):
+            elif hasattr(j, "fileno"):
                 import os
 
                 jsons.append(os.fdopen(os.dup(j.fileno())))
