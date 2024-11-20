@@ -41,7 +41,7 @@ jobs:
         run: |
           # Shrink cache files by externalizing the referenced surfaces.
           mkdir -p pickles
-          flatsurvey-maintenance externalize-pickles --inplace --pickles pickles/ *.json
+          flatsurvey-maintenance externalize-pickles --pickles pickles/ *.json
 
           # Creata single cache file from the runs.
           flatsurvey-maintenance join *.json
