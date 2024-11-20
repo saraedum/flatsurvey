@@ -22,7 +22,7 @@ dependencies:
   - python-dateutil
   - rich
   - ruamel.yaml
-  - sage-flatsurf >=0.5.2,<0.6
+  - sage-flatsurf >=0.6.0,<0.7
   - pip:
     - pinject
     - datasize
