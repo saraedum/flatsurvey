@@ -18,13 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with: { submodules: recursive }
-      - uses: conda-incubator/setup-miniconda@v2
-        with: { miniforge-variant: "Mambaforge", miniforge-version: "latest", python-version: "${{ matrix.python }}" }
-      - name: install dependencies
-        shell: bash -el {0}
-        run: |
-          mamba env update --quiet -n test -f environment.yml
-          conda list
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          environment-file: environment.yml
+          miniforge-version: latest
       - name: install flatsurvey
         shell: bash -el {0}
         run: |
