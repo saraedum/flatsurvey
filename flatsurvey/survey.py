@@ -142,7 +142,9 @@ for commands in [
 
 
 @survey.result_callback()
-def process(subcommands, dry_run=False, debug=False, queue=128, verbose=0, scheduler=None):
+def process(
+    subcommands, dry_run=False, debug=False, queue=128, verbose=0, scheduler=None
+):
     r"""
     Run the specified subcommands of ``survey``.
 

@@ -63,6 +63,7 @@ class Log(Reporter, Command):
 
         if self._stream is None:
             import sys
+
             self._stream = sys.stdout
 
     def _log_prefix(self, source):
@@ -117,12 +118,11 @@ class Log(Reporter, Command):
 
     @classmethod
     def bindings(cls, output, prefix=None):
-        return [
-            LogBindingSpec(output=output, prefix=prefix)
-        ]
+        return [LogBindingSpec(output=output, prefix=prefix)]
 
     def deform(self, deformation):
         from flatsurvey.pipeline.util import FactoryBindingSpec
+
         return {
             "bindings": [FactoryBindingSpec("log", lambda surface: self)],
             "reporters": [Log],
@@ -210,6 +210,7 @@ class LogBindingSpec(BindingSpec):
     def provide_log(self, surface):
         if self._output == "-" or (self._output is None and self._prefix is None):
             import sys
+
             stream = None
         elif self._output is not None:
             stream = open(self._output, "w")

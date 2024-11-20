@@ -218,7 +218,10 @@ class OrbitClosure(Goal, Command):
         return {
             "goals": [OrbitClosure],
             "bindings": OrbitClosure.bindings(
-                stale_limit=stale_limit, expansions_limit=expansions_limit, deform=deform, cache_only=cache_only
+                stale_limit=stale_limit,
+                expansions_limit=expansions_limit,
+                deform=deform,
+                cache_only=cache_only,
             ),
         }
 
@@ -226,7 +229,10 @@ class OrbitClosure(Goal, Command):
     def bindings(cls, stale_limit, expansions_limit, deform, cache_only):
         return [
             PartialBindingSpec(OrbitClosure)(
-                stale_limit=stale_limit, expansions_limit=expansions_limit, deform=deform, cache_only=cache_only
+                stale_limit=stale_limit,
+                expansions_limit=expansions_limit,
+                deform=deform,
+                cache_only=cache_only,
             )
         ]
 
@@ -362,7 +368,11 @@ class OrbitClosure(Goal, Command):
 
             return Goal.COMPLETED
 
-        if not self._deformed and self.dimension > 3 and self._directions >= self._stale_limit:
+        if (
+            not self._deformed
+            and self.dimension > 3
+            and self._directions >= self._stale_limit
+        ):
             self._progress.progress(message="deforming surface")
 
             tangents = [
@@ -380,7 +390,11 @@ class OrbitClosure(Goal, Command):
             def height(v):
                 bound = upper_bound(v)
 
-                return max(c.height() for x in v for c in (x.parent().number_field(x) / bound).list())
+                return max(
+                    c.height()
+                    for x in v
+                    for c in (x.parent().number_field(x) / bound).list()
+                )
 
             tangents.sort(key=height)
 

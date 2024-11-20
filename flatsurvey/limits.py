@@ -2,6 +2,7 @@ import logging
 
 logger = logging.getLogger()
 
+
 class Limit:
     def __init__(self, limit):
         self._limit = limit
@@ -22,6 +23,7 @@ class LimitChecker:
         assert self._task is None
 
         import asyncio
+
         loop = asyncio.get_running_loop()
         self._task = loop.create_task(self._run())
 
@@ -34,17 +36,21 @@ class LimitChecker:
         if not self._limit.check():
             self._callback()
             self.stop()
-    
+
     async def _run(self):
         try:
             while True:
                 self.check()
 
                 import asyncio
+
                 await asyncio.sleep(self._period)
         except Exception as e:
             import traceback
-            logging.error(f"limit checker crashed with {''.join(traceback.format_exception(e))}")
+
+            logging.error(
+                f"limit checker crashed with {''.join(traceback.format_exception(e))}"
+            )
 
 
 class TimeLimit(Limit):
@@ -56,7 +62,8 @@ class TimeLimit(Limit):
     @staticmethod
     def parse_limit(limit):
         import pandas
-        return pandas.Timedelta(limit).to_pytimedelta() 
+
+        return pandas.Timedelta(limit).to_pytimedelta()
 
     def check(self):
         import time
@@ -78,6 +85,7 @@ class MemoryLimit(Limit):
     @staticmethod
     def parse_limit(limit):
         import psutil
+
         ram = psutil.virtual_memory().total
         cpus = psutil.cpu_count()
 
@@ -91,11 +99,13 @@ class MemoryLimit(Limit):
             return int(ram / cpus * 1.5)
 
         from datasize import DataSize
+
         return int(DataSize(limit))
 
     @staticmethod
     def memory():
         import os
+
         pid = os.getpid()
 
         smap = f"/proc/{pid}/smaps"
@@ -106,11 +116,11 @@ class MemoryLimit(Limit):
             for line in smap:
                 items = line.split()
 
-                if not items[0].endswith(':'):
+                if not items[0].endswith(":"):
                     continue
                 if len(items) != 3:
                     continue
-                if items[2] != 'kB':
+                if items[2] != "kB":
                     continue
 
                 key = items[0][:-1]

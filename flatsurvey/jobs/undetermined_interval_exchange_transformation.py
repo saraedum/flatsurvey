@@ -185,6 +185,7 @@ class UndeterminedIntervalExchangeTransformation(Goal, Command):
                 )
             ],
         }
+
     _hacks_enabled = False
 
     @classmethod

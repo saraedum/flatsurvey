@@ -117,7 +117,10 @@ def PartialBindingSpec(prototype, name=None, scope=None):
             {
                 f"provide_{name}": provider,
                 "__repr__": lambda self: f"{name} binding to {prototype.__name__}",
-                "__reduce__": lambda self: (PartialBindingSpec_unpickle, ((prototype, name, scope), kwargs))
+                "__reduce__": lambda self: (
+                    PartialBindingSpec_unpickle,
+                    ((prototype, name, scope), kwargs),
+                ),
             },
         )
 

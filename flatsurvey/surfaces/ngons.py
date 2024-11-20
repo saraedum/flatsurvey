@@ -563,7 +563,9 @@ class Ngon(Surface):
 
     def __hash__(self):
         if self.polygon.cache is None:
-            raise Exception("cannot hash Ngon whose polygon() has not been determined yet")
+            raise Exception(
+                "cannot hash Ngon whose polygon() has not been determined yet"
+            )
 
         return hash((tuple(self.angles), self.polygon()))
 

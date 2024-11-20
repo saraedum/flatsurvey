@@ -93,11 +93,13 @@ from flatsurvey.worker.restart import Restart
 @click.option(
     "--mem-limit",
     default=None,
-    help="Gracefully stop the worker when the memory consumption exceeds this amount")
+    help="Gracefully stop the worker when the memory consumption exceeds this amount",
+)
 @click.option(
     "--time-limit",
     default=None,
-    help="Gracefully stop the worker when the wall time elapsed exceeds this amount")
+    help="Gracefully stop the worker when the wall time elapsed exceeds this amount",
+)
 @click.option(
     "--verbose",
     "-v",
@@ -154,14 +156,17 @@ def process(commands, debug, mem_limit, time_limit, verbose):
     limits = []
     if mem_limit is not None:
         from flatsurvey.limits import MemoryLimit
+
         limits.append(MemoryLimit(MemoryLimit.parse_limit(mem_limit)))
 
     if time_limit is not None:
         from flatsurvey.limits import TimeLimit
+
         limits.append(TimeLimit(TimeLimit.parse_limit(time_limit)))
 
     try:
         import asyncio
+
         asyncio.run(Worker.work(commands=commands, limits=limits))
     except Exception:
         if debug:
@@ -192,14 +197,22 @@ class Worker:
 
     @classmethod
     async def work(cls, /, bindings=[], goals=[], reporters=[], commands=[], limits=[]):
-        objects = Worker.make_object_graph(bindings=bindings, goals=goals, reporters=reporters, commands=commands)
+        objects = Worker.make_object_graph(
+            bindings=bindings, goals=goals, reporters=reporters, commands=commands
+        )
 
         try:
             await objects.provide(Worker).start(limits=limits)
         except Restart as restart:
-            bindings = [restart.rewrite_binding(binding, objects=objects) for binding in bindings]
+            bindings = [
+                restart.rewrite_binding(binding, objects=objects)
+                for binding in bindings
+            ]
             goals = [restart.rewrite_goal(goal, objects=objects) for goal in goals]
-            reporters = [restart.rewrite_reporter(reporter, objects=objects) for reporter in reporters]
+            reporters = [
+                restart.rewrite_reporter(reporter, objects=objects)
+                for reporter in reporters
+            ]
             for command in commands:
                 command = restart.rewrite_command(command, objects=objects)
 
@@ -207,7 +220,13 @@ class Worker:
                 goals.extend(command["goals"])
                 reporters.extend(command["reporters"])
 
-            await Worker.work(bindings=bindings, goals=goals, reporters=reporters, commands=[], limits=limits)
+            await Worker.work(
+                bindings=bindings,
+                goals=goals,
+                reporters=reporters,
+                commands=[],
+                limits=limits,
+            )
 
     @classmethod
     def make_object_graph(cls, /, bindings=[], goals=[], reporters=[], commands=[]):
@@ -242,12 +261,15 @@ class Worker:
         r"""
         Run until all our goals are resolved.
         """
+
         def callback():
             for goal in self._goals:
                 from flatsurvey.pipeline.goal import Goal
+
                 goal._resolved = Goal.COMPLETED
 
         from flatsurvey.limits import LimitChecker
+
         checks = [LimitChecker(limit, callback) for limit in limits]
 
         for check in checks:

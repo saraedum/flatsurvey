@@ -75,10 +75,20 @@ class Scheduler:
         TODO: Make configurable (also without environment variables.) and comment what does not need to be configured.
         """
         import dask.config
-        dask.config.set({'distributed.worker.daemon': False})
+
+        dask.config.set({"distributed.worker.daemon": False})
 
         import dask.distributed
-        pool = await dask.distributed.Client(scheduler_file=self._scheduler, direct_to_workers=True, connection_limit=2**16, asynchronous=True, n_workers=8, nthreads=1, preload="flatsurvey.worker.dask")
+
+        pool = await dask.distributed.Client(
+            scheduler_file=self._scheduler,
+            direct_to_workers=True,
+            connection_limit=2**16,
+            asynchronous=True,
+            n_workers=8,
+            nthreads=1,
+            preload="flatsurvey.worker.dask",
+        )
 
         return pool
 
@@ -107,12 +117,19 @@ class Scheduler:
                         what="tasks running",
                     ) as execution_progress:
                         from more_itertools import roundrobin
+
                         surfaces = roundrobin(*self._generators)
 
                         pending = []
 
                         async def schedule_one():
-                            return await self._schedule(pool, pending, surfaces, self._goals, scheduling_progress)
+                            return await self._schedule(
+                                pool,
+                                pending,
+                                surfaces,
+                                self._goals,
+                                scheduling_progress,
+                            )
 
                         async def consume_one():
                             return await self._consume(pool, pending)
@@ -212,11 +229,16 @@ class Scheduler:
                 continue
 
             bindings = list(self._bindings)
-            bindings = [binding for binding in bindings if not hasattr(binding, "provide_cache")]
+            bindings = [
+                binding for binding in bindings if not hasattr(binding, "provide_cache")
+            ]
             bindings.append(SurfaceBindingSpec(surface))
 
             from flatsurvey.worker.dask import DaskTask
-            task = DaskTask(bindings=bindings, goals=self._goals, reporters=self._reporters)
+
+            task = DaskTask(
+                bindings=bindings, goals=self._goals, reporters=self._reporters
+            )
 
             pending.append(pool.submit(task))
             return True
@@ -224,7 +246,9 @@ class Scheduler:
     async def _consume(self, pool, pending):
         import dask.distributed
 
-        completed, still_pending = await dask.distributed.wait(pending, return_when='FIRST_COMPLETED')
+        completed, still_pending = await dask.distributed.wait(
+            pending, return_when="FIRST_COMPLETED"
+        )
 
         pending.clear()
         pending.extend(still_pending)
@@ -288,6 +312,8 @@ class Scheduler:
 
 
 import pinject
+
+
 class SurfaceBindingSpec(pinject.BindingSpec):
     def __init__(self, surface):
         self._surface = surface

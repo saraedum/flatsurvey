@@ -81,8 +81,7 @@ class Json(Reporter, Command):
         type=click.Path(exists=True, file_okay=False, dir_okay=True, allow_dash=False),
         default=None,
     )
-    @click.option(
-        "--pickles/--no-pickles", default=False)
+    @click.option("--pickles/--no-pickles", default=False)
     def click(output, prefix, pickles):
         return {
             "bindings": Json.bindings(output=output, prefix=prefix, pickles=pickles),
@@ -91,12 +90,11 @@ class Json(Reporter, Command):
 
     @classmethod
     def bindings(cls, output, prefix=None, pickles=False):
-        return [
-            JsonBindingSpec(output=output, prefix=prefix, pickles=pickles)
-        ]
+        return [JsonBindingSpec(output=output, prefix=prefix, pickles=pickles)]
 
     def deform(self, deformation):
         from flatsurvey.pipeline.util import FactoryBindingSpec
+
         return {
             "bindings": [FactoryBindingSpec("json", lambda surface: self)],
             "reporters": [Json],
@@ -207,7 +205,10 @@ class Json(Reporter, Command):
         import json
 
         from contextlib import nullcontext
-        with (open(self._output, "w") if self._output != "-" else nullcontext(sys.stdout)) as stream:
+
+        with (
+            open(self._output, "w") if self._output != "-" else nullcontext(sys.stdout)
+        ) as stream:
             stream.write(json.dumps(self._data, default=self._serialize_to_pickle))
             stream.flush()
 

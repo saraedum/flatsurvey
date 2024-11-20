@@ -1,6 +1,7 @@
 import click
 
 import multiprocessing
+
 forkserver = multiprocessing.get_context("forkserver")
 multiprocessing.set_forkserver_preload(["sage.all"])
 
@@ -11,6 +12,7 @@ limits = []
 class DaskTask:
     def __init__(self, *args, **kwargs):
         from pickle import dumps
+
         self._dump = dumps((args, kwargs))
 
     def __call__(self):
@@ -20,7 +22,8 @@ class DaskTask:
 
     def run(self):
         from pickle import loads
-        args, kwargs =loads(self._dump)
+
+        args, kwargs = loads(self._dump)
 
         assert "limits" not in kwargs
 
@@ -29,6 +32,7 @@ class DaskTask:
         from flatsurvey.worker.worker import Worker
 
         import asyncio
+
         result = asyncio.run(Worker.work(*args, **kwargs))
         return result
 
@@ -41,7 +45,9 @@ class DaskWorker:
 
         self._work_queue = forkserver.Queue()
         self._result_queue = forkserver.Queue()
-        self._processor = forkserver.Process(target=DaskWorker._process, args=(self,), daemon=True)
+        self._processor = forkserver.Process(
+            target=DaskWorker._process, args=(self,), daemon=True
+        )
         self._processor.start()
 
     @staticmethod
@@ -50,7 +56,8 @@ class DaskWorker:
             return
 
         import sys
-        if 'sage' in sys.modules:
+
+        if "sage" in sys.modules:
             raise Exception("sage must not be loaded in dask worker")
 
         DaskWorker._singleton = DaskWorker()
@@ -77,17 +84,21 @@ class DaskWorker:
     # We cannot call this --memory-limit because dask-worker uses this already.
     "--mem-limit",
     default=None,
-    help="Gracefully stop a task when the memory consumption exceeds this amount")
+    help="Gracefully stop a task when the memory consumption exceeds this amount",
+)
 @click.option(
     "--time-limit",
     default=None,
-    help="Gracefully stop a task when the wall time elapsed exceeds this amount")
+    help="Gracefully stop a task when the wall time elapsed exceeds this amount",
+)
 def dask_setup(dask, mem_limit, time_limit):
     global limits
     if mem_limit is not None:
         from flasturvey.limits import MemoryLimit
+
         limits.append(MemoryLimit(MemoryLimit.parse_limit(mem_limit)))
 
     if time_limit is not None:
         from flatsurvey.limits import TimeLimit
+
         limits.append(TimeLimit(TimeLimit.parse_limit(time_limit)))

@@ -51,9 +51,7 @@ class ExternalizePickles(Goal, Command):
         return {
             "goals": [ExternalizePickles],
             "bindings": [
-                PartialBindingSpec(ExternalizePickles)(
-                    jsons=jsons, pickle_dir=pickles
-                )
+                PartialBindingSpec(ExternalizePickles)(jsons=jsons, pickle_dir=pickles)
             ],
         }
 
@@ -78,7 +76,9 @@ class ExternalizePickles(Goal, Command):
                             import os.path
 
                             if self._pickle_dir is not None:
-                                fname = os.path.join(self._pickle_dir, f"{hash}.pickle.gz")
+                                fname = os.path.join(
+                                    self._pickle_dir, f"{hash}.pickle.gz"
+                                )
 
                                 import gzip
 

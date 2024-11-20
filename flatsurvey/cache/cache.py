@@ -105,6 +105,7 @@ class Cache(Command):
         pos = file.tell()
 
         import os
+
         file.seek(0, os.SEEK_END)
         if file.tell() == 0:
             return True

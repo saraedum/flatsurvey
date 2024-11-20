@@ -181,6 +181,7 @@ class Consumer:
                 return not Consumer.COMPLETED
 
             import asyncio
+
             await asyncio.sleep(0)
 
         return Consumer.COMPLETED
