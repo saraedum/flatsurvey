@@ -1,6 +1,6 @@
-import click
-
 import multiprocessing
+
+import click
 
 forkserver = multiprocessing.get_context("forkserver")
 multiprocessing.set_forkserver_preload(["sage.all"])
@@ -29,9 +29,9 @@ class DaskTask:
 
         kwargs["limits"] = limits
 
-        from flatsurvey.worker.worker import Worker
-
         import asyncio
+
+        from flatsurvey.worker.worker import Worker
 
         result = asyncio.run(Worker.work(*args, **kwargs))
         return result

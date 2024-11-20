@@ -34,7 +34,7 @@ EXAMPLES::
 # *********************************************************************
 
 import click
-from pinject import copy_args_to_internal_fields, BindingSpec
+from pinject import BindingSpec, copy_args_to_internal_fields
 
 from flatsurvey.command import Command
 from flatsurvey.pipeline.util import FactoryBindingSpec
