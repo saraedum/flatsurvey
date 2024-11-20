@@ -108,14 +108,6 @@ class CompletelyCylinderPeriodic(Goal, Command):
             "goals": [CompletelyCylinderPeriodic],
         }
 
-    def command(self):
-        command = ["completely-cylinder-periodic"]
-        if self._limit != self.DEFAULT_LIMIT:
-            command.append(f"--limit={self._limit}")
-        if self._cache_only != self.DEFAULT_CACHE_ONLY:
-            command.append("--cache-only")
-        return command
-
     async def consume_cache(self):
         r"""
         Attempt to resolve this goal from previous cached runs.
