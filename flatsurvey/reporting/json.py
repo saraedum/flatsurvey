@@ -203,6 +203,7 @@ class Json(Reporter, Command):
 
         """
         import json
+        import sys
 
         from contextlib import nullcontext
 
