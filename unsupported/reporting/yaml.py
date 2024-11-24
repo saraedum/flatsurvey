@@ -243,11 +243,11 @@ class Yaml(Reporter, Command):
         return {
             "bindings": [
                 FactoryBindingSpec(
-                    "yaml",
                     lambda surface: Yaml(
                         surface,
                         stream=output or open(f"{surface.basename()}.yaml", "w"),
                     ),
+                    "yaml",
                 )
             ],
             "reporters": [Yaml],

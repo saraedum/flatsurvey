@@ -124,7 +124,7 @@ class Log(Reporter, Command):
         from flatsurvey.pipeline.util import FactoryBindingSpec
 
         return {
-            "bindings": [FactoryBindingSpec("log", lambda surface: self)],
+            "bindings": [FactoryBindingSpec(lambda surface: self, "log")],
             "reporters": [Log],
         }
 

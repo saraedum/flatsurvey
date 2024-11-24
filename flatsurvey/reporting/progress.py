@@ -571,6 +571,6 @@ class RemoteProgress(Reporter):
         from flatsurvey.pipeline.util import FactoryBindingSpec
 
         return {
-            "bindings": [FactoryBindingSpec("progress", lambda: self, scope="SHARED")],
+            "bindings": [FactoryBindingSpec(lambda: self, "progress", scope="SHARED")],
             "reporters": [RemoteProgress],
         }

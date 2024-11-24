@@ -96,7 +96,7 @@ class Json(Reporter, Command):
         from flatsurvey.pipeline.util import FactoryBindingSpec
 
         return {
-            "bindings": [FactoryBindingSpec("json", lambda surface: self)],
+            "bindings": [FactoryBindingSpec(lambda surface: self, "json")],
             "reporters": [Json],
         }
 

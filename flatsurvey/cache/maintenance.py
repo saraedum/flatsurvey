@@ -132,7 +132,7 @@ class Maintenance:
         bindings.append(
             ListBindingSpec("reporters", reporters or [flatsurvey.reporting.Log])
         )
-        bindings.append(FactoryBindingSpec("surface", lambda: None))
+        bindings.append(FactoryBindingSpec(lambda: None, "surface"))
 
         return pinject.new_object_graph(
             modules=[flatsurvey.reporting, flatsurvey.cache.maintenance],

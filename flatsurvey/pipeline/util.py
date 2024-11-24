@@ -55,10 +55,10 @@ def ListBindingSpec(name, sequence, scope=None):
     binding = type(
         f"{name}ListBinding",
         (pinject.BindingSpec,),
-        {f"provide_{name}": provider, "__repr__": lambda self: f"{name}->{sequence}"},
+        {f"provide_{name}": provider, "__repr__": lambda _: f"{name}->{sequence}"},
     )()
-    binding.name = name
-    binding.scope = scope or "DEFAULT"
+    binding.name = name  # pyright: ignore
+    binding.scope = scope or "DEFAULT"  # pyright: ignore
 
     return binding
 
@@ -116,8 +116,8 @@ def PartialBindingSpec(prototype, name=None, scope=None):
             (pinject.BindingSpec,),
             {
                 f"provide_{name}": provider,
-                "__repr__": lambda self: f"{name} binding to {prototype.__name__}",
-                "__reduce__": lambda self: (
+                "__repr__": lambda _: f"{name} binding to {prototype.__name__}",
+                "__reduce__": lambda _: (
                     PartialBindingSpec_unpickle,
                     ((prototype, name, scope), kwargs),
                 ),
@@ -125,26 +125,28 @@ def PartialBindingSpec(prototype, name=None, scope=None):
         )
 
         binding = binding_type()
-        binding.name = name
-        binding.scope = scope or "DEFAULT"
+        binding.name = name  # pyright: ignore
+        binding.scope = scope or "DEFAULT"  # pyright: ignore
         return binding
 
     return wrap
 
 
 def PartialBindingSpec_unpickle(outer_arguments, inner_arguments):
+    r"""
+    Helper to unpickle a :class:`PartialBindingSpec`.
+    """
     return PartialBindingSpec(*outer_arguments)(**inner_arguments)
 
 
-# TODO: Why are the args different between these functions?
-def FactoryBindingSpec(name, prototype, scope=None):
+def FactoryBindingSpec(prototype, name, scope=None):
     r"""
     Return a BindingSpec that calls ``prototype`` as a provider for ``name``.
 
     EXAMPLES::
 
         >>> def create(dependency): return 1337
-        >>> binding = FactoryBindingSpec("object", create)
+        >>> binding = FactoryBindingSpec(create, "object")
         >>> inspect.signature(binding.provide_object)
         <Signature (dependency)>
 
@@ -165,15 +167,13 @@ def FactoryBindingSpec(name, prototype, scope=None):
         (pinject.BindingSpec,),
         {
             f"provide_{name}": provider,
-            "__repr__": lambda self: f"{name}->{prototype}",
-            # TODO: This is not possible.
-            # "__reduce__": lambda self: (FactoryBindingSpec_unpickle, (name, prototype, scope))
+            "__repr__": lambda _: f"{name}->{prototype}",
         },
     )
 
     binding = binding_type()
-    binding.name = name
-    binding.scope = scope or "DEFAULT"
+    binding.name = name  # pyright: ignore
+    binding.scope = scope or "DEFAULT"  # pyright: ignore
 
     return binding
 

@@ -51,4 +51,4 @@ def pickle(base64):
     from sage.all import loads
 
     encoded = b64decode(base64.strip().encode("ASCII"))
-    return {"bindings": [FactoryBindingSpec("surface", lambda: loads(encoded))]}
+    return {"bindings": [FactoryBindingSpec(lambda: loads(encoded), "surface")]}

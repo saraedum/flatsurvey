@@ -207,7 +207,7 @@ class Scheduler:
 
                 from flatsurvey.pipeline.util import FactoryBindingSpec
 
-                return FactoryBindingSpec(binding.name, lambda: object)
+                return FactoryBindingSpec(lambda: object, binding.name)
 
             return binding
 
@@ -272,13 +272,13 @@ class Scheduler:
 
         from flatsurvey.pipeline.util import FactoryBindingSpec, ListBindingSpec
 
-        bindings.append(FactoryBindingSpec("surface", lambda: surface))
+        bindings.append(FactoryBindingSpec(lambda: surface, "surface"))
         bindings.append(ListBindingSpec("goals", goals))
         bindings.append(ListBindingSpec("reporters", self._reporters))
 
         from random import randint
 
-        bindings.append(FactoryBindingSpec("lot", lambda: randint(0, 2**64)))
+        bindings.append(FactoryBindingSpec(lambda: randint(0, 2**64), "lot"))
 
         import pinject
 

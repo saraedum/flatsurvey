@@ -66,7 +66,8 @@ class Deformation(Surface):
             if isinstance(bound, Surface):
                 return [
                     FactoryBindingSpec(
-                        name="surface", prototype=lambda: self._deformation
+                        prototype=lambda: self._deformation,
+                        name="surface",
                     )
                 ]
 
