@@ -47,8 +47,6 @@ class Scheduler:
         quiet=False,
         debug=False,
     ):
-        import os
-
         self._generators = generators
         self._bindings = bindings
         self._goals = goals
@@ -59,9 +57,9 @@ class Scheduler:
         self._quiet = quiet
         self._debug = debug
 
-        # TODO: This probably does not work at all. Probably we should ditch
-        # most of the progress implementation and implement something simpler
-        # for the survey (and something different for the standalone worker.)
+        # Likely much of the reporting infrastructure is currently broken and
+        # this should be replaced with something else. However, we are planning
+        # to fix this, once we encounter problems here.
         self._report = self._enable_shared_bindings()
 
     def __repr__(self):
@@ -70,9 +68,6 @@ class Scheduler:
     async def _create_pool(self):
         r"""
         Return a new dask pool to schedule jobs.
-
-        TODO: Explain how to use environment variables to configure things here.
-        TODO: Make configurable (also without environment variables.) and comment what does not need to be configured.
         """
         import dask.config
 
@@ -80,7 +75,7 @@ class Scheduler:
 
         import dask.distributed
 
-        pool = await dask.distributed.Client(
+        return await dask.distributed.Client(
             scheduler_file=self._scheduler,
             direct_to_workers=True,
             connection_limit=2**16,
@@ -89,8 +84,6 @@ class Scheduler:
             nthreads=1,
             preload="flatsurvey.worker.dask",
         )
-
-        return pool
 
     async def start(self):
         r"""
@@ -174,7 +167,7 @@ class Scheduler:
 
                 raise
         finally:
-            await pool.close(0)
+            pool.close(0)
 
     def _enable_shared_bindings(self):
         shared = [binding for binding in self._bindings if binding.scope == "SHARED"]
