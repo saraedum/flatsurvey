@@ -209,14 +209,14 @@ class MemoryLimit(Limit):
     EXMAPLES::
 
         >>> from flatsurvey.limits import MemoryLimit
-        >>> limit = MemoryLimit(2**28)
+        >>> limit = MemoryLimit(2**30)
         >>> limit.check()
         True
 
     Each int uses four bytes, so we exceed the memory limit by allocating that
     many ints::
 
-        >>> A = [0] * 2**26
+        >>> A = [0] * 2**28
         >>> limit.check()
         False
 
