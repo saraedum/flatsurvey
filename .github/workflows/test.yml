@@ -9,12 +9,7 @@ concurrency:
 
 jobs:
   test-flatsurvey:
-    runs-on: ${{ matrix.on }}
-    strategy:
-      matrix:
-        include:
-          - on: ubuntu-20.04
-            python: "3.9"
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v2
         with: { submodules: recursive }
