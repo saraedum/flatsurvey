@@ -60,6 +60,7 @@ class Limit:
     r"""
     Abstract base class for a limited resource that can be checked.
     """
+
     def __init__(self, limit):
         self._limit = limit
 
@@ -89,6 +90,7 @@ class LimitChecker:
 
     This can only be used in an ``async`` environment.
     """
+
     def __init__(self, limit, callback, period=30):
         self._limit = limit
         self._callback = callback
@@ -126,6 +128,7 @@ class LimitChecker:
                     self.stop()
 
                 import asyncio
+
                 await asyncio.sleep(self._period)
         except Exception as e:
             import traceback
@@ -139,6 +142,7 @@ class TimeLimit(Limit):
     r"""
     A wall time limit.
     """
+
     def __init__(self, limit):
         super().__init__(limit)
 
@@ -217,6 +221,7 @@ class MemoryLimit(Limit):
         False
 
     """
+
     @staticmethod
     def parse_limit(limit):
         import psutil
