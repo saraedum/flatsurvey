@@ -215,9 +215,7 @@ class Json(Reporter, Command):
 
 class JsonBindingSpec(BindingSpec):
     r"""
-    A picklable version of a FactoryBindingSpec().
-
-    ...
+    A picklable version of a ``FactoryBindingSpec``.
     """
     scope = "DEFAULT"
     name = "json"

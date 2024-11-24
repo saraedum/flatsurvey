@@ -197,8 +197,6 @@ class Log(Reporter, Command):
 class LogBindingSpec(BindingSpec):
     r"""
     A picklable version of a FactoryBindingSpec().
-
-    ...
     """
     scope = "DEFAULT"
     name = "log"
