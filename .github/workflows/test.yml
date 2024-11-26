@@ -12,27 +12,16 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v2
-        with: { submodules: recursive }
-      - uses: conda-incubator/setup-miniconda@v3
+      - uses: prefix-dev/setup-pixi@v0.8.1
         with:
-          environment-file: environment.yml
-          miniforge-version: latest
-      - name: install flatsurvey
-        shell: bash -el {0}
-        run: |
-          pip install -e .
-      - name: doctest
-        shell: bash -el {0}
-        run: |
-          # Make sure that initialization message does not show up in doctest output.
-          python -c 'import cppyy'
-          pytest -n auto -x --doctest-modules flatsurvey
+          pixi-version: v0.28.2
+      - run: pixi run test
       - name: run survey
-        shell: bash -el {0}
+        shell: pixi run bash -e {0}
         run: |
           flatsurvey orbit-closure ngons --vertices 3 --limit 7 json
       - name: build cache database from previous run
-        shell: bash -el {0}
+        shell: pixi run bash -e {0}
         run: |
           # Shrink cache files by externalizing the referenced surfaces.
           mkdir -p pickles
@@ -43,7 +32,7 @@ jobs:
 
           cat orbit-closure.json
       - name: run survey from cache
-        shell: bash -el {0}
+        shell: pixi run bash -e {0}
         run: |
           # The survey succeeds with the cache enabled.
           flatsurvey orbit-closure ngons --vertices 3 --limit 7 local-cache --json orbit-closure.json log

@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flatsurvey"
+version = "0.1.0"
+readme = "README.md"
+license = { file = "LICENSE" }
+dependencies = ["datasize", "pinject", "click", "dask", "humanfriendly", "more-itertools", "orjson", "ruamel.yaml", "sage-flatsurf"]
+
+[project.scripts]
+flatsurvey = "flatsurvey.survey:survey"
+flatsurvey-worker = "flatsurvey.worker.worker:worker"
+flatsurvey-maintenance = "flatsurvey.cache.maintenance:cli"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["flatsurvey", "flatsurvey.*"]
+
+[tool.pixi.project]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tool.pixi.dependencies]
+black = "*"
+click = "*"
+dask = "*"
+humanfriendly = "*"
+isort = "*"
+more-itertools = "*"
+orjson = "*"
+pip = "*"
+psutil = "*"
+pyflatsurf = "*"
+pyintervalxt = "*"
+pylint = "*"
+pytest = "*"
+pytest-xdist = "*"
+python-dateutil = "*"
+rich = "*"
+"ruamel.yaml" = "*"
+sage-flatsurf = ">=0.6.0"
+
+[tool.pixi.pypi-dependencies]
+flatsurvey = { path = ".", editable = true }
+
+[tool.pixi.tasks.test]
+cmd = "pytest -n $(nproc) --doctest-modules flatsurvey"
