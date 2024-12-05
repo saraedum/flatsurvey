@@ -83,6 +83,8 @@ class Scheduler:
             n_workers=8,
             nthreads=1,
             preload="flatsurvey.worker.dask",
+            # Disable the dask nanny, see module documentation of worker/dask.py
+            processes=False,
         )
 
     async def start(self):
@@ -230,6 +232,7 @@ class Scheduler:
             from flatsurvey.worker.dask import DaskTask
 
             task = DaskTask(
+                repr=f"DaskTask(surface={surface!r}, goals=[{(", ".join(goal.__name__) for goal in goals)}])",
                 bindings=bindings, goals=self._goals, reporters=self._reporters
             )
 

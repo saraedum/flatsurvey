@@ -1678,7 +1678,7 @@ packages:
   name: flatsurvey
   version: 0.1.0
   path: .
-  sha256: 61e441ba9f45f518fc676b3639c5cac5b932cad44c2d44b7d1548e81efe34740
+  sha256: 7f4986f495efb1934e6a51a163f3eae161c29ccadd9b9c4240228fbf0666e997
   requires_dist:
   - datasize
   - pinject
