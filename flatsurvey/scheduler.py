@@ -57,10 +57,7 @@ class Scheduler:
         self._quiet = quiet
         self._debug = debug
 
-        # Likely much of the reporting infrastructure is currently broken and
-        # this should be replaced with something else. However, we are planning
-        # to fix this, once we encounter problems here.
-        self._report = self._enable_shared_bindings()
+        self._enable_shared_bindings()
 
     def __repr__(self):
         return "Scheduler"
@@ -100,67 +97,56 @@ class Scheduler:
 
         try:
             try:
-                with self._report.progress(
-                    self, activity="Survey", count=0, what="tasks queued"
-                ) as scheduling_progress:
-                    scheduling_progress(activity="running survey")
+                from flatsurvey.ui.progress import SurveyProgress
+                with SurveyProgress(activity="running survey") as progress:
+                    from more_itertools import roundrobin
 
-                    with scheduling_progress(
-                        "executing tasks",
-                        activity="executing tasks",
-                        count=0,
-                        what="tasks running",
-                    ) as execution_progress:
-                        from more_itertools import roundrobin
+                    surfaces = roundrobin(*self._generators)
 
-                        surfaces = roundrobin(*self._generators)
+                    pending = []
 
-                        pending = []
+                    async def schedule_one():
+                        scheduled = await self._schedule(
+                            pool,
+                            pending,
+                            surfaces,
+                            self._goals,
+                            progress
+                        )
+                        return scheduled
 
-                        async def schedule_one():
-                            return await self._schedule(
-                                pool,
-                                pending,
-                                surfaces,
-                                self._goals,
-                                scheduling_progress,
-                            )
+                    async def consume_one():
+                        completed = await self._consume(pool, pending)
+                        if completed:
+                            progress.completed()
+                        return completed
 
-                        async def consume_one():
-                            return await self._consume(pool, pending)
+                    # Fill the job queue with a base line of queue_limit many jobs.
+                    for _ in range(self._queue_limit):
+                        if not await schedule_one():
+                            break
 
-                        # Fill the job queue with a base line of queue_limit many jobs.
-                        for i in range(self._queue_limit):
-                            await schedule_one()
+                    try:
+                        # Wait for a result. For each result, schedule a new task.
+                        while await consume_one():
+                            if not await schedule_one():
+                                break
+                    except KeyboardInterrupt:
+                        # TODO: This does not work. The exception is not thrown here.
+                        print("stopped scheduling of new jobs as requested")
+                    else:
+                        print("all jobs have been scheduled")
+                    progress.set_activity("waiting for pending tasks")
 
-                        try:
-                            # Wait for a result. For each result, schedule a new task.
-                            while await consume_one():
-                                if not await schedule_one():
-                                    break
-                        except KeyboardInterrupt:
-                            # TODO: This does not work. The exception is not thrown here.
-                            print("keyboard interrupt")
-                            scheduling_progress(
-                                message="stopped scheduling of new jobs as requested",
-                                activity="waiting for pending tasks",
-                            )
-                        else:
-                            scheduling_progress(
-                                message="all jobs have been scheduled",
-                                activity="waiting for pending tasks",
-                            )
+                    try:
+                        # Wait for all pending tasks to finish.
+                        while await consume_one():
+                            pass
+                    except KeyboardInterrupt:
+                        print("not awaiting schedule jobs anymore as requested")
+                        raise
 
-                        try:
-                            # Wait for all pending tasks to finish.
-                            while await consume_one():
-                                pass
-                        except KeyboardInterrupt:
-                            execution_progress(
-                                message="not awaiting scheduled jobs anymore as requested",
-                                activity="waiting for pending tasks",
-                            )
-
+                    progress.set_activity("done")
             except Exception:
                 if self._debug:
                     import pdb
@@ -169,22 +155,10 @@ class Scheduler:
 
                 raise
         finally:
-            pool.close(0)
+            await pool.close(0)
 
     def _enable_shared_bindings(self):
         shared = [binding for binding in self._bindings if binding.scope == "SHARED"]
-
-        from flatsurvey.reporting.progress import Progress
-
-        reporters = [
-            reporter
-            for reporter in self._reporters
-            if reporter.name() == Progress.name()
-        ]
-
-        from flatsurvey.pipeline.util import ListBindingSpec
-
-        shared.append(ListBindingSpec("reporters", reporters))
 
         import pinject
 
@@ -208,11 +182,7 @@ class Scheduler:
 
         self._bindings = [share(binding) for binding in self._bindings]
 
-        from flatsurvey.pipeline.util import provide
-
-        return provide("report", objects)
-
-    async def _schedule(self, pool, pending, surfaces, goals, scheduling_progress):
+    async def _schedule(self, pool, pending, surfaces, goals, progress):
         while True:
             surface = next(surfaces, None)
 
@@ -236,6 +206,7 @@ class Scheduler:
                 bindings=bindings, goals=self._goals, reporters=self._reporters
             )
 
+            progress.queued()
             pending.append(pool.submit(task))
             return True
 

@@ -41,6 +41,7 @@ python-dateutil = "*"
 rich = "*"
 "ruamel.yaml" = "*"
 sage-flatsurf = ">=0.6.0"
+alive-progress = "*"
 
 [tool.pixi.pypi-dependencies]
 flatsurvey = { path = ".", editable = true }

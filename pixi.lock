@@ -9,6 +9,8 @@ environments:
       linux-64:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-2_gnu.tar.bz2
+      - conda: https://conda.anaconda.org/conda-forge/noarch/about-time-4.2.1-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/alive-progress-3.1.5-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/arpack-3.9.1-nompi_h77f6705_101.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/astroid-3.3.5-py312h7900ff3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/asttokens-2.4.1-pyhd8ed1ab_0.conda
@@ -101,6 +103,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gmp-6.3.0-hac33072_2.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/gmpxxyy-1.0.1-pyhd8ed1ab_0.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gmpy2-2.1.5-py312h7201bc8_2.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/grapheme-0.6.0-pyhd8ed1ab_0.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gsl-2.7-he838d99_0.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gxx-13.3.0-h9576a4e_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gxx_impl_linux-64-13.3.0-hdbfa832_1.conda
@@ -346,6 +349,42 @@ packages:
   purls: []
   size: 23621
   timestamp: 1650670423406
+- kind: conda
+  name: about-time
+  version: 4.2.1
+  build: pyhd8ed1ab_0
+  subdir: noarch
+  noarch: python
+  url: https://conda.anaconda.org/conda-forge/noarch/about-time-4.2.1-pyhd8ed1ab_0.conda
+  sha256: b8bcb7881ca3b23b6d05fba77a8163f022bfd03bfad14ad953a0f9e54346ff91
+  md5: 0db4f019c8bbef731fd060d4d596a042
+  depends:
+  - python >=3.7,<4.0
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/about-time?source=hash-mapping
+  size: 16059
+  timestamp: 1671605279528
+- kind: conda
+  name: alive-progress
+  version: 3.1.5
+  build: pyhd8ed1ab_0
+  subdir: noarch
+  noarch: python
+  url: https://conda.anaconda.org/conda-forge/noarch/alive-progress-3.1.5-pyhd8ed1ab_0.conda
+  sha256: e835b5a7c5718811f476d172516ebf1bbd2c5f55e61037b00de76825cade7799
+  md5: 67dbce8fddee2c4f532060cd1496edbb
+  depends:
+  - about-time 4.2.1
+  - grapheme 0.6.0
+  - python >=3.7,<4
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/alive-progress?source=hash-mapping
+  size: 66267
+  timestamp: 1699511024885
 - kind: conda
   name: arpack
   version: 3.9.1
@@ -1678,7 +1717,7 @@ packages:
   name: flatsurvey
   version: 0.1.0
   path: .
-  sha256: 7f4986f495efb1934e6a51a163f3eae161c29ccadd9b9c4240228fbf0666e997
+  sha256: 9903f0f98cfa39e9559991d776f8b0b077f1a33c89f9a0ed462f36a20d21463e
   requires_dist:
   - datasize
   - pinject
@@ -2153,6 +2192,23 @@ packages:
   - pkg:pypi/gmpy2?source=hash-mapping
   size: 211651
   timestamp: 1725379960923
+- kind: conda
+  name: grapheme
+  version: 0.6.0
+  build: pyhd8ed1ab_0
+  subdir: noarch
+  noarch: python
+  url: https://conda.anaconda.org/conda-forge/noarch/grapheme-0.6.0-pyhd8ed1ab_0.tar.bz2
+  sha256: 65ea01dd38cf54f135ce1626779c9868a5ba51c1cb1fdc7b70565735d3a7e9ec
+  md5: 65fe83139218a6b39c2e05d6f5b383f5
+  depends:
+  - python >=3.6
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/grapheme?source=hash-mapping
+  size: 143936
+  timestamp: 1663233094626
 - kind: conda
   name: gsl
   version: '2.7'
