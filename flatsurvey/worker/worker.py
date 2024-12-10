@@ -43,10 +43,9 @@ TESTS::
                                       connections irrespective of scaling and sign.
       saddle-connections              Saddle connections on the surface.
     Reports:
-      json      Writes results in JSON format.
-      log       Writes progress and results as an unstructured log file.
-      progress  Reports progress on the command line.
-      report    Generic reporting of results.
+      json    Writes results in JSON format.
+      log     Writes progress and results as an unstructured log file.
+      report  Generic reporting of results.
     Surfaces:
       ngon            Unfolding of an n-gon with prescribed angles.
       pickle          A base64 encoded pickle.

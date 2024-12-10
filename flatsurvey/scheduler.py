@@ -13,7 +13,11 @@ We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
     >>> from flatsurvey.jobs import OrbitClosure
 
     >>> scheduler = Scheduler(generators=[ngons], goals=[OrbitClosure], bindings=[], reporters=[])
-    >>> await scheduler.start()
+
+    >>> import asyncio
+    >>> asyncio.run(scheduler.start())  # random progress output
+    on ...: all jobs have been scheduled
+    done ...
 
 """
 # *********************************************************************
@@ -72,7 +76,7 @@ class Scheduler:
     EXAMPLES::
 
     >>> Scheduler(generators=[], goals=[])
-    Scheduler
+    Scheduler(…)
 
     """
 
@@ -142,7 +146,9 @@ class Scheduler:
 
         >>> import asyncio
         >>> scheduler = Scheduler(generators=[], bindings=[], goals=[], reporters=[])
-        >>> asyncio.run(scheduler.start())
+        >>> asyncio.run(scheduler.start())  # random progress output
+        on ...: all jobs have been scheduled
+        done ...
 
         """
         pool = await self._create_pool()
@@ -210,7 +216,7 @@ class Scheduler:
             # Terminate all workers immediately if we crash out of this code
             # block. (If we terminated normally, then there's nothing we have
             # to wait for.
-            pool.close(0)
+            await pool.close(0) # pyright: ignore[reportGeneralTypeIssues]
 
     def _enable_shared_bindings(self):
         shared = [binding for binding in self._bindings if binding.scope == "SHARED"]

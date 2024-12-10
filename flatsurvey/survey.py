@@ -19,7 +19,6 @@ TESTS::
       --debug
       --help               Show this message and exit.
       --scheduler TEXT
-      -N, --dry-run        Do not spawn any workers.
       -q, --queue INTEGER  Jobs to prepare in the background for scheduling.
       -v, --verbose        Enable verbose message, repeat for debug message.
     <BLANKLINE>
@@ -49,10 +48,9 @@ TESTS::
       saddle-connections              Saddle connections on the surface.
     <BLANKLINE>
     Reports:
-      json      Writes results in JSON format.
-      log       Writes progress and results as an unstructured log file.
-      progress  Reports progress on the command line.
-      report    Generic reporting of results.
+      json    Writes results in JSON format.
+      log     Writes progress and results as an unstructured log file.
+      report  Generic reporting of results.
     <BLANKLINE>
     Surfaces:
       ngons           The translation surfaces that come from unfolding n-gons.
@@ -93,7 +91,6 @@ from flatsurvey.ui.group import CommandWithGroups
     cls=CommandWithGroups,
     help="Run a survey on the `objects` until all the `goals` are reached.",
 )
-@click.option("--dry-run", "-N", is_flag=True, help="Do not spawn any workers.")
 @click.option("--debug", is_flag=True)
 @click.option(
     "--queue",
@@ -113,13 +110,11 @@ from flatsurvey.ui.group import CommandWithGroups
     default=None,
     type=str,
 )
-def survey(dry_run, debug, queue, verbose, scheduler):
+def survey(debug, queue, verbose, scheduler):
     r"""
     Main command, runs a survey; specific survey objects and goals are
     registered automatically as subcommands.
     """
-    # For technical reasons, dry_run needs to be a parameter here. It is consumed by process() below.
-    _ = dry_run
     # For technical reasons, debug needs to be a parameter here. It is consumed by process() below.
     _ = debug
     # For technical reasons, queue needs to be a parameter here. It is consumed by process() below.
@@ -143,7 +138,7 @@ for commands in [
 
 @survey.result_callback()
 def process(
-    subcommands, dry_run=False, debug=False, queue=128, verbose=0, scheduler=None
+    subcommands, debug=False, queue=128, verbose=0, scheduler=None
 ):
     r"""
     Run the specified subcommands of ``survey``.
@@ -153,7 +148,9 @@ def process(
     We start an orbit-closure computation for a single triangle::
 
         >>> from flatsurvey.test.cli import invoke
-        >>> invoke(survey, "ngons", "-n", "3", "--limit=3", "--literature=include", "orbit-closure")
+        >>> invoke(survey, "ngons", "-n", "3", "--limit=3", "--literature=include", "orbit-closure")  # random progress output
+        on ...: all jobs have been scheduled
+        done ...
 
     """
     if debug:
@@ -195,7 +192,6 @@ def process(
                     goals=goals,
                     reporters=reporters,
                     queue=queue,
-                    dry_run=dry_run,
                     debug=debug,
                     scheduler=scheduler,
                 ).start()
