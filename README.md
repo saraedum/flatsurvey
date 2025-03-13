@@ -24,7 +24,7 @@ flatsurvey-maintenance join surveyname/*.json
 And then use that JSON file as a database for the next run:
 
 ```
-nice flatsurvey ngons --vertices 3 ngons --vertices 4 ngons --vertices 5 orbit-closure --deform local-cach --json orbit_closure.json json --prefix=./surveyname
+nice flatsurvey ngons --vertices 3 ngons --vertices 4 ngons --vertices 5 orbit-closure --deform local-cache --json orbit-closure.json json --prefix=./surveyname
 ```
 
 # Run Surveys in a Cluster
