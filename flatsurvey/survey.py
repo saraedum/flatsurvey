@@ -18,7 +18,7 @@ TESTS::
     Options:
       --debug
       --help               Show this message and exit.
-      --scheduler TEXT
+      --scheduler TEXT     Path to a dask scheduler file
       -q, --queue INTEGER  Jobs to prepare in the background for scheduling.
       -v, --verbose        Enable verbose message, repeat for debug message.
     <BLANKLINE>
@@ -109,6 +109,7 @@ from flatsurvey.ui.group import CommandWithGroups
     "--scheduler",
     default=None,
     type=str,
+    help="Path to a dask scheduler file",
 )
 def survey(debug, queue, verbose, scheduler):
     r"""
@@ -166,18 +167,12 @@ def process(
         logger.setLevel(logging.DEBUG if verbose > 1 else logging.INFO)
 
     try:
-        surface_generators = []
-        goals = []
-        reporters = []
-        bindings = []
+        from flatsurvey.pipeline import Pipeline
+
+        pipeline = Pipeline()
 
         for subcommand in subcommands:
-            if isinstance(subcommand, dict):
-                goals.extend(subcommand.get("goals", []))
-                reporters.extend(subcommand.get("reporters", []))
-                bindings.extend(subcommand.get("bindings", []))
-            else:
-                surface_generators.append(subcommand)
+            subcommand(pipeline)
 
         import asyncio
         import sys
@@ -187,13 +182,10 @@ def process(
         sys.exit(
             asyncio.new_event_loop().run_until_complete(
                 Scheduler(
-                    surface_generators,
-                    bindings=bindings,
-                    goals=goals,
-                    reporters=reporters,
-                    queue=queue,
+                    survey_pipeline=pipeline,
+                    queue_limit=queue,
                     debug=debug,
-                    scheduler=scheduler,
+                    scheduler_json=scheduler,
                 ).start()
             )
         )

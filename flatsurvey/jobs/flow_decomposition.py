@@ -45,8 +45,10 @@ from pinject import copy_args_to_internal_fields
 
 from flatsurvey.command import Command
 from flatsurvey.pipeline import Processor
-from flatsurvey.pipeline.util import PartialBindingSpec
 from flatsurvey.ui.group import GroupedCommand
+from flatsurvey.surfaces import Surface
+from flatsurvey.jobs.saddle_connection_orientations import SaddleConnectionOrientations
+from flatsurvey.reporting.report import Report
 
 
 class FlowDecompositions(Processor, Command):
@@ -66,9 +68,18 @@ class FlowDecompositions(Processor, Command):
 
     @copy_args_to_internal_fields
     def __init__(
-        self, surface, saddle_connection_orientations, report=None, limit=DEFAULT_LIMIT
+        self, surface: Surface, saddle_connection_orientations: SaddleConnectionOrientations, report=None, limit=DEFAULT_LIMIT
     ):
         super().__init__(producers=[saddle_connection_orientations], report=report)
+
+    @staticmethod
+    def create(pipeline):
+        return FlowDecompositions(
+            surface=pipeline.get(Surface),
+            saddle_connection_orientations=pipeline.get(SaddleConnectionOrientations),
+            report=pipeline.get(Report),
+            limit=pipeline.get("limit", default=lambda: FlowDecompositions.DEFAULT_LIMIT, scope=FlowDecompositions)
+        )
 
     @classmethod
     @click.command(

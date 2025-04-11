@@ -246,6 +246,7 @@ class MemoryLimit(Limit):
     def memory():
         import os
 
+        # TODO: Use child pid.
         pid = os.getpid()
 
         smap = f"/proc/{pid}/smaps"

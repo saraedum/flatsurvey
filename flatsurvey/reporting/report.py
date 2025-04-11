@@ -34,9 +34,11 @@ EXAMPLES::
 
 import click
 
+from typing import List
+
 from flatsurvey.command import Command
-from flatsurvey.pipeline.util import PartialBindingSpec
 from flatsurvey.ui.group import GroupedCommand
+from flatsurvey.reporting.reporter import Reporter
 
 
 class Report(Command):
@@ -51,11 +53,20 @@ class Report(Command):
         >>> report.log(report, "invisible message because no reporter has been registered")
 
     """
-
-    def __init__(self, reporters, ignore=None):
+    def __init__(self, reporters: List[Reporter], ignore=None):
         self._reporters = reporters
         self._reported = set()
         self._ignore = ignore or []
+
+    @staticmethod
+    def create(pipeline):
+        from flatsurvey.surfaces.surface import Surface
+        from flatsurvey.reporting.log import Log
+
+        return Report(
+            reporters=pipeline.get("reporters", scope=Report, default=lambda: [Log(surface=pipeline.get(Surface))]),
+            ignore=pipeline.get("ignore", scope=Report, default=lambda: []),
+        )
 
     @classmethod
     @click.command(
@@ -184,10 +195,6 @@ class Report(Command):
 
         return token
 
-    @classmethod
-    def bindings(cls, ignore):
-        return [PartialBindingSpec(Report, scope="SHARED")(ignore=ignore)]
-
     def ignore(self, source):
         if type(source).__name__ in self._ignore:
             return True
@@ -197,6 +204,7 @@ class Report(Command):
         return False
 
     def deform(self, deformation):
+        # TODO: Get rid of deform?
         return {"bindings": Report.bindings(ignore=self._ignore)}
 
     def flush(self):

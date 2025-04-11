@@ -38,9 +38,10 @@ import click
 from pinject import BindingSpec, copy_args_to_internal_fields
 
 from flatsurvey.command import Command
-from flatsurvey.pipeline.util import FactoryBindingSpec
+from flatsurvey.pipeline import Pipeline
 from flatsurvey.reporting.reporter import Reporter
 from flatsurvey.ui.group import GroupedCommand
+from flatsurvey.surfaces import Surface
 
 
 class Json(Reporter, Command):
@@ -58,7 +59,7 @@ class Json(Reporter, Command):
     """
 
     @copy_args_to_internal_fields
-    def __init__(self, surface, output="-", pickles=False):
+    def __init__(self, surface: Surface, output="-", pickles=False):
         super().__init__()
 
         self._data = {"surface": surface}
@@ -82,15 +83,22 @@ class Json(Reporter, Command):
         default=None,
     )
     @click.option("--pickles/--no-pickles", default=False)
-    def click(output, prefix, pickles):
-        return {
-            "bindings": Json.bindings(output=output, prefix=prefix, pickles=pickles),
-            "reporters": [Json],
-        }
+    @Pipeline.click
+    def click(pipeline: Pipeline, output, prefix, pickles):
+        pipeline.append("reporters", Json)
+        pipeline.bind(Json.create, output=output, prefix=prefix, pickles=pickles)
 
-    @classmethod
-    def bindings(cls, output, prefix=None, pickles=False):
-        return [JsonBindingSpec(output=output, prefix=prefix, pickles=pickles)]
+    # TODO: Do we really need this?
+    @staticmethod
+    def create(surface: Surface, output, prefix, pickles):
+        if output is None:
+            prefix = prefix or "."
+
+            import os.path
+
+            output = os.path.join(prefix, f"{surface.basename()}.json")
+
+        return Json(surface, output=output, pickles=pickles)
 
     def deform(self, deformation):
         from flatsurvey.pipeline.util import FactoryBindingSpec
@@ -211,28 +219,3 @@ class Json(Reporter, Command):
         ) as stream:
             stream.write(json.dumps(self._data, default=self._serialize_to_pickle))
             stream.flush()
-
-
-class JsonBindingSpec(BindingSpec):
-    r"""
-    A picklable version of a ``FactoryBindingSpec``.
-    """
-    scope = "DEFAULT"
-    name = "json"
-
-    def __init__(self, output, prefix, pickles):
-        self._output = output
-        self._prefix = prefix
-        self._pickles = pickles
-
-    def provide_json(self, surface):
-        if self._output is not None:
-            output = self._output
-        else:
-            prefix = self._prefix or "."
-
-            import os.path
-
-            output = os.path.join(prefix, f"{surface.basename()}.json")
-
-        return Json(surface, output=output, pickles=self._pickles)

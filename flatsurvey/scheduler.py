@@ -41,6 +41,11 @@ We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
 
 import logging
 
+from typing import Iterator
+
+from flatsurvey.pipeline import Pipeline
+from flatsurvey.surfaces import Surface
+
 
 class Scheduler:
     r"""
@@ -82,23 +87,15 @@ class Scheduler:
 
     def __init__(
         self,
-        generators,
-        goals,
-        reporters=(),
-        bindings=(),
-        scheduler=None,
-        queue=None,
+        survey_pipeline: Pipeline,
+        scheduler_json=None,
+        queue_limit=None,
         debug=False,
     ):
-        self._generators = list(generators)
-        self._bindings = list(bindings)
-        self._goals = goals
-        self._reporters = reporters
-        self._scheduler = scheduler
-        self._queue_limit = queue
+        self._survey_pipeline = survey_pipeline
+        self._scheduler_json = scheduler_json
+        self._queue_limit = queue_limit
         self._debug = debug
-
-        self._enable_shared_bindings()
 
     def __repr__(self):
         return "Scheduler(…)"
@@ -119,7 +116,7 @@ class Scheduler:
         from multiprocessing import cpu_count
 
         return await dask.distributed.Client(
-            scheduler_file=self._scheduler,
+            scheduler_file=self._scheduler_json,
             direct_to_workers=True,
             # Connections are not very expensive but this number should be big
             # enough so that we can communicate with all workers in large
@@ -158,23 +155,21 @@ class Scheduler:
                 from flatsurvey.ui.progress import SurveyProgress
                 with SurveyProgress(activity="running survey") as progress:
                     from more_itertools import roundrobin
-
-                    surfaces = roundrobin(*self._generators)
+                    surfaces = roundrobin(*self._survey_pipeline.get("surfaces"))
 
                     pending = []
 
                     async def schedule_one():
-                        scheduled = await self._schedule(
-                            pool,
-                            pending,
-                            surfaces,
-                            self._goals,
-                            progress
+                        scheduled = await self._schedule_one(
+                            pool=pool,
+                            pending=pending,
+                            surfaces=surfaces,
+                            progress=progress,
                         )
                         return scheduled
 
                     async def consume_one():
-                        completed = await self._consume(pool, pending)
+                        completed = await self._consume(pending=pending)
                         if completed:
                             progress.completed()
                         return completed
@@ -218,60 +213,48 @@ class Scheduler:
             # to wait for.
             await pool.close(0) # pyright: ignore[reportGeneralTypeIssues]
 
-    def _enable_shared_bindings(self):
-        shared = [binding for binding in self._bindings if binding.scope == "SHARED"]
+    async def _schedule_one(self, *, pool, pending, surfaces: Iterator[Surface], progress):
+        r"""
+        Enqueue another surface for computation on a worker.
 
-        import pinject
+        Return whether there was another surface, i.e., ``False`` iff all surfaces have been scheduled already.
 
-        import flatsurvey.reporting.report
+        This will skip over surfaces that can be resolved from cached data.
 
-        objects = pinject.new_object_graph(
-            modules=[flatsurvey.reporting.report], binding_specs=shared
-        )
-
-        def share(binding):
-            if binding.scope == "SHARED":
-                from flatsurvey.pipeline.util import provide
-
-                object = provide(binding.name, objects)
-
-                from flatsurvey.pipeline.util import FactoryBindingSpec
-
-                return FactoryBindingSpec(lambda: object, binding.name)
-
-            return binding
-
-        self._bindings = [share(binding) for binding in self._bindings]
-
-    async def _schedule(self, pool, pending, surfaces, goals, progress):
+        This is a helper method for :meth:`start`.
+        """
         while True:
             surface = next(surfaces, None)
 
-            if surface is None:
+            if surfaces is None:
                 return False
 
-            if await self._resolve_goals_from_cache(surface, self._goals):
+            pipeline = self._survey_pipeline.clone()
+            pipeline.forget("surfaces")
+            pipeline.define(Surface, surface)
+
+            cached = await self._resolve_from_cache(pipeline)
+
+            assert surface._surface.cache is None, "to prevent memory leaks, surface must not be created to resolve caches"
+
+            if cached:
                 # Everything could be answered from cached data. Proceed to next surface.
                 continue
 
-            bindings = list(self._bindings)
-            bindings = [
-                binding for binding in bindings if not hasattr(binding, "provide_cache")
-            ]
-            bindings.append(SurfaceBindingSpec(surface))
+            pipeline = pipeline.clone()
 
             from flatsurvey.worker.dask import DaskTask
 
             task = DaskTask(
-                repr=f"DaskTask(surface={surface!r}, goals=[{(", ".join(goal.__name__) for goal in goals)}])",
-                bindings=bindings, goals=self._goals, reporters=self._reporters
+                repr=f"DaskTask(surface={surface!r}, goals={pipeline.describe("goals")})",
+                pipeline=pipeline
             )
 
             progress.queued()
             pending.append(pool.submit(task))
             return True
 
-    async def _consume(self, pool, pending):
+    async def _consume(self, pending):
         import dask.distributed
 
         completed, still_pending = await dask.distributed.wait(
@@ -286,65 +269,24 @@ class Scheduler:
 
         for job in completed:
             try:
-                await job
+                result = await job
+                assert not isinstance(result, Exception)
             except Exception as e:
                 logging.error(f"Task crashed with {e}. Skipping.")
 
         return True
 
-    async def _resolve_goals_from_cache(self, surface, goals):
+    async def _resolve_from_cache(self, pipeline):
         r"""
         Return whether all ``goals`` could be resolved from cached data.
+
+        This is a helper method for :meth:`_schedule_one`.
         """
-        bindings = list(self._bindings)
-
-        from flatsurvey.pipeline.util import FactoryBindingSpec, ListBindingSpec
-
-        bindings.append(FactoryBindingSpec(lambda: surface, "surface"))
-        bindings.append(ListBindingSpec("goals", goals))
-        bindings.append(ListBindingSpec("reporters", self._reporters))
-
-        from random import randint
-
-        bindings.append(FactoryBindingSpec(lambda: randint(0, 2**64), "lot"))
-
-        import pinject
-
-        import flatsurvey.cache
-        import flatsurvey.jobs
-        import flatsurvey.reporting
-        import flatsurvey.surfaces
-
-        objects = pinject.new_object_graph(
-            modules=[
-                flatsurvey.reporting,
-                flatsurvey.surfaces,
-                flatsurvey.jobs,
-                flatsurvey.cache,
-            ],
-            binding_specs=bindings,
-        )
-
-        class Goals:
-            def __init__(self, goals):
-                self._goals = goals
-
-        goals = [goal for goal in objects.provide(Goals)._goals]
+        goals = pipeline.get("goals")
 
         for goal in goals:
             await goal.consume_cache()
 
-        goals = [goal for goal in goals if goal._resolved != goal.COMPLETED]
+        pending_goals = [goal for goal in goals if goal._resolved != goal.COMPLETED]
 
-        return not goals
-
-
-import pinject
-
-
-class SurfaceBindingSpec(pinject.BindingSpec):
-    def __init__(self, surface):
-        self._surface = surface
-
-    def provide_surface(self):
-        return self._surface
+        return not pending_goals

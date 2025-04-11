@@ -38,8 +38,9 @@ from pinject import copy_args_to_internal_fields
 
 from flatsurvey.command import Command
 from flatsurvey.pipeline import Producer
-from flatsurvey.pipeline.util import PartialBindingSpec
 from flatsurvey.ui.group import GroupedCommand
+from flatsurvey.surfaces import Surface
+from flatsurvey.reporting import Report
 
 
 class SaddleConnections(Producer, Command):
@@ -50,7 +51,7 @@ class SaddleConnections(Producer, Command):
     DEFAULT_LIMIT = None
 
     @copy_args_to_internal_fields
-    def __init__(self, surface, report, limit=DEFAULT_LIMIT, bound=DEFAULT_BOUND):
+    def __init__(self, surface: Surface, report: Report, limit=DEFAULT_LIMIT, bound=DEFAULT_BOUND):
         super().__init__(report=report)
 
         self._connections = None
@@ -63,6 +64,15 @@ class SaddleConnections(Producer, Command):
             defaults=dict(
                 count=0, what="connections", activity="enumerating saddle connections"
             ),
+        )
+
+    @staticmethod
+    def create(pipeline):
+        return SaddleConnections(
+            surface=pipeline.get(Surface),
+            report=pipeline.get(Report),
+            limit=pipeline.get("limit", default=lambda: SaddleConnections.DEFAULT_LIMIT, scope=SaddleConnections),
+            bound=pipeline.get("bound", default=lambda: SaddleConnections.DEFAULT_BOUND, scope=SaddleConnections),
         )
 
     def _by_length(self):

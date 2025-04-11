@@ -62,7 +62,7 @@ EXAMPLES::
 import click
 from sage.misc.cachefunc import cached_method
 
-from flatsurvey.pipeline.util import PartialBindingSpec
+from flatsurvey.pipeline import Pipeline
 from flatsurvey.surfaces.surface import Surface
 from flatsurvey.ui.group import GroupedCommand
 
@@ -82,13 +82,10 @@ class Ngon(Surface):
 
     """
 
-    def __init__(self, angles, length=None, polygon=None):
+    def __init__(self, angles, length="e-antic", polygon=None):
         super().__init__()
 
         self.angles = list(angles)
-
-        if length is None:
-            length = "e-antic"
 
         self.length = length
 
@@ -632,8 +629,84 @@ class Ngons:
         [Ngon([1, 1, 1]), Ngon([1, 2, 12]), Ngon([1, 1, 2])]
 
     """
+    def __init__(self, vertices, length, min, limit, count, literature, family, filter):
+        self._vertices = vertices
+        self._length = length or "e-antic"
+        self._min = min
+        self._limit = limit
+        self._count = count
+        self._literature = literature
+        self._family = family
+        self._filter = filter
 
-    @classmethod
+    def __iter__(self):
+        count = self._count
+
+        filter = self._filter
+        if filter is not None:
+            if not callable(filter):
+                filter = eval(filter, {})
+
+        import itertools
+
+        for n in itertools.count(start=self._min):
+            if self._limit is not None and n > self._limit:
+                break
+
+            if self._family:
+                pool = eval(self._family, {"n": n})
+                if not isinstance(pool, list):
+                    pool = [pool]
+            else:
+                total_angle = n
+                pool = partitions(total_angle, self._vertices)
+
+            for angles in pool:
+                if any(a <= 0 for a in angles):
+                    continue
+
+                if any(a >= 2 * sum(angles) / (len(angles) - 2) for a in angles):
+                    # angles contains an angle of 2π (or more.)
+                    continue
+
+                if any(a == sum(angles) / (len(angles) - 2) for a in angles):
+                    # an angle is π
+                    continue
+
+                from sage.all import gcd
+
+                if gcd(angles) != 1:
+                    continue
+
+                if filter is not None:
+                    if not filter(*angles):
+                        continue
+
+                ngon = Ngon(angles, length=self._length)
+
+                if self._literature == "include":
+                    pass
+                elif self._literature == "exclude":
+                    if ngon.reference():
+                        continue
+                elif self._literature == "only":
+                    reference = ngon.reference()
+                    if reference is None or reference in [
+                        "not admissible",
+                        "reducible",
+                    ]:
+                        continue
+                else:
+                    raise NotImplementedError("Unsupported literature value")
+
+                if count is not None:
+                    if count <= 0:
+                        return
+                    count -= 1
+
+                yield ngon
+
+    @staticmethod
     @click.command(
         name="ngons",
         cls=GroupedCommand,
@@ -683,72 +756,9 @@ class Ngons:
         default=None,
         help="only produce the n-gons which satisfy this lambda expression, e.g., 'lambda a, b, c: (a + b + c) % 2 == 0'",
     )
-    def click(vertices, length, min, limit, count, literature, family, filter):
-        if length is None:
-            length = "e-antic"
-
-        if filter is not None:
-            if not callable(filter):
-                filter = eval(filter, {})
-
-        import itertools
-
-        for n in itertools.count(start=min):
-            if limit is not None and n > limit:
-                break
-
-            if family:
-                pool = eval(family, {"n": n})
-                if not isinstance(pool, list):
-                    pool = [pool]
-            else:
-                total_angle = n
-                pool = partitions(total_angle, vertices)
-
-            for angles in pool:
-                if any(a <= 0 for a in angles):
-                    continue
-
-                if any(a >= 2 * sum(angles) / (len(angles) - 2) for a in angles):
-                    # angles contains an angle of 2π (or more.)
-                    continue
-
-                if any(a == sum(angles) / (len(angles) - 2) for a in angles):
-                    # an angle is π
-                    continue
-
-                from sage.all import gcd
-
-                if gcd(angles) != 1:
-                    continue
-
-                if filter is not None:
-                    if not filter(*angles):
-                        continue
-
-                ngon = Ngon(angles, length=length)
-
-                if literature == "include":
-                    pass
-                elif literature == "exclude":
-                    if ngon.reference():
-                        continue
-                elif literature == "only":
-                    reference = ngon.reference()
-                    if reference is None or reference in [
-                        "not admissible",
-                        "reducible",
-                    ]:
-                        continue
-                else:
-                    raise NotImplementedError("Unsupported literature value")
-
-                if count is not None:
-                    if count <= 0:
-                        return
-                    count -= 1
-
-                yield ngon
+    @Pipeline.click
+    def click(pipeline: Pipeline, vertices, length, min, limit, count, literature, family, filter):
+        pipeline.append("surfaces", Ngons(vertices=vertices, length=length, min=min, limit=limit, count=count, literature=literature, family=family, filter=filter))
 
 
 def rotations(partition):

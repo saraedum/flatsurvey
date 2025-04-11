@@ -56,8 +56,13 @@ from pinject import copy_args_to_internal_fields
 
 from flatsurvey.command import Command
 from flatsurvey.pipeline import Goal
-from flatsurvey.pipeline.util import PartialBindingSpec
+from flatsurvey.pipeline import Pipeline
 from flatsurvey.ui.group import GroupedCommand
+from flatsurvey.cache import Cache
+from flatsurvey.surfaces import Surface
+from flatsurvey.reporting import Report
+from flatsurvey.jobs.flow_decomposition import FlowDecompositions
+from flatsurvey.jobs.saddle_connections import SaddleConnections
 
 
 class OrbitClosure(Goal, Command):
@@ -82,11 +87,11 @@ class OrbitClosure(Goal, Command):
     @copy_args_to_internal_fields
     def __init__(
         self,
-        surface,
-        report,
-        flow_decompositions,
-        saddle_connections,
-        cache,
+        surface: Surface,
+        report: Report,
+        flow_decompositions: FlowDecompositions,
+        saddle_connections: SaddleConnections,
+        cache: Cache,
         stale_limit=DEFAULT_STALE_LIMIT,
         expansions_limit=DEFAULT_EXPANSIONS_LIMIT,
         deform=DEFAULT_DEFORM,
@@ -107,12 +112,26 @@ class OrbitClosure(Goal, Command):
 
         import pyflatsurf
 
-        self._lower_bound = pyflatsurf.flatsurf.Bound(0)
-        self._upper_bound = pyflatsurf.flatsurf.Bound(0)
+        self._lower_bound = 0
+        self._upper_bound = 0
 
         from flatsurvey.reporting.report import ProgressReporting
 
         self._progress = ProgressReporting(self._report, self)
+
+    @staticmethod
+    def create(pipeline):
+        return OrbitClosure(
+            surface=pipeline.get(Surface),
+            report=pipeline.get(Report),
+            flow_decompositions=pipeline.get(FlowDecompositions),
+            saddle_connections=pipeline.get(SaddleConnections),
+            cache=pipeline.get(Cache),
+            stale_limit=pipeline.get("stale_limit", OrbitClosure.DEFAULT_STALE_LIMIT, scope=OrbitClosure),
+            expansions_limit=pipeline.get("expansions_limit", OrbitClosure.DEFAULT_EXPANSIONS_LIMIT, scope=OrbitClosure),
+            deform=pipeline.get("deform", OrbitClosure.DEFAULT_DEFORM, scope=OrbitClosure),
+            cache_only=pipeline.get("cache_only", Goal.DEFAULT_CACHE_ONLY, scope=OrbitClosure),
+        )
 
     async def consume_cache(self):
         r"""
@@ -187,7 +206,7 @@ class OrbitClosure(Goal, Command):
             await self._report.result(self, result=None, dense=verdict, cached=True)
             self._resolved = Goal.COMPLETED
 
-    @classmethod
+    @staticmethod
     @click.command(
         name="orbit-closure",
         cls=GroupedCommand,
@@ -214,29 +233,19 @@ class OrbitClosure(Goal, Command):
         help="When set, we deform the input surface as soon as we found a third dimension in the tangent space and restart. This is often beneficial if the input surface has lots of symmetries and also when the Boshernitzan criterion can rarely be applied due to SAF=0.",
     )
     @Goal._cache_only_option
-    def click(stale_limit, expansions_limit, deform, cache_only):
-        return {
-            "goals": [OrbitClosure],
-            "bindings": OrbitClosure.bindings(
-                stale_limit=stale_limit,
-                expansions_limit=expansions_limit,
-                deform=deform,
-                cache_only=cache_only,
-            ),
-        }
-
-    @classmethod
-    def bindings(cls, stale_limit, expansions_limit, deform, cache_only):
-        return [
-            PartialBindingSpec(OrbitClosure)(
-                stale_limit=stale_limit,
-                expansions_limit=expansions_limit,
-                deform=deform,
-                cache_only=cache_only,
-            )
-        ]
+    @Pipeline.click
+    def click(pipeline: Pipeline, stale_limit, expansions_limit, deform, cache_only):
+        pipeline.append("goals", OrbitClosure)
+        pipeline.define(
+            scope=OrbitClosure,
+            stale_limit=stale_limit,
+            expansions_limit=expansions_limit,
+            deform=deform,
+            cache_only=cache_only,
+        )
 
     def deform(self, deformation):
+        # TODO: Can we get rid of this method somehow?
         return {
             "goals": [OrbitClosure],
             "bindings": OrbitClosure.bindings(

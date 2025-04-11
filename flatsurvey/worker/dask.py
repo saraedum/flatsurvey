@@ -94,6 +94,11 @@ forkserver = multiprocessing.get_context("forkserver")
 multiprocessing.set_forkserver_preload(["sage.all"])
 
 
+# Silence warnings from cppyy which is still relying on pkg_resources.
+import warnings
+warnings.filterwarnings('ignore', module='cppyy', message='pkg_resources is deprecated as an API')
+
+
 class DaskTask:
     r"""
     A task to execute on a dask worker.
@@ -156,6 +161,8 @@ class DaskTask:
         r"""
         Execute this task in the current worker and return the result.
 
+        TODO: Add an example that shows how exceptions are handled.
+
         EXAMPLES::
 
             >>> from flatsurvey.surfaces import Ngon
@@ -206,7 +213,12 @@ class DaskTask:
         """
         from pickle import loads
 
-        args, kwargs = loads(self._dump)
+        try:
+            args, kwargs = loads(self._dump)
+        except Exception as e:
+            import pickletools
+            raise ValueError(f"Failed to unpickle job: {pickletools.dis(self._dump)}") from e
+            
 
         assert "limits" not in kwargs, "limits is a reserved keyword that can only be set by the worker"
 
@@ -254,6 +266,7 @@ class DaskRunner:
         # parent dies.
         # For most workloads this does not seem to be necessary, and we might
         # want to change that at some point.
+        # TODO: What happens when _run raises an Exception? Add a test.
         process = forkserver.Process(target=DaskRunner._run, args=(self,), daemon=False, name=repr(self._task))
         process.start()
         try:
@@ -269,6 +282,8 @@ class DaskRunner:
             self._shutdown_sender.send("SHUTDOWN")
             self._shutdown_sender.close()
 
+            if isinstance(result, Exception):
+                raise result
             return result
         finally:
             process.kill()
@@ -290,8 +305,9 @@ class DaskRunner:
         try:
             try:
                 result = self._task.run()
-            except Exception as e:
-                result = e
+            except Exception:
+                import traceback
+                result = DaskRunnerException(traceback.format_exc())
 
             self._result_sender.send("DONE")
 
@@ -314,6 +330,10 @@ class DaskRunner:
         except:
             import sys
             sys.exit()
+
+
+class DaskRunnerException(Exception):
+    pass
 
 
 @click.command()

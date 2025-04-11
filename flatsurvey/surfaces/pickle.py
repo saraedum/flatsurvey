@@ -36,7 +36,6 @@ EXAMPLES::
 
 import click
 
-from flatsurvey.pipeline.util import FactoryBindingSpec
 from flatsurvey.ui.group import GroupedCommand
 
 

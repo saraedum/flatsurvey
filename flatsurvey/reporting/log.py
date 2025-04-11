@@ -37,7 +37,6 @@ import click
 from pinject import BindingSpec, copy_args_to_internal_fields
 
 from flatsurvey.command import Command
-from flatsurvey.pipeline.util import FactoryBindingSpec
 from flatsurvey.reporting.reporter import Reporter
 from flatsurvey.ui.group import GroupedCommand
 

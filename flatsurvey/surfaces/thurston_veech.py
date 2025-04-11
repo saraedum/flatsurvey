@@ -33,7 +33,6 @@ from collections import defaultdict
 import click
 from sage.misc.cachefunc import cached_method
 
-from flatsurvey.pipeline.util import PartialBindingSpec
 from flatsurvey.surfaces.surface import Surface
 from flatsurvey.ui.group import GroupedCommand
 
@@ -318,81 +317,84 @@ class ThurstonVeechs:
         show_default=True,
     )
     def click(stratum, component, nb_squares_limit, multiplicities_limit, literature):
-        from surface_dynamics import AbelianStratum
+        def surfaces():
+            from surface_dynamics import AbelianStratum
 
-        if not stratum.startswith("H(") or not stratum.endswith(")"):
-            raise click.UsageError("invalid stratum argument")
-        try:
-            H = AbelianStratum(*[int(x.strip()) for x in stratum[2:-1].split(",")])
-        except ValueError:
-            raise click.UsageError("invalid stratum argument")
+            if not stratum.startswith("H(") or not stratum.endswith(")"):
+                raise click.UsageError("invalid stratum argument")
+            try:
+                H = AbelianStratum(*[int(x.strip()) for x in stratum[2:-1].split(",")])
+            except ValueError:
+                raise click.UsageError("invalid stratum argument")
 
-        if component == "hyp" or component == "hyperelliptic":
-            H = H.hyperelliptic_component()
-        elif component == "nonhyp" or component == "non-hyperelliptic":
-            H = H.nonhyperelliptic_component()
-        elif component == "even":
-            H = H.even_component()
-        elif component == "odd":
-            H = H.odd_component()
-        elif component is not None:
-            raise click.UsageError("invalid component argument")
+            if component == "hyp" or component == "hyperelliptic":
+                H = H.hyperelliptic_component()
+            elif component == "nonhyp" or component == "non-hyperelliptic":
+                H = H.nonhyperelliptic_component()
+            elif component == "even":
+                H = H.even_component()
+            elif component == "odd":
+                H = H.odd_component()
+            elif component is not None:
+                raise click.UsageError("invalid component argument")
 
-        seen = set()
+            seen = set()
 
-        for c in H.cylinder_diagrams():
-            for n in range(c.smallest_integer_lengths()[0], nb_squares_limit):
-                for lh in c.widths_and_heights_iterator(n, height_one=True):
-                    for o0 in c.cylcoord_to_origami_iterator(*lh):
-                        o1 = o0.mirror()
-                        o2 = o0.vertical_symmetry()
-                        o3 = o0.horizontal_symmetry()
+            for c in H.cylinder_diagrams():
+                for n in range(c.smallest_integer_lengths()[0], nb_squares_limit):
+                    for lh in c.widths_and_heights_iterator(n, height_one=True):
+                        for o0 in c.cylcoord_to_origami_iterator(*lh):
+                            o1 = o0.mirror()
+                            o2 = o0.vertical_symmetry()
+                            o3 = o0.horizontal_symmetry()
 
-                        for o in [o0, o1, o2, o3]:
-                            o.relabel(inplace=True)
+                            for o in [o0, o1, o2, o3]:
+                                o.relabel(inplace=True)
 
-                        if o0 > o1 or o0 > o2 and o0 > o3:
-                            continue
-                        # TODO: in case of equality above, we will generate the
-                        # same origami twice.
+                            if o0 > o1 or o0 > o2 and o0 > o3:
+                                continue
+                            # TODO: in case of equality above, we will generate the
+                            # same origami twice.
 
-                        cd1 = o1.cylinder_decomposition()
-                        if any(h != 1 for _, _, _, h, _, _ in cd1):
-                            continue
+                            cd1 = o1.cylinder_decomposition()
+                            if any(h != 1 for _, _, _, h, _, _ in cd1):
+                                continue
 
-                        from sage.all import IntegerVectors
+                            from sage.all import IntegerVectors
 
-                        for mh in IntegerVectors(
-                            multiplicities_limit, c.ncyls(), min_part=1
-                        ):
-                            for mv in IntegerVectors(
-                                multiplicities_limit, len(cd1), min_part=1
+                            for mh in IntegerVectors(
+                                multiplicities_limit, c.ncyls(), min_part=1
                             ):
-                                tv = ThurstonVeech(o.r_tuple(), o.u_tuple(), mh, mv)
+                                for mv in IntegerVectors(
+                                    multiplicities_limit, len(cd1), min_part=1
+                                ):
+                                    tv = ThurstonVeech(o.r_tuple(), o.u_tuple(), mh, mv)
 
-                                if tv in seen:
-                                    # Skipping duplicate.
-                                    continue
-
-                                if literature == "include":
-                                    pass
-                                elif literature == "exclude":
-                                    if tv.reference():
+                                    if tv in seen:
+                                        # Skipping duplicate.
                                         continue
-                                elif literature == "only":
-                                    reference = tv.reference()
-                                    if (
-                                        reference is None
-                                        or "Translation covering" in reference
-                                    ):
-                                        continue
-                                else:
-                                    raise NotImplementedError(
-                                        "Unsupported literature value"
-                                    )
 
-                                seen.add(tv)
-                                yield tv
+                                    if literature == "include":
+                                        pass
+                                    elif literature == "exclude":
+                                        if tv.reference():
+                                            continue
+                                    elif literature == "only":
+                                        reference = tv.reference()
+                                        if (
+                                            reference is None
+                                            or "Translation covering" in reference
+                                        ):
+                                            continue
+                                    else:
+                                        raise NotImplementedError(
+                                            "Unsupported literature value"
+                                        )
+
+                                    seen.add(tv)
+                                    yield tv
+
+        return {"surfaces": [surfaces()]}
 
 
 __test__ = {

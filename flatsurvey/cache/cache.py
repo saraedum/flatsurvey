@@ -24,7 +24,7 @@ EXAMPLES::
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
-#        Copyright (C) 2020-2022 Julian Rüth
+#        Copyright (C) 2020-2025 Julian Rüth
 #
 #  flatsurvey is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -43,8 +43,10 @@ EXAMPLES::
 import click
 from pinject import copy_args_to_internal_fields
 
+from flatsurvey.cache.pickles import Pickles
 from flatsurvey.command import Command
-from flatsurvey.pipeline.util import PartialBindingSpec
+from flatsurvey.pipeline import Pipeline
+from flatsurvey.reporting import Report
 from flatsurvey.ui.group import GroupedCommand
 
 
@@ -62,8 +64,8 @@ class Cache(Command):
     @copy_args_to_internal_fields
     def __init__(
         self,
-        pickles,
-        report,
+        pickles: Pickles,
+        report: Report,
         jsons=(),
     ):
 
@@ -123,19 +125,22 @@ class Cache(Command):
             return {}
 
         try:
+            data = file.read()
             try:
-                import orjson
-
-                return orjson.loads(file.read())
+                import orjson as json
             except ModuleNotFoundError:
                 import json
 
-                return json.loads(file.read())
-        except Exception:
-            print(f"Failed to parse {file}. Ignoring.")
+            return json.loads(data)
+        except Exception as e:
+            print(f"Failed to parse {file}, {e}. Ignoring.")
             return {}
 
-    @classmethod
+    @staticmethod
+    def create(pipeline: Pipeline):
+        return Cache(pickles=pipeline.get("jsons", default=lambda: None, scope=Cache), report=pipeline.get(Report), jsons=pipeline.get("jsons", default=lambda: None, scope=Cache))
+
+    @staticmethod
     @click.command(
         name="local-cache",
         cls=GroupedCommand,
@@ -157,7 +162,8 @@ class Cache(Command):
         type=str,
         help="directory of pickle files to resolve references in JSON files",
     )
-    def click(json, pickles):
+    @Pipeline.click
+    def click(pipeline: Pipeline, json, pickles):
         jsons = []
 
         for j in json:
@@ -175,52 +181,39 @@ class Cache(Command):
             else:
                 jsons.append(open(j, "rb"))
 
-        return {"bindings": Cache.bindings(jsons, pickles)}
-
-    @classmethod
-    def bindings(cls, jsons, pickles):
-        r"""
-        Return the dependency injection bindings provided by this class.
-
-        EXAMPLES::
-
-            >>> Cache.bindings([], None)
-            [cache binding to Cache]
-
-        """
-        return [
-            PartialBindingSpec(Cache, name="cache", scope="SHARED")(
-                jsons=jsons, pickles=pickles
-            )
-        ]
+        pipeline.bind(
+                Cache,
+                jsons=jsons,
+                pickles=pickles)
 
     def deform(self, deformation):
-        r"""
-        Return how this cache transforms when a deformation of the studied
-        surface happens.
+        # TODO: Can we get rid of this method somehow?
+        # r"""
+        # Return how this cache transforms when a deformation of the studied
+        # surface happens.
 
-        Returns the original :meth:`bindings` unchanged since the cache is not
-        affected by a deformation.
+        # Returns the original :meth:`bindings` unchanged since the cache is not
+        # affected by a deformation.
 
-        EXAMPLES::
+        # EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
+        #     >>> from flatsurvey.surfaces import Ngon
 
-            >>> cache = Cache(pickles=None, jsons=(), report=None)
-            >>> surface = Ngon((1, 1, 1))
+        #     >>> cache = Cache(pickles=None, jsons=(), report=None)
+        #     >>> surface = Ngon((1, 1, 1))
 
-        We deform the surface by doubling every edge::
+        # We deform the surface by doubling every edge::
 
-            >>> from pyflatsurf import flatsurf
-            >>> T = surface.flat_triangulation()
-            >>> deformation = T + [T.fromHalfEdge(e.positive()) for e in T.edges()]
+        #     >>> from pyflatsurf import flatsurf
+        #     >>> T = surface.flat_triangulation()
+        #     >>> deformation = T + [T.fromHalfEdge(e.positive()) for e in T.edges()]
 
-        The cache does not change with this deformation::
+        # The cache does not change with this deformation::
 
-            >>> cache.deform(deformation)
-            {'bindings': [cache binding to Cache]}
+        #     >>> cache.deform(deformation)
+        #     {'bindings': [cache binding to Cache]}
 
-        """
+        # """
         return {"bindings": Cache.bindings(jsons=self._jsons, pickles=self._pickles)}
 
     def sources(self, *sources):

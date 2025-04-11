@@ -29,7 +29,6 @@ runs but unpickling them is not implemented in much generality, see #10.
 import click
 
 from flatsurvey.command import Command
-from flatsurvey.pipeline.util import PartialBindingSpec
 from flatsurvey.ui.group import GroupedCommand
 
 
@@ -61,7 +60,7 @@ class Pickles(Command):
 
     @classmethod
     def bindings(cls, providers):
-        return [PartialBindingSpec(Pickles, scope="SHARED")(providers=providers)]
+        return [PartialBindingSpec(Pickles)(providers=providers)]
 
     def unpickle(self, pickle, kind):
         for provider in self._providers:

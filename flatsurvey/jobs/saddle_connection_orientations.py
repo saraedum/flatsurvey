@@ -36,6 +36,8 @@ from pinject import copy_args_to_internal_fields
 from flatsurvey.command import Command
 from flatsurvey.pipeline import Processor
 from flatsurvey.ui.group import GroupedCommand
+from flatsurvey.jobs.saddle_connections import SaddleConnections
+from flatsurvey.reporting import Report
 
 
 class SaddleConnectionOrientations(Processor, Command):
@@ -45,15 +47,22 @@ class SaddleConnectionOrientations(Processor, Command):
     """
 
     @copy_args_to_internal_fields
-    def __init__(self, saddle_connections, report):
+    def __init__(self, saddle_connections: SaddleConnections, report: Report):
         super().__init__(producers=[saddle_connections], report=report)
         self._seen = None
 
+    @staticmethod
+    def create(pipeline):
+        return SaddleConnectionOrientations(
+            saddle_connections=pipeline.get(SaddleConnections),
+            report=pipeline.get(Report)
+        )
+
     async def _consume(self, connection, cost):
+        import cppyy
+
         vector = connection.vector()
         if self._seen == None:
-            import cppyy
-
             self._seen = cppyy.gbl.std.set[type(vector), type(vector).CompareSlope]()
 
         if vector.x():
@@ -66,8 +75,6 @@ class SaddleConnectionOrientations(Processor, Command):
                 vector = type(vector)(vector.x() / vector.y(), vector.y() / vector.y())
             except Exception:
                 pass
-
-        import cppyy
 
         flat_triangulation = self._saddle_connections._surface.flat_triangulation()
         source = cppyy.gbl.flatsurf.Vertex.source(

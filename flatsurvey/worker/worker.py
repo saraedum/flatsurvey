@@ -71,6 +71,8 @@ TESTS::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
+from typing import List
+
 import click
 import pinject
 
@@ -78,9 +80,10 @@ import flatsurvey.cache
 import flatsurvey.jobs
 import flatsurvey.reporting
 import flatsurvey.surfaces
-from flatsurvey.pipeline.util import FactoryBindingSpec, ListBindingSpec
+from flatsurvey.pipeline import Pipeline
 from flatsurvey.ui.group import CommandWithGroups
 from flatsurvey.worker.restart import Restart
+from flatsurvey.reporting.report import Report
 
 
 @click.group(
@@ -190,19 +193,22 @@ class Worker:
     def __init__(
         self,
         goals,
-        reporters,
+        report: Report,
     ):
         pass
 
+    @staticmethod
+    def create(pipeline):
+        return Worker(goals=pipeline.get("goals"), report=pipeline.get(Report))
+
     @classmethod
-    async def work(cls, /, bindings=[], goals=[], reporters=[], commands=[], limits=[]):
-        objects = Worker.make_object_graph(
-            bindings=bindings, goals=goals, reporters=reporters, commands=commands
-        )
+    async def work(cls, /, pipeline: Pipeline, limits=[]):
+        worker = pipeline.get(Worker)
 
         try:
-            await objects.provide(Worker).start(limits=limits)
+            await worker.start(limits=limits)
         except Restart as restart:
+            raise NotImplementedError
             bindings = [
                 restart.rewrite_binding(binding, objects=objects)
                 for binding in bindings
@@ -226,35 +232,6 @@ class Worker:
                 commands=[],
                 limits=limits,
             )
-
-    @classmethod
-    def make_object_graph(cls, /, bindings=[], goals=[], reporters=[], commands=[]):
-        bindings = list(bindings)
-        goals = list(goals)
-        reporters = list(reporters)
-
-        for command in commands:
-            bindings.extend(command.get("bindings", []))
-            goals.extend(command.get("goals", []))
-            reporters.extend(command.get("reporters", []))
-
-        bindings.append(ListBindingSpec("goals", goals))
-        bindings.append(
-            ListBindingSpec("reporters", reporters or [flatsurvey.reporting.Log])
-        )
-        from random import randint
-
-        bindings.append(FactoryBindingSpec(lambda: randint(0, 2**64), "lot"))
-
-        return pinject.new_object_graph(
-            modules=[
-                flatsurvey.reporting,
-                flatsurvey.surfaces,
-                flatsurvey.jobs,
-                flatsurvey.cache,
-            ],
-            binding_specs=bindings,
-        )
 
     async def start(self, limits=[]):
         r"""
@@ -287,8 +264,7 @@ class Worker:
             for check in checks:
                 check.stop()
 
-        for reporter in self._reporters:
-            reporter.flush()
+        self._report.flush()
 
 
 if __name__ == "__main__":
