@@ -193,27 +193,28 @@ class Log(Reporter, Command):
         self.log(source, result, **kwargs)
 
 
-class LogBindingSpec(BindingSpec):
-    r"""
-    A picklable version of a FactoryBindingSpec().
-    """
-    scope = "DEFAULT"
-    name = "log"
-
-    def __init__(self, output, prefix):
-        self._output = output
-        self._prefix = prefix
-
-    def provide_log(self, surface):
-        if self._output == "-" or (self._output is None and self._prefix is None):
-            import sys
-
-            stream = None
-        elif self._output is not None:
-            stream = open(self._output, "w")
-        elif self._prefix is not None:
-            import os.path
-
-            stream = open(os.path.join(self._prefix, f"{surface.basename()}.log"), "w")
-
-        return Log(surface, stream=stream)
+## TODO: Rewrite without pinject?
+## class LogBindingSpec(BindingSpec):
+##     r"""
+##     A picklable version of a FactoryBindingSpec().
+##     """
+##     scope = "DEFAULT"
+##     name = "log"
+## 
+##     def __init__(self, output, prefix):
+##         self._output = output
+##         self._prefix = prefix
+## 
+##     def provide_log(self, surface):
+##         if self._output == "-" or (self._output is None and self._prefix is None):
+##             import sys
+## 
+##             stream = None
+##         elif self._output is not None:
+##             stream = open(self._output, "w")
+##         elif self._prefix is not None:
+##             import os.path
+## 
+##             stream = open(os.path.join(self._prefix, f"{surface.basename()}.log"), "w")
+## 
+##         return Log(surface, stream=stream)
