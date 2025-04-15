@@ -22,7 +22,7 @@ _all_ directions are cylinder periodic.
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
-#        Copyright (C) 2020-2022 Julian Rüth
+#        Copyright (C) 2020-2025 Julian Rüth
 #
 #  flatsurvey is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by

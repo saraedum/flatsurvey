@@ -23,7 +23,7 @@ We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
-#        Copyright (C) 2020-2024 Julian Rüth
+#        Copyright (C) 2020-2025 Julian Rüth
 #
 #  flatsurvey is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
