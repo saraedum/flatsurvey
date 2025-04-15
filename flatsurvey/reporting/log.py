@@ -58,6 +58,9 @@ class Log(Reporter, Command):
     def __init__(self, surface, stream=None):
         super().__init__()
 
+        self._surface = surface
+        self._stream = stream
+
         if self._stream is None:
             import sys
 

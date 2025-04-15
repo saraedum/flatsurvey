@@ -60,6 +60,9 @@ class Json(Reporter, Command):
     def __init__(self, surface: Surface, output="-", pickles=False):
         super().__init__()
 
+        self._output = output
+        self._pickles = pickles
+
         self._data = {"surface": surface}
 
     @classmethod

@@ -47,6 +47,9 @@ class SaddleConnectionOrientations(Processor, Command):
 
     def __init__(self, saddle_connections: SaddleConnections, report: Report):
         super().__init__(producers=[saddle_connections], report=report)
+
+        self._saddle_connections = saddle_connections
+
         self._seen = None
 
     @staticmethod

@@ -70,6 +70,9 @@ class FlowDecompositions(Processor, Command):
     ):
         super().__init__(producers=[saddle_connection_orientations], report=report)
 
+        self._surface = surface
+        self._limit = limit
+
     @staticmethod
     def create(pipeline):
         return FlowDecompositions(

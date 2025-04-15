@@ -102,6 +102,12 @@ class OrbitClosure(Goal, Command):
             cache_only=cache_only,
         )
 
+        self._surface = surface
+        self._saddle_connections = saddle_connections
+        self._stale_limit = stale_limit
+        self._expansions_limit = expansions_limit
+        self._cache_only = cache_only
+
         self._cylinders_without_increase = 0
         self._directions_with_cylinders = 0
         self._directions = 0
