@@ -39,7 +39,6 @@ _all_ directions are cylinder periodic.
 # *********************************************************************
 
 import click
-from pinject import copy_args_to_internal_fields
 
 from flatsurvey.command import Command
 from flatsurvey.pipeline import Goal
@@ -64,7 +63,6 @@ class CompletelyCylinderPeriodic(Goal, Command):
     """
     DEFAULT_LIMIT = None
 
-    @copy_args_to_internal_fields
     def __init__(
         self,
         report,
@@ -98,6 +96,7 @@ class CompletelyCylinderPeriodic(Goal, Command):
     )
     @Goal._cache_only_option
     def click(limit, cache_only):
+        raise NotImplementedError
         return {
             "bindings": [
                 PartialBindingSpec(CompletelyCylinderPeriodic)(

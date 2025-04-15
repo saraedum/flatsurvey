@@ -60,6 +60,7 @@ class Pickles(Command):
 
     @classmethod
     def bindings(cls, providers):
+        raise NotImplementedError
         return [PartialBindingSpec(Pickles)(providers=providers)]
 
     def unpickle(self, pickle, kind):

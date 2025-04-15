@@ -37,7 +37,6 @@ EXAMPLES::
 import time
 
 import click
-from pinject import copy_args_to_internal_fields
 
 from flatsurvey.command import Command
 from flatsurvey.pipeline import Goal
@@ -62,7 +61,6 @@ class UndeterminedIntervalExchangeTransformation(Goal, Command):
     """
     DEFAULT_LIMIT = 256
 
-    @copy_args_to_internal_fields
     def __init__(
         self,
         surface,
@@ -176,6 +174,7 @@ class UndeterminedIntervalExchangeTransformation(Goal, Command):
     )
     @Goal._cache_only_option
     def click(limit):
+        raise NotImplementedError
         return {
             "goals": [UndeterminedIntervalExchangeTransformation],
             "bindings": [

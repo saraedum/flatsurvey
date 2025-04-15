@@ -597,6 +597,7 @@ class Ngon(Surface):
         help="how side lengths are chosen [default: e-antic]",
     )
     def click(angle, length):
+        raise NotImplementedError
         if length is None:
             length = "e-antic"
 

@@ -31,7 +31,6 @@ The saddle connections on a translation surface.
 # *********************************************************************
 
 import click
-from pinject import copy_args_to_internal_fields
 
 from flatsurvey.command import Command
 from flatsurvey.pipeline import Processor
@@ -46,7 +45,6 @@ class SaddleConnectionOrientations(Processor, Command):
     saddle connections irrespective of scaling and sign.
     """
 
-    @copy_args_to_internal_fields
     def __init__(self, saddle_connections: SaddleConnections, report: Report):
         super().__init__(producers=[saddle_connections], report=report)
         self._seen = None

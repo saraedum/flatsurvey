@@ -4,7 +4,7 @@ Extract pickles from cache files compressed into a separate directory.
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
-#        Copyright (C) 2023 Julian Rüth
+#        Copyright (C) 2023-2025 Julian Rüth
 #
 #  flatsurvey is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -21,11 +21,9 @@ Extract pickles from cache files compressed into a separate directory.
 # *********************************************************************
 
 import click
-from pinject import copy_args_to_internal_fields
 
 from flatsurvey.command import Command
 from flatsurvey.pipeline import Goal
-from flatsurvey.pipeline.util import PartialBindingSpec
 
 
 class ExternalizePickles(Goal, Command):
@@ -33,9 +31,11 @@ class ExternalizePickles(Goal, Command):
     Extract pickles from JSON files and write them compressed to a separate directory.
     """
 
-    @copy_args_to_internal_fields
     def __init__(self, jsons, pickle_dir, report):
         super().__init__(producers=[], report=report, cache=None)
+
+        self._jsons = jsons
+        self._pickle_dir = pickle_dir
 
     @classmethod
     @click.command(name="externalize-pickles")
@@ -48,6 +48,7 @@ class ExternalizePickles(Goal, Command):
         help="output directory",
     )
     def click(jsons, pickles):
+        raise NotImplementedError
         return {
             "goals": [ExternalizePickles],
             "bindings": [

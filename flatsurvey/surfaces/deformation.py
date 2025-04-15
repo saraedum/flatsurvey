@@ -61,8 +61,7 @@ class Deformation(Surface):
             self._deformation = Deformation(deformed=deformed, old=old)
 
         def rewrite_bound(self, bound):
-            from flatsurvey.pipeline.util import FactoryBindingSpec
-
+            raise NotImplementedError
             if isinstance(bound, Surface):
                 return [
                     FactoryBindingSpec(

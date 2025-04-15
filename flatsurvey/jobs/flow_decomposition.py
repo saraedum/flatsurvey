@@ -41,7 +41,6 @@ number of Zorich induction steps:
 import time
 
 import click
-from pinject import copy_args_to_internal_fields
 
 from flatsurvey.command import Command
 from flatsurvey.pipeline import Processor
@@ -66,7 +65,6 @@ class FlowDecompositions(Processor, Command):
     """
     DEFAULT_LIMIT = 256
 
-    @copy_args_to_internal_fields
     def __init__(
         self, surface: Surface, saddle_connection_orientations: SaddleConnectionOrientations, report=None, limit=DEFAULT_LIMIT
     ):
@@ -96,6 +94,7 @@ class FlowDecompositions(Processor, Command):
         help="Zorich induction steps to perform before giving up",
     )
     def click(limit):
+        raise NotImplementedError
         return {
             "bindings": [PartialBindingSpec(FlowDecompositions)(limit=limit)],
         }

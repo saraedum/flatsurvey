@@ -74,7 +74,6 @@ TESTS::
 from typing import List
 
 import click
-import pinject
 
 import flatsurvey.cache
 import flatsurvey.jobs
@@ -189,13 +188,13 @@ class Worker:
 
     """
 
-    @pinject.copy_args_to_internal_fields
     def __init__(
         self,
         goals,
         report: Report,
     ):
-        pass
+        self._goals = goals
+        self._report = report
 
     @staticmethod
     def create(pipeline):

@@ -52,7 +52,6 @@ EXAMPLES::
 # *********************************************************************
 
 import click
-from pinject import copy_args_to_internal_fields
 
 from flatsurvey.command import Command
 from flatsurvey.pipeline import Goal
@@ -84,7 +83,6 @@ class OrbitClosure(Goal, Command):
     DEFAULT_EXPANSIONS_LIMIT = 4
     DEFAULT_DEFORM = False
 
-    @copy_args_to_internal_fields
     def __init__(
         self,
         surface: Surface,

@@ -34,7 +34,6 @@ EXAMPLES::
 # *********************************************************************
 
 import click
-from pinject import BindingSpec, copy_args_to_internal_fields
 
 from flatsurvey.command import Command
 from flatsurvey.reporting.reporter import Reporter
@@ -56,7 +55,6 @@ class Log(Reporter, Command):
 
     """
 
-    @copy_args_to_internal_fields
     def __init__(self, surface, stream=None):
         super().__init__()
 
@@ -117,9 +115,11 @@ class Log(Reporter, Command):
 
     @classmethod
     def bindings(cls, output, prefix=None):
+        raise NotImplementedError
         return [LogBindingSpec(output=output, prefix=prefix)]
 
     def deform(self, deformation):
+        raise NotImplementedError
         from flatsurvey.pipeline.util import FactoryBindingSpec
 
         return {

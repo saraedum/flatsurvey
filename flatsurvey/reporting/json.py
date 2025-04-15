@@ -35,7 +35,6 @@ EXAMPLES::
 # *********************************************************************
 
 import click
-from pinject import BindingSpec, copy_args_to_internal_fields
 
 from flatsurvey.command import Command
 from flatsurvey.pipeline import Pipeline
@@ -58,7 +57,6 @@ class Json(Reporter, Command):
 
     """
 
-    @copy_args_to_internal_fields
     def __init__(self, surface: Surface, output="-", pickles=False):
         super().__init__()
 
@@ -101,6 +99,7 @@ class Json(Reporter, Command):
         return Json(surface, output=output, pickles=pickles)
 
     def deform(self, deformation):
+        raise NotImplementedError
         from flatsurvey.pipeline.util import FactoryBindingSpec
 
         return {

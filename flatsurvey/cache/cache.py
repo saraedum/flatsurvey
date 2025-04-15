@@ -41,7 +41,6 @@ EXAMPLES::
 # *********************************************************************
 
 import click
-from pinject import copy_args_to_internal_fields
 
 from flatsurvey.cache.pickles import Pickles
 from flatsurvey.command import Command
@@ -61,7 +60,6 @@ class Cache(Command):
 
     """
 
-    @copy_args_to_internal_fields
     def __init__(
         self,
         pickles: Pickles,

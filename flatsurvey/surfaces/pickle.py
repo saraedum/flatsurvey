@@ -45,6 +45,7 @@ def pickle(base64):
     r"""
     A base64 encoded pickle.
     """
+    raise NotImplementedError
     from base64 import b64decode
 
     from sage.all import loads

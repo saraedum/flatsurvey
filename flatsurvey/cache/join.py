@@ -21,11 +21,9 @@ Aggregate cache files.
 # *********************************************************************
 
 import click
-from pinject import copy_args_to_internal_fields
 
 from flatsurvey.command import Command
 from flatsurvey.pipeline import Goal
-from flatsurvey.pipeline.util import PartialBindingSpec
 
 
 class Join(Goal, Command):
@@ -35,7 +33,6 @@ class Join(Goal, Command):
     Writes out a .json file for each type of result in the inputs.
     """
 
-    @copy_args_to_internal_fields
     def __init__(self, jsons, prefix, report):
         super().__init__(producers=[], report=report, cache=None)
 
@@ -46,6 +43,7 @@ class Join(Goal, Command):
         "--prefix", type=str, help="a common prefix for the output files", default=None
     )
     def click(jsons, prefix):
+        raise NotImplementedError
         return {
             "goals": [Join],
             "bindings": [PartialBindingSpec(Join)(jsons=jsons, prefix=prefix)],

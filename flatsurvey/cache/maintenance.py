@@ -40,13 +40,11 @@ TESTS::
 # *********************************************************************
 
 import click
-import pinject
 
 import flatsurvey.reporting.log
 from flatsurvey.cache.externalize_pickles import ExternalizePickles
 from flatsurvey.cache.join import Join
 from flatsurvey.cache.split import Split
-from flatsurvey.pipeline.util import FactoryBindingSpec, ListBindingSpec
 from flatsurvey.ui.group import CommandWithGroups
 
 
@@ -113,12 +111,12 @@ class Maintenance:
     TODO: Document me. This is essentially a clone of Worker.
     """
 
-    @pinject.copy_args_to_internal_fields
     def __init__(self, goals, reporters):
         pass
 
     @classmethod
     def make_object_graph(cls, commands):
+        raise NotImplementedError
         bindings = []
         goals = []
         reporters = []

@@ -32,7 +32,6 @@ EXAMPLES:
 # *********************************************************************
 
 import click
-from pinject import copy_args_to_internal_fields
 
 from flatsurvey.pipeline.consumer import Consumer
 
@@ -66,7 +65,6 @@ class Goal(Consumer):
         help="Do not perform any computation. Only query the cache.",
     )
 
-    @copy_args_to_internal_fields
     def __init__(self, producers, cache, cache_only=DEFAULT_CACHE_ONLY, report=None):
         if self._cache is None:
             from flatsurvey.cache import Cache

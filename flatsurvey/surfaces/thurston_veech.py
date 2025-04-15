@@ -265,6 +265,7 @@ class ThurstonVeech(Surface):
         horizontal_multiplicities,
         vertical_multiplicities,
     ):
+        raise NotImplementedError
         import json
 
         hp = json.loads(horizontal_permutation)

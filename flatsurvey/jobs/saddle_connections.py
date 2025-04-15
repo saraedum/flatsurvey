@@ -34,7 +34,6 @@ The saddle connections on a translation surface.
 # *********************************************************************
 
 import click
-from pinject import copy_args_to_internal_fields
 
 from flatsurvey.command import Command
 from flatsurvey.pipeline import Producer
@@ -50,7 +49,6 @@ class SaddleConnections(Producer, Command):
     DEFAULT_BOUND = None
     DEFAULT_LIMIT = None
 
-    @copy_args_to_internal_fields
     def __init__(self, surface: Surface, report: Report, limit=DEFAULT_LIMIT, bound=DEFAULT_BOUND):
         super().__init__(report=report)
 
@@ -136,6 +134,7 @@ class SaddleConnections(Producer, Command):
         help="stop search after that many saddle connections have been considered  [default: no limit]",
     )
     def click(bound, limit):
+        raise NotImplementedError
         return {
             "bindings": [
                 PartialBindingSpec(SaddleConnections)(bound=bound, limit=limit)
