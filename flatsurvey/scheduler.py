@@ -7,12 +7,17 @@ EXAMPLES:
 
 We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
     
+    >>> from flatsurvey.pipeline.pipeline import Pipeline
+    >>> survey = Pipeline()
+
     >>> from flatsurvey.surfaces import Ngons
-    >>> ngons = Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=2, literature='include', family=None, filter=None)
+    >>> # TODO: In all doctests I should get rid of the click calls like this. (Except for testing click.)
+    >>> ngons = Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=2, literature='include', family=None, filter=None)(survey)
 
     >>> from flatsurvey.jobs import OrbitClosure
+    >>> survey.append("goals", OrbitClosure)
 
-    >>> scheduler = Scheduler(generators=[ngons], goals=[OrbitClosure], bindings=[], reporters=[])
+    >>> scheduler = Scheduler(survey_pipeline=survey)
 
     >>> import asyncio
     >>> asyncio.run(scheduler.start())  # random progress output
@@ -80,7 +85,8 @@ class Scheduler:
 
     EXAMPLES::
 
-    >>> Scheduler(generators=[], goals=[])
+    >>> from flatsurvey.pipeline.pipeline import Pipeline
+    >>> Scheduler(survey_pipeline=Pipeline())
     Scheduler(…)
 
     """
@@ -142,7 +148,10 @@ class Scheduler:
         terminated.
 
         >>> import asyncio
-        >>> scheduler = Scheduler(generators=[], bindings=[], goals=[], reporters=[])
+        >>> from flatsurvey.pipeline.pipeline import Pipeline
+        >>> pipeline = Pipeline()
+        >>> pipeline.append("surfaces", [])
+        >>> scheduler = Scheduler(survey_pipeline=pipeline)
         >>> asyncio.run(scheduler.start())  # random progress output
         on ...: all jobs have been scheduled
         done ...
