@@ -66,6 +66,7 @@ class Cache(Command):
         report: Report,
         jsons=(),
     ):
+        self._pickles = pickles
 
         self._cache = {}
 
