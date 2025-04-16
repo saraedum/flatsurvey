@@ -594,7 +594,6 @@ class Ngon(Surface):
         "--length",
         type=click.Choice(["exact-real", "e-antic"]),
         default="e-antic",
-        required=True,
         help="how side lengths are chosen [default: e-antic]",
     )
     @Pipeline.click
@@ -608,19 +607,30 @@ class Ngons:
 
     EXAMPLES::
 
-        >>> list(Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=6, literature='include', family=None, filter=None))
+        >>> from flatsurvey.pipeline.pipeline import Pipeline
+        >>> pipeline = Pipeline()
+        >>> Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=6, literature='include', family=None, filter=None)(pipeline)
+        >>> list(pipeline.get("surfaces")[0])
         [Ngon([1, 1, 1]), Ngon([1, 1, 2]), Ngon([1, 1, 3]), Ngon([1, 2, 2]), Ngon([1, 1, 4]), Ngon([1, 2, 3])]
 
-        >>> list(Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=6, literature='include', family=None, filter=None))
+        >>> pipeline = Pipeline()
+        >>> Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=6, literature='include', family=None, filter=None)(pipeline)
+        >>> list(pipeline.get("surfaces")[0])
         [Ngon([1, 1, 1]), Ngon([1, 1, 2]), Ngon([1, 1, 3]), Ngon([1, 2, 2]), Ngon([1, 1, 4]), Ngon([1, 2, 3])]
 
-        >>> list(Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=3, literature='include', family=None, filter='lambda a, b, c: (a + b + c) % 2 == 0'))
+        >>> pipeline = Pipeline()
+        >>> Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=3, literature='include', family=None, filter='lambda a, b, c: (a + b + c) % 2 == 0')(pipeline)
+        >>> list(pipeline.get("surfaces")[0])
         [Ngon([1, 1, 2]), Ngon([1, 1, 4]), Ngon([1, 2, 3])]
 
-        >>> list(Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=3, literature='include', family='(1, 1, n)', filter=None))
+        >>> pipeline = Pipeline()
+        >>> Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=3, literature='include', family='(1, 1, n)', filter=None)(pipeline)
+        >>> list(pipeline.get("surfaces")[0])
         [Ngon([1, 1, 1]), Ngon([1, 1, 2]), Ngon([1, 1, 3])]
 
-        >>> list(Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=3, literature='include', family='[(1, 1, n), (1, 2, 12*n)]', filter=None))
+        >>> pipeline = Pipeline()
+        >>> Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=3, literature='include', family='[(1, 1, n), (1, 2, 12*n)]', filter=None)(pipeline)
+        >>> list(pipeline.get("surfaces")[0])
         [Ngon([1, 1, 1]), Ngon([1, 2, 12]), Ngon([1, 1, 2])]
 
     """
