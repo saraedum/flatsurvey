@@ -71,15 +71,18 @@ class CompletelyCylinderPeriodic(Goal, Command):
         cache_only=Goal.DEFAULT_CACHE_ONLY,
         limit=DEFAULT_LIMIT,
     ):
+        self._flow_decompositions = flow_decompositions
+        self._limit = limit
+
+        self._undetermined_directions = 0
+        self._cylinder_periodic_directions = 0
+
         super().__init__(
             producers=[flow_decompositions],
             report=report,
             cache=cache,
             cache_only=cache_only,
         )
-
-        self._undetermined_directions = 0
-        self._cylinder_periodic_directions = 0
 
     @classmethod
     @click.command(

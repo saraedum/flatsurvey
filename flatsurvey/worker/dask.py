@@ -19,17 +19,31 @@ dask client and have it run a task from this module::
 
     >>> client = Client(processes=False, preload=["flatsurvey.worker.dask"])
 
-    >>> from flatsurvey.surfaces import Ngon
+    >>> from flatsurvey.surfaces import Ngon, Surface
     >>> from flatsurvey.jobs.orbit_closure import OrbitClosure
-    >>> from flatsurvey.pipeline.util import PartialBindingSpec
-    
-    >>> surfaces = [PartialBindingSpec(Ngon, name="surface")(angles=[1, 1, n], length="e-antic") for n in [1, 2]]
-    >>> tasks = [DaskTask(goals=[OrbitClosure], bindings=[surface]) for surface in surfaces]
+    >>> from flatsurvey.pipeline.pipeline import Pipeline
+
+    >>> survey = Pipeline()
+    >>> survey.append("goals", OrbitClosure)
+
+    >>> pipeline1 = survey.clone()
+    >>> pipeline1.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
+
+    >>> pipeline2 = survey.clone()
+    >>> pipeline2.define(Surface, Ngon(angles=[1, 1, 2], length="e-antic"))
+
+    >>> tasks = [DaskTask(pipeline=pipeline1), DaskTask(pipeline=pipeline2)]
     >>> tasks
     [DaskTask(…), DaskTask(…)]
 
     >>> futures = [client.submit(task) for task in tasks]
     >>> results = [future.result() for future in futures]
+
+Note that the futures have no actual result, the result is usually written to
+some log file by a reporter instead::
+
+    >>> results
+    [None, None]
 
     >>> client.shutdown()
 
@@ -124,12 +138,15 @@ class DaskTask:
 
     We define a task to be executed on the worker::
 
-        >>> from flatsurvey.surfaces import Ngon
+        >>> from flatsurvey.surfaces import Ngon, Surface
         >>> from flatsurvey.jobs.orbit_closure import OrbitClosure
-        >>> from flatsurvey.pipeline.util import PartialBindingSpec
+        >>> from flatsurvey.pipeline.pipeline import Pipeline
 
-        >>> surface = PartialBindingSpec(Ngon, name="surface")(angles=[1, 1, 1], length="e-antic")
-        >>> task = DaskTask(goals=[OrbitClosure], bindings=[surface])
+        >>> pipeline = Pipeline()
+        >>> pipeline.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
+        >>> pipeline.append("goals", OrbitClosure)
+
+        >>> task = DaskTask(pipeline=pipeline)
         >>> task
         DaskTask(…)
 
@@ -151,6 +168,7 @@ class DaskTask:
     # below.
     LIMITS = []
 
+    # TODO: We should probably force that the parameter here is "pipeline" since that's the only thing the worker understands. Unless we allow configuration of the Worker.
     def __init__(self, *args, repr="DaskTask(…)", **kwargs):
         from pickle import dumps
 
@@ -165,12 +183,15 @@ class DaskTask:
 
         EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> from flatsurvey.jobs.orbit_closure import OrbitClosure
-            >>> from flatsurvey.pipeline.util import PartialBindingSpec
+            >>> from flatsurvey.pipeline.pipeline import Pipeline
 
-            >>> surface = PartialBindingSpec(Ngon, name="surface")(angles=[1, 1, 1], length="e-antic")
-            >>> task = DaskTask(goals=[OrbitClosure], bindings=[surface])
+            >>> pipeline = Pipeline()
+            >>> pipeline.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
+            >>> pipeline.append("goals", OrbitClosure)
+
+            >>> task = DaskTask(pipeline=pipeline)
             >>> task()
 
         """
@@ -200,12 +221,15 @@ class DaskTask:
 
         EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> from flatsurvey.jobs.orbit_closure import OrbitClosure
-            >>> from flatsurvey.pipeline.util import PartialBindingSpec
+            >>> from flatsurvey.pipeline.pipeline import Pipeline
 
-            >>> surface = PartialBindingSpec(Ngon, name="surface")(angles=[1, 1, 1], length="e-antic")
-            >>> task = DaskTask(goals=[OrbitClosure], bindings=[surface])
+            >>> pipeline = Pipeline()
+            >>> pipeline.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
+            >>> pipeline.append("goals", OrbitClosure)
+
+            >>> task = DaskTask(pipeline=pipeline)
             >>> task.run()
             [Ngon([1, 1, 1])] [OrbitClosure] dimension: 2/2
             [Ngon([1, 1, 1])] [OrbitClosure] GL(2,R)-orbit closure of dimension at least 2 in H_1(0) (ambient dimension 2) (dimension: 2) (directions: 1) (directions_with_cylinders: 1) (dense: True)

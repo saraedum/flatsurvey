@@ -576,7 +576,7 @@ class Ngon(Surface):
     def __ne__(self, other):
         return not (self == other)
 
-    @classmethod
+    @staticmethod
     @click.command(
         name="ngon",
         cls=GroupedCommand,
@@ -593,19 +593,13 @@ class Ngon(Surface):
     @click.option(
         "--length",
         type=click.Choice(["exact-real", "e-antic"]),
-        required=False,
+        default="e-antic",
+        required=True,
         help="how side lengths are chosen [default: e-antic]",
     )
-    def click(angle, length):
-        raise NotImplementedError
-        if length is None:
-            length = "e-antic"
-
-        return {
-            "bindings": [
-                PartialBindingSpec(Ngon, name="surface")(angles=angle, length=length)
-            ]
-        }
+    @Pipeline.click
+    def click(pipeline: Pipeline, angle, length):
+        pipeline.define(Surface, Ngon(angles=angle, length=length))
 
 
 class Ngons:

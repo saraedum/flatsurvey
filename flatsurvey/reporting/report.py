@@ -65,7 +65,8 @@ class Report(Command):
 
         return Report(
             reporters=pipeline.get("reporters", scope=Report, default=lambda: [Log(surface=pipeline.get(Surface))]),
-            ignore=pipeline.get("ignore", scope=Report, default=lambda: []),
+            # TODO: Make it clear that flow-decompositions (and what else?) are automatically ignored in the click and share that as a DEFAULT constant everywhere here.
+            ignore=pipeline.get("ignore", scope=Report, default=lambda: ["flow-decompositions"]),
         )
 
     @classmethod

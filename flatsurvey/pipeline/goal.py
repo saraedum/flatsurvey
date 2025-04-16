@@ -72,6 +72,7 @@ class Goal(Consumer):
             cache = Cache(pickles=None, report=None)
 
         self._cache = cache
+        self._cache_only = cache_only
 
         super().__init__(producers=producers, report=report)
 

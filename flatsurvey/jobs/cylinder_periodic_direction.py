@@ -76,6 +76,9 @@ class CylinderPeriodicDirection(Goal, Command):
             cache_only=cache_only,
         )
 
+        self._flow_decompositions = flow_decompositions
+        self._limit = limit
+
         self._directions = 0
 
     async def consume_cache(self):

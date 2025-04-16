@@ -131,10 +131,10 @@ class OrbitClosure(Goal, Command):
             flow_decompositions=pipeline.get(FlowDecompositions),
             saddle_connections=pipeline.get(SaddleConnections),
             cache=pipeline.get(Cache),
-            stale_limit=pipeline.get("stale_limit", OrbitClosure.DEFAULT_STALE_LIMIT, scope=OrbitClosure),
-            expansions_limit=pipeline.get("expansions_limit", OrbitClosure.DEFAULT_EXPANSIONS_LIMIT, scope=OrbitClosure),
-            deform=pipeline.get("deform", OrbitClosure.DEFAULT_DEFORM, scope=OrbitClosure),
-            cache_only=pipeline.get("cache_only", Goal.DEFAULT_CACHE_ONLY, scope=OrbitClosure),
+            stale_limit=pipeline.get("stale_limit", lambda: OrbitClosure.DEFAULT_STALE_LIMIT, scope=OrbitClosure),
+            expansions_limit=pipeline.get("expansions_limit", lambda: OrbitClosure.DEFAULT_EXPANSIONS_LIMIT, scope=OrbitClosure),
+            deform=pipeline.get("deform", lambda: OrbitClosure.DEFAULT_DEFORM, scope=OrbitClosure),
+            cache_only=pipeline.get("cache_only", lambda: Goal.DEFAULT_CACHE_ONLY, scope=OrbitClosure),
         )
 
     async def consume_cache(self):

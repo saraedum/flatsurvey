@@ -99,7 +99,11 @@ class Pipeline:
         self._definitions[key].append(Definition.create(value))
 
     def define(self, key=None, value=None, scope=None, **values):
+        # TODO: Why does this first part not create a definition but inject a value?
         if key is not None:
+            if scope is not None:
+                key = (scope, key)
+
             assert key not in values
             values[key] = value
 

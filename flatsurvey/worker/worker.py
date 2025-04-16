@@ -154,6 +154,13 @@ def process(commands, debug, mem_limit, time_limit, verbose):
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG if verbose > 1 else logging.INFO)
 
+    from flatsurvey.pipeline import Pipeline
+
+    pipeline = Pipeline()
+
+    for command in commands:
+        command(pipeline)
+
     limits = []
     if mem_limit is not None:
         from flatsurvey.limits import MemoryLimit
@@ -168,7 +175,7 @@ def process(commands, debug, mem_limit, time_limit, verbose):
     try:
         import asyncio
 
-        asyncio.run(Worker.work(commands=commands, limits=limits))
+        asyncio.run(Worker.work(pipeline=pipeline, limits=limits))
     except Exception:
         if debug:
             pdb.post_mortem()
@@ -182,7 +189,8 @@ class Worker:
     EXAMPLES::
 
         >>> import asyncio
-        >>> worker = Worker(goals=[], reporters=[])
+        >>> from flatsurvey.reporting.report import Report
+        >>> worker = Worker(goals=[], report=Report(reporters=[]))
         >>> start = worker.start()
         >>> asyncio.run(start)
 
