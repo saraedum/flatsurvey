@@ -226,7 +226,7 @@ class Scheduler:
         while True:
             surface = next(surfaces, None)
 
-            if surfaces is None:
+            if surface is None:
                 return False
 
             pipeline = self._survey_pipeline.clone()
