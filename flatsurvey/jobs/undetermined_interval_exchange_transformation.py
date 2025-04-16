@@ -71,6 +71,10 @@ class UndeterminedIntervalExchangeTransformation(Goal, Command):
         cache_only=Goal.DEFAULT_CACHE_ONLY,
         limit=DEFAULT_LIMIT,
     ):
+        self._surface = surface
+        self._saddle_connection_orientations = saddle_connection_orientations
+        self._limit = limit
+
         super().__init__(
             producers=[flow_decompositions],
             report=report,
