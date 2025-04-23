@@ -184,7 +184,6 @@ def process(
                 Scheduler(
                     survey_pipeline=pipeline,
                     queue_limit=queue,
-                    debug=debug,
                     scheduler_json=scheduler,
                 ).start()
             )

@@ -608,6 +608,7 @@ class Ngons:
     EXAMPLES::
 
         >>> from flatsurvey.pipeline.pipeline import Pipeline
+        >>> # TODO: Call Ngons() directly instead of going through click.
         >>> pipeline = Pipeline()
         >>> Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=6, literature='include', family=None, filter=None)(pipeline)
         >>> list(pipeline.get("surfaces")[0])

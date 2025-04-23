@@ -107,7 +107,6 @@ import click
 forkserver = multiprocessing.get_context("forkserver")
 multiprocessing.set_forkserver_preload(["sage.all"])
 
-
 # Silence warnings from cppyy which is still relying on pkg_resources.
 import warnings
 warnings.filterwarnings('ignore', module='cppyy', message='pkg_resources is deprecated as an API')
@@ -243,7 +242,6 @@ class DaskTask:
             import pickletools
             raise ValueError(f"Failed to unpickle job: {pickletools.dis(self._dump)}") from e
             
-
         assert "limits" not in kwargs, "limits is a reserved keyword that can only be set by the worker"
 
         kwargs["limits"] = DaskTask.LIMITS

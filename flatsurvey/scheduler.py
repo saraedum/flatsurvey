@@ -1,7 +1,7 @@
 r"""
-Runs a survey with dask on the local machine or in cluster.
+Runs a survey with dask on the local machine or in a cluster.
 
-This implemnts a (somewhat unnecessary) wrapper for the dask API.
+This implements a (somewhat unnecessary) wrapper for the dask API.
 
 EXAMPLES:
 
@@ -11,8 +11,7 @@ We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
     >>> survey = Pipeline()
 
     >>> from flatsurvey.surfaces import Ngons
-    >>> # TODO: In all doctests I should get rid of the click calls like this. (Except for testing click.)
-    >>> ngons = Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=2, literature='include', family=None, filter=None)(survey)
+    >>> ngons = Ngons(vertices=3, length="e-antic", min=0, limit=None, count=2, literature='include', family=None, filter=None)
 
     >>> from flatsurvey.jobs import OrbitClosure
     >>> survey.append("goals", OrbitClosure)
@@ -44,12 +43,12 @@ We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-import logging
-
 from typing import Iterator
+from contextlib import contextmanager
 
 from flatsurvey.pipeline import Pipeline
 from flatsurvey.surfaces import Surface
+from flatsurvey.ui.progress import SurveyProgress
 
 
 class Scheduler:
@@ -59,34 +58,24 @@ class Scheduler:
 
     INPUT::
 
-    - ``generators`` -- a list of generators of surfaces, e.g., a list of lists
-      of surfaces
-
-    - ``goals`` -- a list of goals that should be resolved for each surface
-      such as :class:`OrbitClosure`.
-
-    - ``reporters`` -- a list of reporters that should be used to report the
-      ``goals`` (default: the empty list which means the reporting will be done
-      to stdout)
-
-    - ``bindings`` -- additional bindings that are not covered by
-      ``generators``, ``goals``, and ``reporters`` that should be taken into
-      account by the dependency injection (default: the empty list.)
+    - ``survey_pipeline`` -- a :class:`Pipeline` that specifies which
+      computations should be performed by this survey. This pipeline must have
+      a ``"surfaces"`` entry for all the surfaces that should be surveyed.
 
     - ``scheduler`` -- a dask scheduler file to connect to; if not given (the
       default) then a dask scheduler is started by this process
 
-    - ``queue`` -- the number of processes to initially submit into the dask
-      scheduler before we wait for workers to finish (default: thrice the
-      number of workers threads)
-
-    - ``debug`` -- whether to attach a debbugger when the scheduler crashes
-      (default: ``False``.)
+    - ``queue_limit`` -- the number of processes to initially submit into the
+      dask scheduler before we wait for workers to finish (default: thrice the
+      number of workers threads provided by the dask scheduler)
 
     EXAMPLES::
 
     >>> from flatsurvey.pipeline.pipeline import Pipeline
-    >>> Scheduler(survey_pipeline=Pipeline())
+    >>> pipeline = Pipeline()
+    >>> pipeline.append("surfaces", [])
+
+    >>> Scheduler(survey_pipeline=pipeline)
     Scheduler(…)
 
     """
@@ -96,12 +85,15 @@ class Scheduler:
         survey_pipeline: Pipeline,
         scheduler_json=None,
         queue_limit=None,
-        debug=False,
     ):
         self._survey_pipeline = survey_pipeline
         self._scheduler_json = scheduler_json
         self._queue_limit = queue_limit
-        self._debug = debug
+
+        import dask.distributed
+        self._pool: dask.distributed.Client | None = None
+        self._cancellation_requested = False
+        self._pending_jobs = []
 
     def __repr__(self):
         return "Scheduler(…)"
@@ -110,6 +102,8 @@ class Scheduler:
         r"""
         Return a new dask pool to schedule jobs.
         """
+        assert self._pool is None, "cannot recreate dask pool"
+
         import dask.config
 
         # We do not spawn workers as daemons so that they can have child
@@ -121,7 +115,7 @@ class Scheduler:
 
         from multiprocessing import cpu_count
 
-        return await dask.distributed.Client(
+        self._pool = await dask.distributed.Client(
             scheduler_file=self._scheduler_json,
             direct_to_workers=True,
             # Connections are not very expensive but this number should be big
@@ -141,6 +135,50 @@ class Scheduler:
             # Disable the dask nanny, see module documentation of worker/dask.py
             processes=False,
         )
+        self._pending_jobs = []
+
+    @contextmanager
+    def _create_sigint_handler(self):
+        # The signal handling that SageMath (or rather cysignals) installs for
+        # the SIGINT (i.e., Ctrl-C) signal does not play well in the (async?)
+        # dask world. What exactly happens is unclear but somehow when our
+        # _consume() entered dask.distributed.wait() and then we press Ctrl-C,
+        # a SIGABRT is raised (or at least it says "Aborted!" in the terminal)
+        # and then this asynchronous execution thread basically disappears. The
+        # program eventually exits but not exception is raised, and no finally
+        # blocks are executed here.
+        # Whatever is going on exactly, we don't want any special handling of
+        # Ctrl-C in the scheduling process. When Ctrl-C is pressed while
+        # SageMath is doing something (say doing a bit of arithmetic to figure
+        # out what's the next surface to survey) that's usually very fast and
+        # we cannot interrupt it safely anyway. So we do not rely on the
+        # KeyboardInterrupt at all here but just handle SIGINT ourselves to
+        # cancel/abort the survey.
+        def handle_sigint(_, __):
+            if self._cancellation_requested:
+                print("forcing scheduler to shut down.")
+                if self._pool is None:
+                    # The Dask client has not connected yet. We are going to
+                    # wait for dask to boot and then stop the computation
+                    # immediately.
+                    return
+
+                import asyncio
+                asyncio.get_running_loop().create_task(self._pool.close(0))  # pyright: ignore[reportArgumentType]
+            else:
+                print("requested cancellation")
+                self._cancellation_requested = True
+
+        import signal
+        from cysignals.pysignals import changesignal
+
+        with changesignal(signal.SIGINT, handle_sigint):
+            self._cancellation_requested = False
+            yield
+
+    def _create_surfaces(self):
+        from more_itertools import roundrobin
+        self._surfaces = roundrobin(*self._survey_pipeline.get("surfaces"))
 
     async def start(self):
         r"""
@@ -157,72 +195,63 @@ class Scheduler:
         done ...
 
         """
-        pool = await self._create_pool()
+        with self._create_sigint_handler():
+            await self._create_pool()
 
-        try:
             try:
-                from flatsurvey.ui.progress import SurveyProgress
+                self._create_surfaces()
+
                 with SurveyProgress(activity="running survey") as progress:
-                    from more_itertools import roundrobin
-                    surfaces = roundrobin(*self._survey_pipeline.get("surfaces"))
+                    await self._seed_jobs(progress)
 
-                    pending = []
+                    if not self._pending_jobs:
+                        print("no jobs were required to complete this survey")
+                        return
 
-                    async def schedule_one():
-                        scheduled = await self._schedule_one(
-                            pool=pool,
-                            pending=pending,
-                            surfaces=surfaces,
-                            progress=progress,
-                        )
-                        return scheduled
+                    await self._submit_jobs(progress)
+                    await self._await_pending_jobs(progress)
+            finally:
+                # Terminate all workers immediately if we crash out of this code
+                # block. (If we terminated normally, then there's nothing we have
+                # to wait for.
+                assert self._pool is not None
+                await self._pool.close(0)  # pyright: ignore[reportGeneralTypeIssues]
 
-                    async def consume_one():
-                        completed = await self._consume(pending=pending)
-                        if completed:
-                            progress.completed()
-                        return completed
+    async def _seed_jobs(self, progress):
+        assert self._pool is not None
 
-                    # Fill the job queue with a base line of queue_limit many jobs.
-                    for _ in range(self._queue_limit or 3 * sum((await pool.nthreads()).values())):
-                        if not await schedule_one():
-                            break
+        # Fill the job queue with a base line of queue_limit many jobs.
+        for _ in range(self._queue_limit or 3 * sum((await self._pool.nthreads()).values())):
+            if not await self._submit_job(progress):
+                return
 
-                    try:
-                        # Wait for a result. For each result, schedule a new task.
-                        while await consume_one():
-                            if not await schedule_one():
-                                break
-                    except KeyboardInterrupt:
-                        # TODO: This does not work. The exception is not thrown here.
+    async def _submit_jobs(self, progress):
+        # Wait for a result. For each result, schedule a new task.
+        while True:
+            if self._cancellation_requested:
+                print("stopped scheduling of new jobs as requested")
+                return
+
+            assert self._pending_jobs, "_submit_jobs needs jobs to wait for to keep the job queue filled"
+
+            completed = await self._await_pending_job(progress)
+            assert completed, "await_pending_job must only return when a job terminated"
+
+            for _ in range(completed):
+                if not await self._submit_job(progress):
+                    if self._cancellation_requested:
                         print("stopped scheduling of new jobs as requested")
-                    else:
-                        print("all jobs have been scheduled")
-                    progress.set_activity("waiting for pending tasks")
+                        return
 
-                    try:
-                        # Wait for all pending tasks to finish.
-                        while await consume_one():
-                            pass
-                    except KeyboardInterrupt:
-                        print("not awaiting schedule jobs anymore as requested")
-                        raise
+                    print("all jobs have been scheduled")
+                    break
 
-                    progress.set_activity("done")
-            except Exception:
-                if self._debug:
-                    import pdb
+    async def _await_pending_jobs(self, progress):
+        print(f"waiting for {len(self._pending_jobs)} jobs to finish")
+        while await self._await_pending_job(progress):
+            pass
 
-                    pdb.post_mortem()
-
-                raise
-        finally:
-            # Terminate all workers immediately if we crash out of this code
-            # block. (If we terminated normally, then there's nothing we have
-            # to wait for.
-            await pool.close(0) # pyright: ignore[reportGeneralTypeIssues]
-
-    async def _schedule_one(self, *, pool, pending, surfaces: Iterator[Surface], progress):
+    async def _submit_job(self, progress):
         r"""
         Enqueue another surface for computation on a worker.
 
@@ -232,8 +261,13 @@ class Scheduler:
 
         This is a helper method for :meth:`start`.
         """
+        assert self._pool is not None
+
         while True:
-            surface = next(surfaces, None)
+            if self._cancellation_requested:
+                return False
+
+            surface = next(self._surfaces, None)
 
             if surface is None:
                 return False
@@ -241,6 +275,9 @@ class Scheduler:
             pipeline = self._survey_pipeline.clone()
             pipeline.forget("surfaces")
             pipeline.define(Surface, surface)
+
+            if self._cancellation_requested:
+                return False
 
             cached = await self._resolve_from_cache(pipeline)
 
@@ -259,31 +296,36 @@ class Scheduler:
                 pipeline=pipeline
             )
 
+            if self._cancellation_requested:
+                return False
+
             progress.queued()
-            pending.append(pool.submit(task))
+            self._pending_jobs.append(self._pool.submit(task))
             return True
 
-    async def _consume(self, pending):
+    async def _await_pending_job(self, progress: SurveyProgress):
+        if not self._pending_jobs:
+            return 0
+
         import dask.distributed
 
         completed, still_pending = await dask.distributed.wait(
-            pending, return_when="FIRST_COMPLETED"
+            self._pending_jobs, return_when="FIRST_COMPLETED"
         )
 
-        pending.clear()
-        pending.extend(still_pending)
+        self._pending_jobs = list(still_pending)
 
-        if not completed:
-            return False
+        assert completed, "wait() only returns when a job terminates"
 
         for job in completed:
+            progress.completed()
             try:
                 result = await job
                 assert not isinstance(result, Exception)
             except Exception as e:
-                logging.error(f"Task crashed with {e}. Skipping.")
+                print(f"Task crashed with {e}. Skipping.")
 
-        return True
+        return len(completed)
 
     async def _resolve_from_cache(self, pipeline):
         r"""
