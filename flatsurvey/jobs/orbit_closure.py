@@ -331,6 +331,7 @@ class OrbitClosure(Goal, Command):
         orbit_closure = self._surface.orbit_closure()
         dimension = self.dimension
 
+        # TODO: If this is a billiard, use symmetries.
         orbit_closure.update_tangent_space_from_flow_decomposition(decomposition)
 
         self._progress.progress(
@@ -411,6 +412,10 @@ class OrbitClosure(Goal, Command):
 
             tangents.sort(key=height)
 
+            # TODO: Try harder to find a deformation vector here of small
+            # height here. Then scale it to be much shorter than things in the
+            # surface. The coefficient explosion does not come from the 1/n
+            # scaling but from the original deformation vector currently.
             scale = 1
             while True:
                 eligibles = False
