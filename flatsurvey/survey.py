@@ -151,7 +151,7 @@ def process(
         >>> from flatsurvey.test.cli import invoke
         >>> invoke(survey, "ngons", "-n", "3", "--limit=3", "--literature=include", "orbit-closure")  # random progress output
         on ...: all jobs have been scheduled
-        done ...
+        waiting for jobs to finish ...
 
     """
     if debug:

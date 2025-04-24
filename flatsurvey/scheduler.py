@@ -12,6 +12,7 @@ We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
 
     >>> from flatsurvey.surfaces import Ngons
     >>> ngons = Ngons(vertices=3, length="e-antic", min=0, limit=None, count=2, literature='include', family=None, filter=None)
+    >>> survey.append("surfaces", ngons)
 
     >>> from flatsurvey.jobs import OrbitClosure
     >>> survey.append("goals", OrbitClosure)
@@ -21,7 +22,7 @@ We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
     >>> import asyncio
     >>> asyncio.run(scheduler.start())  # random progress output
     on ...: all jobs have been scheduled
-    done ...
+    waiting for jobs to finish ...
 
 """
 # *********************************************************************
@@ -43,7 +44,6 @@ We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from typing import Iterator
 from contextlib import contextmanager
 
 from flatsurvey.pipeline import Pipeline
@@ -191,8 +191,8 @@ class Scheduler:
         >>> pipeline.append("surfaces", [])
         >>> scheduler = Scheduler(survey_pipeline=pipeline)
         >>> asyncio.run(scheduler.start())  # random progress output
-        on ...: all jobs have been scheduled
-        done ...
+        on ...: no jobs were required to complete this survey
+        ...
 
         """
         with self._create_sigint_handler():
@@ -201,7 +201,7 @@ class Scheduler:
             try:
                 self._create_surfaces()
 
-                with SurveyProgress(activity="running survey") as progress:
+                with SurveyProgress(activity="...") as progress:
                     await self._seed_jobs(progress)
 
                     if not self._pending_jobs:
@@ -218,6 +218,8 @@ class Scheduler:
                 await self._pool.close(0)  # pyright: ignore[reportGeneralTypeIssues]
 
     async def _seed_jobs(self, progress):
+        progress.set_activity("seeding job queue")
+
         assert self._pool is not None
 
         # Fill the job queue with a base line of queue_limit many jobs.
@@ -226,6 +228,8 @@ class Scheduler:
                 return
 
     async def _submit_jobs(self, progress):
+        progress.set_activity("scheduling jobs as needed")
+
         # Wait for a result. For each result, schedule a new task.
         while True:
             if self._cancellation_requested:
@@ -244,10 +248,10 @@ class Scheduler:
                         return
 
                     print("all jobs have been scheduled")
-                    break
+                    return
 
     async def _await_pending_jobs(self, progress):
-        print(f"waiting for {len(self._pending_jobs)} jobs to finish")
+        progress.set_activity("waiting for jobs to finish")
         while await self._await_pending_job(progress):
             pass
 
