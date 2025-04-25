@@ -45,6 +45,7 @@ alive-progress = "*"
 
 [tool.pixi.pypi-dependencies]
 flatsurvey = { path = ".", editable = true }
+cancel-token = "*"
 
 [tool.pixi.tasks.test]
 cmd = "pytest -n $(nproc) --doctest-modules flatsurvey"

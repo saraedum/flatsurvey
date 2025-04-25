@@ -45,6 +45,10 @@ We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
 # *********************************************************************
 
 from contextlib import contextmanager
+from typing import Iterator, List
+
+import dask.distributed
+from cancel_token import CancellationToken
 
 from flatsurvey.pipeline import Pipeline
 from flatsurvey.surfaces import Surface
@@ -63,20 +67,33 @@ class Scheduler:
       a ``"surfaces"`` entry for all the surfaces that should be surveyed.
 
     - ``scheduler`` -- a dask scheduler file to connect to; if not given (the
-      default) then a dask scheduler is started by this process
+      default) then a dedicated dask scheduler is launched
 
     - ``queue_limit`` -- the number of processes to initially submit into the
       dask scheduler before we wait for workers to finish (default: thrice the
-      number of workers threads provided by the dask scheduler)
+      number of worker threads provided by the dask scheduler)
+
+    ALGORITHM:
+
+    We'll have lots of jobs (surfaces) that we want to run with one scheduler
+    usually. Often even an infinite family. So we cannot submit all the jobs
+    into the dask job queue and wait for them to complete.
+
+    Instead, we try to keep a good amount of a "backlog" in the queue so that
+    our workers never run out of things to do. Whenever a worker finishes a
+    job, we try to keep the queue equally full by finding a new job to submit
+    into the queue (this might take a while since we might be able to obtain
+    the results for a lot of surfaces from our caches and won't submit them
+    into the queue therefore.)
 
     EXAMPLES::
 
-    >>> from flatsurvey.pipeline.pipeline import Pipeline
-    >>> pipeline = Pipeline()
-    >>> pipeline.append("surfaces", [])
+        >>> from flatsurvey.pipeline.pipeline import Pipeline
+        >>> pipeline = Pipeline()
+        >>> pipeline.append("surfaces", [])
 
-    >>> Scheduler(survey_pipeline=pipeline)
-    Scheduler(…)
+        >>> Scheduler(survey_pipeline=pipeline)
+        Scheduler(…)
 
     """
 
@@ -90,20 +107,139 @@ class Scheduler:
         self._scheduler_json = scheduler_json
         self._queue_limit = queue_limit
 
-        import dask.distributed
-        self._pool: dask.distributed.Client | None = None
-        self._cancellation_requested = False
-        self._pending_jobs = []
-
     def __repr__(self):
         return "Scheduler(…)"
 
-    async def _create_pool(self):
+    async def start(self):
         r"""
-        Return a new dask pool to schedule jobs.
-        """
-        assert self._pool is None, "cannot recreate dask pool"
+        Run the scheduler until all jobs have been scheduled and all jobs
+        terminated.
 
+        EXAMPLES::
+
+            >>> import asyncio
+            >>> from flatsurvey.pipeline.pipeline import Pipeline
+            >>> pipeline = Pipeline()
+            >>> pipeline.append("surfaces", [])
+            >>> scheduler = Scheduler(survey_pipeline=pipeline)
+            >>> asyncio.run(scheduler.start())  # random progress output
+            on ...: no jobs were required to complete this survey
+            ...
+
+        """
+        pool = await self._create_pool()
+
+        with self._create_sigint_handler(pool) as token:
+            try:
+                surfaces = self._create_surfaces()
+
+                with SurveyProgress(activity="...") as progress:
+                    jobs = await self._seed_jobs(pool, progress, token, surfaces)
+
+                    if not jobs:
+                        print("no jobs were required to complete this survey")
+                        return
+
+                    await self._submit_jobs(pool, progress, token, jobs, surfaces)
+                    await self._await_pending_jobs(progress, jobs)
+            finally:
+                # Terminate all workers immediately if we crash out of this code
+                # block. (If we terminated normally, then there's nothing we have
+                # to wait for.
+                await pool.close(0)  # pyright: ignore[reportGeneralTypeIssues]
+
+    @contextmanager
+    def _create_sigint_handler(self, pool: dask.distributed.Client) -> Iterator[CancellationToken]:
+        r"""
+        Replace the handler for the SIGINT signal while this context is active
+        so that pressing Ctrl-C aborts the survey.
+
+        .. NOTE:
+
+            The signal handling that SageMath (or rather cysignals) installs
+            for the SIGINT (i.e., Ctrl-C) signal does not play well in the
+            (async?) dask world. What exactly happens is unclear but somehow
+            when our ``_consume()`` entered ``dask.distributed.wait()`` and
+            then we press Ctrl-C, a SIGABRT is raised (or at least it says
+            "Aborted!" in the terminal) and then this asynchronous execution
+            thread basically disappears. The program eventually exits but no
+            exception is raised, and no finally blocks are executed here.
+
+            Whatever is going on exactly, we don't want any special handling of
+            Ctrl-C in the scheduling process. When Ctrl-C is pressed while
+            SageMath is doing something (say doing a bit of arithmetic to
+            figure out what's the next surface to survey) that's usually very
+            fast and we cannot interrupt it safely anyway. So we do not rely on
+            the KeyboardInterrupt at all here but just handle SIGINT ourselves
+            to cancel/abort the survey.
+
+        EXAMPLES::
+
+            >>> from flatsurvey.pipeline.pipeline import Pipeline
+            >>> pipeline = Pipeline()
+            >>> pipeline.append("surfaces", [])
+
+            >>> scheduler = Scheduler(survey_pipeline=pipeline)
+
+            >>> import os, signal
+
+            >>> async def test():
+            ...     pool = await scheduler._create_pool()
+            ...     with scheduler._create_sigint_handler(pool) as token:
+            ...         print(token.cancelled)
+            ...         os.kill(os.getpid(), signal.SIGINT)
+            ...         print(token.cancelled)
+            ...         os.kill(os.getpid(), signal.SIGINT)
+            ...         print(token.cancelled)
+            ...     await pool.close()
+
+            >>> import asyncio
+            >>> asyncio.run(test())
+            False
+            requested cancellation
+            True
+            forcing scheduler to shut down
+            True
+
+        """
+        token = CancellationToken()
+
+        def handle_sigint(_, __):
+            if token.cancelled:
+                print("forcing scheduler to shut down")
+
+                import asyncio
+                asyncio.get_running_loop().create_task(pool.close(0))  # pyright: ignore[reportArgumentType]
+            else:
+                print("requested cancellation")
+                token.cancel()
+
+        import signal
+        from cysignals.pysignals import changesignal
+
+        with changesignal(signal.SIGINT, handle_sigint):
+            yield token
+
+    async def _create_pool(self) -> dask.distributed.Client:
+        r"""
+        Return a dask pool to schedule jobs.
+
+        This is a helper method for :meth:`start`.
+
+        EXAMPLES::
+
+            >>> from flatsurvey.pipeline.pipeline import Pipeline
+
+            >>> scheduler = Scheduler(survey_pipeline=Pipeline())
+
+            >>> async def create_pool():
+            ...     pool = await scheduler._create_pool()
+            ...     await pool.close(0)
+
+            >>> import asyncio
+            >>> asyncio.run(create_pool())
+
+        """
         import dask.config
 
         # We do not spawn workers as daemons so that they can have child
@@ -115,7 +251,7 @@ class Scheduler:
 
         from multiprocessing import cpu_count
 
-        self._pool = await dask.distributed.Client(
+        return await dask.distributed.Client(
             scheduler_file=self._scheduler_json,
             direct_to_workers=True,
             # Connections are not very expensive but this number should be big
@@ -135,157 +271,88 @@ class Scheduler:
             # Disable the dask nanny, see module documentation of worker/dask.py
             processes=False,
         )
-        self._pending_jobs = []
-
-    @contextmanager
-    def _create_sigint_handler(self):
-        # The signal handling that SageMath (or rather cysignals) installs for
-        # the SIGINT (i.e., Ctrl-C) signal does not play well in the (async?)
-        # dask world. What exactly happens is unclear but somehow when our
-        # _consume() entered dask.distributed.wait() and then we press Ctrl-C,
-        # a SIGABRT is raised (or at least it says "Aborted!" in the terminal)
-        # and then this asynchronous execution thread basically disappears. The
-        # program eventually exits but not exception is raised, and no finally
-        # blocks are executed here.
-        # Whatever is going on exactly, we don't want any special handling of
-        # Ctrl-C in the scheduling process. When Ctrl-C is pressed while
-        # SageMath is doing something (say doing a bit of arithmetic to figure
-        # out what's the next surface to survey) that's usually very fast and
-        # we cannot interrupt it safely anyway. So we do not rely on the
-        # KeyboardInterrupt at all here but just handle SIGINT ourselves to
-        # cancel/abort the survey.
-        def handle_sigint(_, __):
-            if self._cancellation_requested:
-                print("forcing scheduler to shut down.")
-                if self._pool is None:
-                    # The Dask client has not connected yet. We are going to
-                    # wait for dask to boot and then stop the computation
-                    # immediately.
-                    return
-
-                import asyncio
-                asyncio.get_running_loop().create_task(self._pool.close(0))  # pyright: ignore[reportArgumentType]
-            else:
-                print("requested cancellation")
-                self._cancellation_requested = True
-
-        import signal
-        from cysignals.pysignals import changesignal
-
-        with changesignal(signal.SIGINT, handle_sigint):
-            self._cancellation_requested = False
-            yield
 
     def _create_surfaces(self):
-        from more_itertools import roundrobin
-        self._surfaces = roundrobin(*self._survey_pipeline.get("surfaces"))
-
-    async def start(self):
         r"""
-        Run the scheduler until all jobs have been scheduled and all jobs
-        terminated.
+        Return a surface iterator with a fresh copy of all surfaces to be
+        surveyed.
 
-        >>> import asyncio
-        >>> from flatsurvey.pipeline.pipeline import Pipeline
-        >>> pipeline = Pipeline()
-        >>> pipeline.append("surfaces", [])
-        >>> scheduler = Scheduler(survey_pipeline=pipeline)
-        >>> asyncio.run(scheduler.start())  # random progress output
-        on ...: no jobs were required to complete this survey
-        ...
+        This is a helper method for :meth:`start`.
+
+        EXAMPLES::
+
+            >>> from flatsurvey.pipeline.pipeline import Pipeline
+            >>> pipeline = Pipeline()
+
+            >>> from flatsurvey.surfaces import Ngons
+            >>> ngons = Ngons(vertices=3, length="e-antic", min=0, limit=None, count=2, literature='include', family=None, filter=None)
+            >>> pipeline.append("surfaces", ngons)
+
+            >>> scheduler = Scheduler(survey_pipeline=pipeline)
+
+            >>> surfaces = scheduler._create_surfaces()
+            >>> list(surfaces)
+            [Ngon([1, 1, 1]), Ngon([1, 1, 2])]
+
+            >>> list(surfaces)
+            []
 
         """
-        with self._create_sigint_handler():
-            await self._create_pool()
+        from more_itertools import roundrobin
+        return roundrobin(*self._survey_pipeline.get("surfaces"))
 
-            try:
-                self._create_surfaces()
+    async def _seed_jobs(self, pool: dask.distributed.Client, progress: SurveyProgress, token: CancellationToken, surfaces: Iterator[Surface]) -> List[dask.distributed.Future]:
+        r"""
+        Initialize the job queue with some things to work on without actually
+        consuming results from the workers that might arrive in the meantime.
 
-                with SurveyProgress(activity="...") as progress:
-                    await self._seed_jobs(progress)
+        This is a helper method for :meth:`start`.
 
-                    if not self._pending_jobs:
-                        print("no jobs were required to complete this survey")
-                        return
-
-                    await self._submit_jobs(progress)
-                    await self._await_pending_jobs(progress)
-            finally:
-                # Terminate all workers immediately if we crash out of this code
-                # block. (If we terminated normally, then there's nothing we have
-                # to wait for.
-                assert self._pool is not None
-                await self._pool.close(0)  # pyright: ignore[reportGeneralTypeIssues]
-
-    async def _seed_jobs(self, progress):
+        """
         progress.set_activity("seeding job queue")
 
-        assert self._pool is not None
+        jobs = []
 
         # Fill the job queue with a base line of queue_limit many jobs.
-        for _ in range(self._queue_limit or 3 * sum((await self._pool.nthreads()).values())):
-            if not await self._submit_job(progress):
-                return
+        for _ in range(self._queue_limit or 3 * sum((await pool.nthreads()).values())):
+            job = await self._submit_job(pool, progress, token, surfaces)
+            if job is None:
+                break
+            jobs.append(job)
 
-    async def _submit_jobs(self, progress):
-        progress.set_activity("scheduling jobs as needed")
+        return jobs
 
-        # Wait for a result. For each result, schedule a new task.
-        while True:
-            if self._cancellation_requested:
-                print("stopped scheduling of new jobs as requested")
-                return
-
-            assert self._pending_jobs, "_submit_jobs needs jobs to wait for to keep the job queue filled"
-
-            completed = await self._await_pending_job(progress)
-            assert completed, "await_pending_job must only return when a job terminated"
-
-            for _ in range(completed):
-                if not await self._submit_job(progress):
-                    if self._cancellation_requested:
-                        print("stopped scheduling of new jobs as requested")
-                        return
-
-                    print("all jobs have been scheduled")
-                    return
-
-    async def _await_pending_jobs(self, progress):
-        progress.set_activity("waiting for jobs to finish")
-        while await self._await_pending_job(progress):
-            pass
-
-    async def _submit_job(self, progress):
+    async def _submit_job(self, pool: dask.distributed.Client, progress: SurveyProgress, token: CancellationToken, surfaces: Iterator[Surface]) -> dask.distributed.Future | None:
         r"""
         Enqueue another surface for computation on a worker.
 
-        Return whether there was another surface, i.e., ``False`` iff all surfaces have been scheduled already.
+        Return a future that resolves when the job completes or ``None`` if all
+        surfaces have been scheduled already.
 
         This will skip over surfaces that can be resolved from cached data.
 
-        This is a helper method for :meth:`start`.
+        This is a helper method for :meth:`_seed_jobs` and :meth:`submit_jobs`.
+
         """
-        assert self._pool is not None
-
         while True:
-            if self._cancellation_requested:
-                return False
+            if token.cancelled:
+                return None
 
-            surface = next(self._surfaces, None)
+            surface = next(surfaces, None)
 
             if surface is None:
-                return False
+                return None
 
             pipeline = self._survey_pipeline.clone()
             pipeline.forget("surfaces")
             pipeline.define(Surface, surface)
 
-            if self._cancellation_requested:
-                return False
+            if token.cancelled:
+                return None
 
             cached = await self._resolve_from_cache(pipeline)
 
-            assert surface._surface.cache is None, "to prevent memory leaks, surface must not be created to resolve caches"
+            assert surface._surface.cache is None, "to prevent memory leaks, surface must not be created to resolve caches"  # pyright: ignore[reportFunctionMemberAccess]
 
             if cached:
                 # Everything could be answered from cached data. Proceed to next surface.
@@ -300,24 +367,113 @@ class Scheduler:
                 pipeline=pipeline
             )
 
-            if self._cancellation_requested:
-                return False
+            if token.cancelled:
+                return None
 
             progress.queued()
-            self._pending_jobs.append(self._pool.submit(task))
-            return True
+            return pool.submit(task)
 
-    async def _await_pending_job(self, progress: SurveyProgress):
-        if not self._pending_jobs:
+    @staticmethod
+    async def _resolve_from_cache(pipeline: Pipeline):
+        r"""
+        Return whether all ``goals`` for the task encoded in the ``pipeline``
+        could be resolved from cached data.
+
+        This is a helper method for :meth:`_submit_job`.
+
+        EXAMPLES::
+
+            >>> from flatsurvey.pipeline.pipeline import Pipeline
+            >>> pipeline = Pipeline()
+            >>> pipeline.define("goals", [])
+
+            >>> import asyncio
+            >>> asyncio.run(Scheduler._resolve_from_cache(pipeline))
+            True
+
+        ::
+
+            >>> from flatsurvey.jobs.orbit_closure import OrbitClosure
+            >>> from flatsurvey.surfaces.ngons import Ngon
+            >>> from flatsurvey.surfaces import Surface
+            >>> pipeline = Pipeline()
+            >>> pipeline.append("goals", OrbitClosure)
+            >>> pipeline.define(Surface, Ngon((1, 1, 1)))
+
+            >>> import asyncio
+            >>> asyncio.run(Scheduler._resolve_from_cache(pipeline))
+            False
+
+        """
+        goals = pipeline.get("goals")
+
+        for goal in goals:
+            await goal.consume_cache()
+
+        pending_goals = [goal for goal in goals if goal._resolved != goal.COMPLETED]
+
+        return not pending_goals
+
+    async def _submit_jobs(self, pool: dask.distributed.Client, progress: SurveyProgress, token: CancellationToken, jobs: List[dask.distributed.Future], surfaces: Iterator[Surface]) -> None:
+        r"""
+        Submit jobs for all ``surfaces`` to run in the ``pool`` of workers.
+
+        This is a helper method for :meth:`start`.
+        """
+        progress.set_activity("scheduling jobs as needed")
+
+        # Wait for a result. For each result, schedule a new task.
+        while True:
+            if token.cancelled:
+                print("stopped scheduling of new jobs as requested")
+                return
+
+            assert jobs, "_submit_jobs needs jobs to wait for to keep the job queue filled"
+
+            completed = await self._await_pending_job(progress, jobs)
+            assert completed, "await_pending_job must only return when a job terminated"
+
+            for _ in range(completed):
+                job = await self._submit_job(pool, progress, token, surfaces)
+                if job is None:
+                    if token.cancelled:
+                        print("stopped scheduling of new jobs as requested")
+                        return
+
+                    print("all jobs have been scheduled")
+                    return
+
+                jobs.append(job)
+
+    async def _await_pending_jobs(self, progress: SurveyProgress, jobs: List[dask.distributed.Future]):
+        r"""
+        Wait for all ``jobs`` to complete.
+
+        This is a helper method for :meth:`start`.
+        """
+        progress.set_activity("waiting for jobs to finish")
+        while await self._await_pending_job(progress, jobs):
+            pass
+
+    async def _await_pending_job(self, progress: SurveyProgress, jobs: List[dask.distributed.Future]) -> int:
+        r"""
+        Wait for at least one of the ``jobs`` to complete and remove completed
+        job from that list.
+
+        Return the number of jobs that completed.
+
+        This is a helper method for :meth:`_await_pending_jobs` and
+        :meth:`_submit_jobs`.
+        """
+        if not jobs:
             return 0
 
-        import dask.distributed
-
         completed, still_pending = await dask.distributed.wait(
-            self._pending_jobs, return_when="FIRST_COMPLETED"
+            jobs, return_when="FIRST_COMPLETED"
         )
 
-        self._pending_jobs = list(still_pending)
+        jobs.clear()
+        jobs.extend(still_pending)
 
         assert completed, "wait() only returns when a job terminates"
 
@@ -330,18 +486,3 @@ class Scheduler:
                 print(f"Task crashed with {e}. Skipping.")
 
         return len(completed)
-
-    async def _resolve_from_cache(self, pipeline):
-        r"""
-        Return whether all ``goals`` could be resolved from cached data.
-
-        This is a helper method for :meth:`_schedule_one`.
-        """
-        goals = pipeline.get("goals")
-
-        for goal in goals:
-            await goal.consume_cache()
-
-        pending_goals = [goal for goal in goals if goal._resolved != goal.COMPLETED]
-
-        return not pending_goals
