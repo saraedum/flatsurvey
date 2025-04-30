@@ -185,36 +185,6 @@ class Cache(Command):
                 jsons=jsons,
                 pickles=pickles)
 
-    def deform(self, deformation):
-        # TODO: Can we get rid of this method somehow?
-        # r"""
-        # Return how this cache transforms when a deformation of the studied
-        # surface happens.
-
-        # Returns the original :meth:`bindings` unchanged since the cache is not
-        # affected by a deformation.
-
-        # EXAMPLES::
-
-        #     >>> from flatsurvey.surfaces import Ngon
-
-        #     >>> cache = Cache(pickles=None, jsons=(), report=None)
-        #     >>> surface = Ngon((1, 1, 1))
-
-        # We deform the surface by doubling every edge::
-
-        #     >>> from pyflatsurf import flatsurf
-        #     >>> T = surface.flat_triangulation()
-        #     >>> deformation = T + [T.fromHalfEdge(e.positive()) for e in T.edges()]
-
-        # The cache does not change with this deformation::
-
-        #     >>> cache.deform(deformation)
-        #     {'bindings': [cache binding to Cache]}
-
-        # """
-        return {"bindings": Cache.bindings(jsons=self._jsons, pickles=self._pickles)}
-
     def sources(self, *sources):
         r"""
         The sources from which the cache should operate.

@@ -80,6 +80,9 @@ class Log(Reporter, Command):
 
         self._stream = stream
 
+    def deform(self, deformation):
+        return Log(surface=deformation, stream=self._stream)
+
     def _log_prefix(self, source):
         return f"[{self._surface}] [{type(source).__name__}]"
 
@@ -131,15 +134,6 @@ class Log(Reporter, Command):
             scope=Log,
             output=output,
             prefix=prefix)
-
-    def deform(self, deformation):
-        raise NotImplementedError
-        from flatsurvey.pipeline.util import FactoryBindingSpec
-
-        return {
-            "bindings": [FactoryBindingSpec(lambda surface: self, "log")],
-            "reporters": [Log],
-        }
 
     def progress(
         self,

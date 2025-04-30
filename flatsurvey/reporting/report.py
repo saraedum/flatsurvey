@@ -80,6 +80,9 @@ class Report(Command):
     def click(ignore):
         return {"bindings": Report.bindings(ignore)}
 
+    def deform(self, deformation) -> "Report":
+        return Report(reporters=[reporter.deform(deformation) for reporter in self._reporters], ignore=self._ignore)
+
     def log(self, source, message, **kwargs):
         r"""
         Write an informational message to the log.
@@ -203,10 +206,6 @@ class Report(Command):
             return True
 
         return False
-
-    def deform(self, deformation):
-        # TODO: Get rid of deform?
-        return {"bindings": Report.bindings(ignore=self._ignore)}
 
     def flush(self):
         for reporter in self._reporters:

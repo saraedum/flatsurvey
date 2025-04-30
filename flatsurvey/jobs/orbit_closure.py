@@ -252,18 +252,6 @@ class OrbitClosure(Goal, Command):
             cache_only=cache_only,
         )
 
-    def deform(self, deformation):
-        # TODO: Can we get rid of this method somehow?
-        return {
-            "goals": [OrbitClosure],
-            "bindings": OrbitClosure.bindings(
-                stale_limit=self._stale_limit,
-                expansions_limit=self._expansions_limit,
-                deform=False,
-                cache_only=self._cache_only,
-            ),
-        }
-
     @property
     def dimension(self):
         return self._surface.orbit_closure().dimension()

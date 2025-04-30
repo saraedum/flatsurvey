@@ -101,15 +101,6 @@ class Json(Reporter, Command):
 
         return Json(surface, output=output, pickles=pickles)
 
-    def deform(self, deformation):
-        raise NotImplementedError
-        from flatsurvey.pipeline.util import FactoryBindingSpec
-
-        return {
-            "bindings": [FactoryBindingSpec(lambda surface: self, "json")],
-            "reporters": [Json],
-        }
-
     async def result(self, source, result, **kwargs):
         r"""
         Report a ``result`` for ``source``.

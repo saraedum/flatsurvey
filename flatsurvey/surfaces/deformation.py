@@ -62,6 +62,7 @@ class Deformation(Surface):
             # files for the undeformed surface.
             from flatsurvey.reporting import Report
             report = pipeline.get(Report)
+            report = report.deform(self._deformation)
 
             pipeline = pipeline.clone()
             pipeline.forget(Report)

@@ -43,6 +43,8 @@ class Reporter:
         True
 
     """
+    def deform(self, deformation) -> "Reporter":
+        raise NotImplementedError
 
     def log(self, source, message, **kwargs):
         r"""
