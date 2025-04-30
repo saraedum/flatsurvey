@@ -1,6 +1,14 @@
-Automation scripts for the [flatsurf](https://github.com/flatsurf) stack to survey large sets of objects.
+Automation scripts for the [flatsurf](https://github.com/flatsurf) stack to
+survey large sets of objects.
 
-To perform a full survey, use [`flatsurvey`](./flatsurvey/survey.py). To investigate a single object, run [`flatsurvey-worker`](./flatsurvey/worker/worker.py).
+To perform a full survey, use [`flatsurvey`](./flatsurvey/survey.py). To
+investigate a single object, run
+[`flatsurvey-worker`](./flatsurvey/worker/worker.py).
+
+# Local Usage
+
+To play with this tool locally, you can run `pixi shell` to make sure that you
+have all the required dependencies installed in the correct versions.
 
 Here, we check that the (1, 1, 1, 6) quadrilateral has dense orbit closure::
 
@@ -27,7 +35,10 @@ And then use that JSON file as a database for the next run:
 nice flatsurvey ngons --vertices 3 ngons --vertices 4 ngons --vertices 5 orbit-closure --deform local-cache --json orbit-closure.json json --prefix=./surveyname
 ```
 
-# Run Surveys in a Cluster
+# Cluster Surveys
+
+We provide example scripts that run surveys on the PlaFRIM cluster. It should
+be easy to adapt these to work on any cluster that can run a dask workload.
 
 Install the requirements and flatsurvey and package it for the workers:
 

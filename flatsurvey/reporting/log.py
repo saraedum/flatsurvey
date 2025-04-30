@@ -36,6 +36,7 @@ EXAMPLES::
 import click
 
 from flatsurvey.command import Command
+from flatsurvey.pipeline import Pipeline
 from flatsurvey.reporting.reporter import Reporter
 from flatsurvey.ui.group import GroupedCommand
 
@@ -55,16 +56,29 @@ class Log(Reporter, Command):
 
     """
 
-    def __init__(self, surface, stream=None):
+    def __init__(self, surface, stream=None, output=None, prefix=None):
         super().__init__()
 
         self._surface = surface
-        self._stream = stream
 
-        if self._stream is None:
+        if prefix is not None:
+            if output is not None:
+                raise ValueError("at most one of stream, output, prefix must be given")
+            
+            import os.path
+            output = os.path.join(prefix, f"{surface.basename()}.log")
+
+        if output is not None:
+            if stream is not None:
+                raise ValueError("at most one of stream, output, prefix must be given")
+
+            stream = open(output, "w")
+
+        if stream is None:
             import sys
+            stream = sys.stdout
 
-            self._stream = sys.stdout
+        self._stream = stream
 
     def _log_prefix(self, source):
         return f"[{self._surface}] [{type(source).__name__}]"
@@ -92,7 +106,7 @@ class Log(Reporter, Command):
             message += f" ({k}: {v})"
         self._log(message)
 
-    @classmethod
+    @staticmethod
     @click.command(
         name="log",
         cls=GroupedCommand,
@@ -110,16 +124,13 @@ class Log(Reporter, Command):
         type=click.Path(exists=True, file_okay=False, dir_okay=True, allow_dash=False),
         default=None,
     )
-    def click(output, prefix):
-        return {
-            "bindings": Log.bindings(output=output, prefix=prefix),
-            "reporters": [Log],
-        }
-
-    @classmethod
-    def bindings(cls, output, prefix=None):
-        raise NotImplementedError
-        return [LogBindingSpec(output=output, prefix=prefix)]
+    @Pipeline.click
+    def click(pipeline: Pipeline, output, prefix):
+        pipeline.append("reporters", Log)
+        pipeline.define(
+            scope=Log,
+            output=output,
+            prefix=prefix)
 
     def deform(self, deformation):
         raise NotImplementedError
@@ -194,30 +205,3 @@ class Log(Reporter, Command):
         if kwargs.pop("cached", False):
             result = f"{result} (cached)"
         self.log(source, result, **kwargs)
-
-
-## TODO: Rewrite without pinject?
-## class LogBindingSpec(BindingSpec):
-##     r"""
-##     A picklable version of a FactoryBindingSpec().
-##     """
-##     scope = "DEFAULT"
-##     name = "log"
-## 
-##     def __init__(self, output, prefix):
-##         self._output = output
-##         self._prefix = prefix
-## 
-##     def provide_log(self, surface):
-##         if self._output == "-" or (self._output is None and self._prefix is None):
-##             import sys
-## 
-##             stream = None
-##         elif self._output is not None:
-##             stream = open(self._output, "w")
-##         elif self._prefix is not None:
-##             import os.path
-## 
-##             stream = open(os.path.join(self._prefix, f"{surface.basename()}.log"), "w")
-## 
-##         return Log(surface, stream=stream)

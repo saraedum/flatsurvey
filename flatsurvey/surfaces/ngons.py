@@ -573,9 +573,6 @@ class Ngon(Surface):
             and self.polygon.cache == other.polygon.cache
         )
 
-    def __ne__(self, other):
-        return not (self == other)
-
     @staticmethod
     @click.command(
         name="ngon",

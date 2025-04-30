@@ -17,56 +17,20 @@
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
+
+from flatsurvey.pipeline import Pipeline
 
 
-class Restart(Exception):
-    def rewrite_command(self, command, objects):
-        return {
-            "bindings": [
-                self.rewrite_binding(binding, objects=objects)
-                for binding in command.get("bindings", [])
-            ],
-            "goals": [
-                self.rewrite_goal(goal, objects=objects)
-                for goal in command.get("goals", [])
-            ],
-            "reporters": [
-                self.rewrite_reporter(reporter, objects=objects)
-                for reporter in command.get("reporters", [])
-            ],
-        }
-
-    def rewrite_binding(self, binding, objects):
-        providers = [
-            provider for provider in dir(binding) if provider.startswith("provide_")
-        ]
-        if not providers:
-            raise NotImplementedError(
-                "Cannot rewrite binding that does not provide_ anything"
-            )
-        if len(providers) >= 2:
-            raise NotImplementedError(
-                "Cannot rewrite binding that does provide_ more than one object"
-            )
-
-        bound = provide(providers[0][len("provide_") :], objects)
-
-        bindings = self.rewrite_bound(bound)
-
-        if len(bindings) != 1:
-            raise NotImplementedError("cannot rewrite more than one binding yet")
-
-        return bindings[0]
-
+class Restart(Exception, ABC):
+    r"""
+    An exception that signals that the worker should restart on a modified
+    pipeline.
+    """
     @abstractmethod
-    def rewrite_goal(self, goal, objects):
-        pass
-
-    @abstractmethod
-    def rewrite_reporter(self, reporter, objects):
-        pass
-
-    @abstractmethod
-    def rewrite_bound(self, bound):
-        pass
+    def restart(self, pipeline: Pipeline) -> Pipeline:
+        r"""
+        Return a modified pipeline that the worker should work on instead after
+        the restart.
+        """
+        raise NotImplementedError

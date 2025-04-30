@@ -50,9 +50,6 @@ class Deformation(Surface):
             and self._old == other._old
         )
 
-    def __ne__(self, other):
-        return not (self == other)
-
     def cache_predicate(self, exact, cache=None):
         return lambda result: False
 
@@ -60,28 +57,16 @@ class Deformation(Surface):
         def __init__(self, deformed, old):
             self._deformation = Deformation(deformed=deformed, old=old)
 
-        def rewrite_bound(self, bound):
-            raise NotImplementedError
-            if isinstance(bound, Surface):
-                return [
-                    FactoryBindingSpec(
-                        prototype=lambda: self._deformation,
-                        name="surface",
-                    )
-                ]
+        def restart(self, pipeline):
+            # We keep the reporting so that any data is written to the log
+            # files for the undeformed surface.
+            from flatsurvey.reporting import Report
+            report = pipeline.get(Report)
 
-            return bound.deform(deformation=self._deformation)["bindings"]
+            pipeline = pipeline.clone()
+            pipeline.forget(Report)
+            pipeline.define(Report, report)
+            pipeline.forget(Surface)
+            pipeline.define(Surface, self._deformation)
 
-        def rewrite_goal(self, goal, objects):
-            goal = objects.provide(goal)
-            goals = goal.deform(deformation=self._deformation)["goals"]
-            if len(goals) != 1:
-                raise NotImplementedError("cannot rewrite more than one goal yet")
-            return goals[0]
-
-        def rewrite_reporter(self, reporter, objects):
-            reporter = objects.provide(reporter)
-            reporters = reporter.deform(deformation=self._deformation)["reporters"]
-            if len(reporters) != 1:
-                raise NotImplementedError("cannot rewrite more than one reporter yet")
-            return reporters[0]
+            return pipeline

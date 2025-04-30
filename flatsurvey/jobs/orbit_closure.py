@@ -107,12 +107,16 @@ class OrbitClosure(Goal, Command):
         self._stale_limit = stale_limit
         self._expansions_limit = expansions_limit
         self._cache_only = cache_only
+        self._deform = deform
+
+        from flatsurvey.surfaces.deformation import Deformation
+        if isinstance(self._surface, Deformation):
+            self._deform = False
 
         self._cylinders_without_increase = 0
         self._directions_with_cylinders = 0
         self._directions = 0
         self._expansions_performed = 0
-        self._deformed = not deform
 
         import pyflatsurf
 
@@ -383,7 +387,7 @@ class OrbitClosure(Goal, Command):
             return Goal.COMPLETED
 
         if (
-            not self._deformed
+            self._deform
             and self.dimension > 3
             and self._directions >= self._stale_limit
         ):

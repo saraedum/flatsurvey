@@ -239,9 +239,6 @@ class ThurstonVeech(Surface):
             and self.vm == other.vm
         )
 
-    def __ne__(self, other):
-        return not (self == other)
-
     @classmethod
     @click.command(
         name="thurston-veech",
