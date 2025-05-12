@@ -57,15 +57,25 @@ class Json(Reporter, Command):
 
     """
 
-    def __init__(self, surface: Surface, output="-", pickles=False):
+    def __init__(self, surface: Surface, output=None, prefix=None, pickles=False):
         super().__init__()
+
+        if prefix is not None:
+            if output is not None:
+                raise ValueError("at most one of output and prefix must be given")
+
+            import os.path
+            output = os.path.join(prefix, f"{surface.basename()}.json")
+
+        if output is None:
+            output = "-"
 
         self._output = output
         self._pickles = pickles
 
         self._data = {"surface": surface}
 
-    @classmethod
+    @staticmethod
     @click.command(
         name="json",
         cls=GroupedCommand,
@@ -87,7 +97,11 @@ class Json(Reporter, Command):
     @Pipeline.click
     def click(pipeline: Pipeline, output, prefix, pickles):
         pipeline.append("reporters", Json)
-        pipeline.bind(Json.create, output=output, prefix=prefix, pickles=pickles)
+        pipeline.define(
+            scope=Json,
+            output=output,
+            prefix=prefix,
+            pickles=pickles)
 
     # TODO: Do we really need this?
     @staticmethod
