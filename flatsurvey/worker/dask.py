@@ -98,8 +98,10 @@ some log file by a reporter instead::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 import multiprocessing
+from contextlib import contextmanager
 
 import click
+import dask.distributed
 
 # We import sage.all before forking off child processes.
 # Importing sage.all is very costly, so we import it once in the template
@@ -177,6 +179,8 @@ class DaskTask:
     def __call__(self):
         r"""
         Execute this task in the current worker and return the result.
+
+        This is the callable that is submitted via ``client.submit`` by the scheduler.
 
         TODO: Add an example that shows how exceptions are handled.
 
@@ -289,24 +293,32 @@ class DaskRunner:
         # For most workloads this does not seem to be necessary, and we might
         # want to change that at some point.
         # TODO: What happens when _run raises an Exception? Add a test.
+        from dask.distributed import get_client
+        cancellation = DaskCancellationToken(get_client())
+
         process = forkserver.Process(target=DaskRunner._run, args=(self,), daemon=False, name=repr(self._task))
+
+        if cancellation.cancelled:
+            return
+
         process.start()
         try:
-            self._result_sender.close()
-            self._shutdown_receiver.close()
+            with cancellation.on_abort(lambda: process.kill()):
+                self._result_sender.close()
+                self._shutdown_receiver.close()
 
-            # Block until the worker is done with the computation.
-            _ = self._result_receiver.recv()
-            self._result_receiver.close()
+                # Block until the worker is done with the computation.
+                _ = self._result_receiver.recv()
+                self._result_receiver.close()
 
-            result = self._result_queue.get()
+                result = self._result_queue.get()
 
-            self._shutdown_sender.send("SHUTDOWN")
-            self._shutdown_sender.close()
+                self._shutdown_sender.send("SHUTDOWN")
+                self._shutdown_sender.close()
 
-            if isinstance(result, Exception):
-                raise result
-            return result
+                if isinstance(result, Exception):
+                    raise result
+                return result
         finally:
             process.kill()
 
@@ -356,6 +368,83 @@ class DaskRunner:
 
 class DaskRunnerException(Exception):
     pass
+
+
+class DaskCancellationToken:
+    NAME = "flatsurvey.worker.dask.cancel"
+    STATE = None
+    ON_ABORT = []
+
+    def __init__(self, client):
+        self._client = client
+
+    def _variable(self):
+        from dask.distributed import Variable
+        return Variable(DaskCancellationToken.NAME, client=self._client)
+
+    @property
+    def _value(self):
+        variable_value: int = self._variable().get() or 0
+        static_value: int = DaskCancellationToken.STATE or 0
+
+        DaskCancellationToken.STATE = max(variable_value, static_value)
+        return DaskCancellationToken.STATE
+
+    async def reset(self, pool: dask.distributed.Client):
+        await self._variable().set(0)
+        await pool.run(DaskCancellationToken._reset)
+
+    @staticmethod
+    def _reset():
+        DaskCancellationToken.STATE = 0
+
+    async def cancel(self, pool: dask.distributed.Client):
+        await self._variable().set(1)
+        await pool.run(DaskCancellationToken._cancel)
+
+    @staticmethod
+    def _cancel():
+        DaskCancellationToken.STATE = 1
+
+    async def abort(self, pool: dask.distributed.Client):
+        await self._variable().set(2)
+        await pool.run(DaskCancellationToken._abort)
+
+    @staticmethod
+    def _abort():
+        DaskCancellationToken.STATE = 2
+        for callback in DaskCancellationToken.ON_ABORT:
+            callback()
+
+    @property
+    def cancelled(self):
+        return self._value >= 1
+
+    @property
+    def aborted(self):
+        return self._value >= 2
+
+    @contextmanager
+    def on_abort(self, callback):
+        aborted = False
+
+        def on_abort(_=None):
+            nonlocal aborted
+            if aborted:
+                return
+
+            aborted = True
+
+            callback()
+
+        DaskCancellationToken.ON_ABORT.append(on_abort)
+        try:
+            if self.aborted:
+                on_abort()
+
+            yield
+        finally:
+            DaskCancellationToken.ON_ABORT.remove(on_abort)
 
 
 @click.command()

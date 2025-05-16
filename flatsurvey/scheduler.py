@@ -44,7 +44,7 @@ We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from contextlib import contextmanager
+from contextlib import asynccontextmanager
 from typing import Iterator, List
 
 import dask.distributed
@@ -129,7 +129,7 @@ class Scheduler:
         """
         pool = await self._create_pool()
 
-        with self._create_sigint_handler(pool) as token:
+        async with self._create_sigint_handler(pool) as token:
             try:
                 surfaces = self._create_surfaces()
 
@@ -141,15 +141,15 @@ class Scheduler:
                         return
 
                     await self._submit_jobs(pool, progress, token, jobs, surfaces)
-                    await self._await_pending_jobs(progress, jobs)
+                    await self._await_pending_jobs(pool, progress, token, jobs)
             finally:
                 # Terminate all workers immediately if we crash out of this code
                 # block. (If we terminated normally, then there's nothing we have
                 # to wait for.
                 await pool.close(0)  # pyright: ignore[reportGeneralTypeIssues]
 
-    @contextmanager
-    def _create_sigint_handler(self, pool: dask.distributed.Client) -> Iterator[CancellationToken]:
+    @asynccontextmanager
+    async def _create_sigint_handler(self, pool: dask.distributed.Client):
         r"""
         Replace the handler for the SIGINT signal while this context is active
         so that pressing Ctrl-C aborts the survey.
@@ -204,15 +204,26 @@ class Scheduler:
         """
         token = CancellationToken()
 
+        from flatsurvey.worker.dask import DaskCancellationToken
+        distributed_token = DaskCancellationToken(pool)
+
+        await distributed_token.reset(pool)
+
         def handle_sigint(_, __):
             if token.cancelled:
                 print("forcing scheduler to shut down")
+                
+                import asyncio
+                asyncio.get_running_loop().create_task(distributed_token.abort(pool))
 
                 import asyncio
-                asyncio.get_running_loop().create_task(pool.close(0))  # pyright: ignore[reportArgumentType]
+                asyncio.get_running_loop().create_task(pool.shutdown())  # pyright: ignore[reportArgumentType]
             else:
                 print("requested cancellation")
                 token.cancel()
+
+                import asyncio
+                asyncio.get_running_loop().create_task(distributed_token.cancel(pool))
 
         import signal
         from cysignals.pysignals import changesignal
@@ -430,7 +441,7 @@ class Scheduler:
 
             assert jobs, "_submit_jobs needs jobs to wait for to keep the job queue filled"
 
-            completed = await self._await_pending_job(progress, jobs)
+            completed = await self._await_pending_job(pool, progress, token, jobs)
             assert completed, "await_pending_job must only return when a job terminated"
 
             for _ in range(completed):
@@ -445,17 +456,17 @@ class Scheduler:
 
                 jobs.append(job)
 
-    async def _await_pending_jobs(self, progress: SurveyProgress, jobs: List[dask.distributed.Future]):
+    async def _await_pending_jobs(self, pool: dask.distributed.Client, progress: SurveyProgress, token: CancellationToken, jobs: List[dask.distributed.Future]):
         r"""
         Wait for all ``jobs`` to complete.
 
         This is a helper method for :meth:`start`.
         """
         progress.set_activity("waiting for jobs to finish")
-        while await self._await_pending_job(progress, jobs):
+        while await self._await_pending_job(pool, progress, token, jobs):
             pass
 
-    async def _await_pending_job(self, progress: SurveyProgress, jobs: List[dask.distributed.Future]) -> int:
+    async def _await_pending_job(self, pool: dask.distributed.Client, progress: SurveyProgress, token: CancellationToken, jobs: List[dask.distributed.Future]) -> int:
         r"""
         Wait for at least one of the ``jobs`` to complete and remove completed
         job from that list.
