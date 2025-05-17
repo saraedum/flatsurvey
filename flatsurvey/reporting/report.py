@@ -64,7 +64,7 @@ class Report(Command):
         from flatsurvey.reporting.log import Log
 
         return Report(
-            reporters=pipeline.get("reporters", scope=Report, default=lambda: [Log(surface=pipeline.get(Surface))]),
+            reporters=pipeline.get("reporters", default=lambda: [Log(surface=pipeline.get(Surface))]),
             # TODO: Make it clear that flow-decompositions (and what else?) are automatically ignored in the click and share that as a DEFAULT constant everywhere here.
             ignore=pipeline.get("ignore", scope=Report, default=lambda: ["flow-decompositions"]),
         )

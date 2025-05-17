@@ -103,17 +103,14 @@ class Json(Reporter, Command):
             prefix=prefix,
             pickles=pickles)
 
-    # TODO: Do we really need this?
     @staticmethod
-    def create(surface: Surface, output, prefix, pickles):
-        if output is None:
-            prefix = prefix or "."
+    def create(pipeline):
+        surface = pipeline.get(Surface)
+        output = pipeline.get("output", scope=Json, default=lambda: None)
+        prefix = pipeline.get("prefix", scope=Json, default=lambda: None)
+        pickles = pipeline.get("pickles", scope=Json, default=lambda: False) 
 
-            import os.path
-
-            output = os.path.join(prefix, f"{surface.basename()}.json")
-
-        return Json(surface, output=output, pickles=pickles)
+        return Json(surface, output=output, prefix=prefix, pickles=pickles)
 
     async def result(self, source, result, **kwargs):
         r"""
