@@ -106,9 +106,9 @@ class Json(Reporter, Command):
     @staticmethod
     def create(pipeline):
         surface = pipeline.get(Surface)
-        output = pipeline.get("output", scope=Json, default=lambda: None)
-        prefix = pipeline.get("prefix", scope=Json, default=lambda: None)
-        pickles = pipeline.get("pickles", scope=Json, default=lambda: False) 
+        output = pipeline.get("output", scope=Json)
+        prefix = pipeline.get("prefix", scope=Json)
+        pickles = pipeline.get("pickles", scope=Json)
 
         return Json(surface, output=output, prefix=prefix, pickles=pickles)
 

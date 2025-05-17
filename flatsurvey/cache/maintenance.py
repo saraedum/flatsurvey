@@ -73,6 +73,19 @@ cli.add_command(Join.click)
 cli.add_command(ExternalizePickles.click)
 
 
+from flatsurvey.reporting.reporter import Reporter
+class Log(Reporter):
+    @staticmethod
+    def create(pipeline):
+        return Log()
+
+    async def result(self, source, result, **kwargs):
+        print(source, result, kwargs)
+
+    def log(self, source, message, **kwargs):
+        print(source, message, kwargs)
+
+
 @cli.result_callback()
 def process(commands, debug, verbose):
     r"""
@@ -94,61 +107,22 @@ def process(commands, debug, verbose):
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG if verbose > 1 else logging.INFO)
 
-    try:
-        objects = Maintenance.make_object_graph(commands)
+    from flatsurvey.pipeline import Pipeline
 
+    pipeline = Pipeline()
+
+    from flatsurvey.reporting.report import Report
+    pipeline.append("reporters", Log)
+
+    for command in commands:
+        command(pipeline)
+
+    try:
         import asyncio
 
-        asyncio.run(objects.provide(Maintenance).start())
+        from flatsurvey.worker.worker import Worker
+        asyncio.run(Worker.work(pipeline=pipeline, limits=[]))
     except Exception:
         if debug:
             pdb.post_mortem()
         raise
-
-
-class Maintenance:
-    """
-    TODO: Document me. This is essentially a clone of Worker.
-    """
-
-    def __init__(self, goals, reporters):
-        pass
-
-    @classmethod
-    def make_object_graph(cls, commands):
-        raise NotImplementedError
-        bindings = []
-        goals = []
-        reporters = []
-
-        for command in commands:
-            bindings.extend(command.get("bindings", []))
-            goals.extend(command.get("goals", []))
-            reporters.extend(command.get("reporters", []))
-
-        bindings.append(ListBindingSpec("goals", goals))
-        bindings.append(
-            ListBindingSpec("reporters", reporters or [flatsurvey.reporting.Log])
-        )
-        bindings.append(FactoryBindingSpec(lambda: None, "surface"))
-
-        return pinject.new_object_graph(
-            modules=[flatsurvey.reporting, flatsurvey.cache.maintenance],
-            binding_specs=bindings,
-            allow_injecting_none=True,
-        )
-
-    async def start(self):
-        r"""
-        Run until all our goals are resolved.
-        """
-        try:
-            for goal in self._goals:
-                await goal.consume_cache()
-            for goal in self._goals:
-                await goal.resolve()
-        finally:
-            for goal in self._goals:
-                await goal.report()
-        for reporter in self._reporters:
-            reporter.flush()

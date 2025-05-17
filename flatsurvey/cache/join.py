@@ -24,6 +24,8 @@ import click
 
 from flatsurvey.command import Command
 from flatsurvey.pipeline import Goal
+from flatsurvey.pipeline import Pipeline
+from flatsurvey.reporting import Report
 
 
 class Join(Goal, Command):
@@ -36,18 +38,27 @@ class Join(Goal, Command):
     def __init__(self, jsons, prefix, report):
         super().__init__(producers=[], report=report, cache=None)
 
-    @classmethod
+        self._jsons = jsons
+        self._prefix = prefix
+
+    @staticmethod
     @click.command(name="join")
     @click.argument("jsons", nargs=-1, type=click.Path(exists=True))
     @click.option(
         "--prefix", type=str, help="a common prefix for the output files", default=None
     )
-    def click(jsons, prefix):
-        raise NotImplementedError
-        return {
-            "goals": [Join],
-            "bindings": [PartialBindingSpec(Join)(jsons=jsons, prefix=prefix)],
-        }
+    @Pipeline.click
+    def click(pipeline: Pipeline, jsons, prefix):
+        pipeline.append("goals", Join)
+        pipeline.define(scope=Join, jsons=jsons, prefix=prefix)
+
+    @staticmethod
+    def create(pipeline: Pipeline):
+        jsons = pipeline.get("jsons", scope=Join)
+        prefix = pipeline.get("prefix", scope=Join)
+        report = pipeline.get(Report)
+
+        return Join(jsons=jsons, prefix=prefix, report=report)
 
     async def resolve(self):
         from collections import defaultdict
@@ -88,6 +99,8 @@ class Join(Goal, Command):
 
             if self._prefix:
                 fname = f"{self._prefix}.{fname}"
+
+            self._report.log(self, f"Writing join to {fname}")
 
             with open(fname, "w") as output:
                 import json

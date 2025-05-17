@@ -42,6 +42,7 @@ from flatsurvey.ui.group import GroupedCommand
 
 
 class Log(Reporter, Command):
+    # TODO: Extract a non-surface log as a base class and use it for the maintenance goals.
     r"""
     Writes progress and results as an unstructured log file.
 
