@@ -371,6 +371,11 @@ class Scheduler:
 
             pipeline = pipeline.clone()
 
+            # The workers do not need a copy of the cache.
+            from flatsurvey.cache.cache import Cache
+            pipeline.forget(scope=Cache)
+            pipeline.forget(Cache)
+
             from flatsurvey.worker.dask import DaskTask
 
             task = DaskTask(
@@ -382,6 +387,7 @@ class Scheduler:
                 return None
 
             progress.queued()
+
             return pool.submit(task)
 
     @staticmethod

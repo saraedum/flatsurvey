@@ -62,40 +62,12 @@ class Cache(Command):
 
     def __init__(
         self,
+        cache,
         pickles: Pickles,
-        report: Report,
-        jsons=(),
     ):
+
+        self._cache = cache
         self._pickles = pickles
-
-        self._cache = {}
-
-        if report is None:
-            from flatsurvey.reporting import Report
-
-            report = Report(reporters=[])
-
-        if jsons:
-            with report.progress(
-                self, what="files", count=0, total=len(jsons), activity="loading cache"
-            ):
-                for json in jsons:
-                    name = json.name if hasattr(json, "name") else "JSON"
-                    report.progress(self, message=f"parsing {name}")
-
-                    try:
-                        parsed = Cache.load(json)
-                    except Exception:
-                        import logging
-
-                        logging.error(f"Failed to parse {name}")
-                    else:
-                        for section, results in parsed.items():
-                            self._cache.setdefault(section, []).extend(results)
-
-                    report.progress(self, advance=1)
-
-                report.progress(self, message="done")
 
         self._sources = [("CACHE", "DEFAULTS", "PICKLE")]
         self._defaults = [{}]
@@ -137,7 +109,10 @@ class Cache(Command):
 
     @staticmethod
     def create(pipeline: Pipeline):
-        return Cache(pickles=pipeline.get("jsons", default=lambda: None, scope=Cache), report=pipeline.get(Report), jsons=pipeline.get("jsons", default=lambda: None, scope=Cache))
+        return Cache(
+            cache=pipeline.get("cache", default=lambda: {}, scope=Cache),
+            pickles=pipeline.get("pickles", default=lambda: None, scope=Cache),
+        )
 
     @staticmethod
     @click.command(
@@ -163,7 +138,13 @@ class Cache(Command):
     )
     @Pipeline.click
     def click(pipeline: Pipeline, json, pickles):
-        jsons = []
+        cache = {}
+
+        def load(file):
+            parsed = Cache.load(file)
+
+            for section, results in parsed.items():
+                cache.setdefault(section, []).extend(results)
 
         for j in json:
             import os.path
@@ -172,18 +153,18 @@ class Cache(Command):
                 for root, dirs, files in os.walk(j):
                     for f in files:
                         if f.endswith(".json"):
-                            jsons.append(open(os.path.join(root, f), "rb"))
+                            load(open(os.path.join(root, f), "rb"))
             elif hasattr(j, "fileno"):
                 import os
 
-                jsons.append(os.fdopen(os.dup(j.fileno())))
+                load(os.fdopen(os.dup(j.fileno())))
             else:
-                jsons.append(open(j, "rb"))
+                load(open(j, "rb"))
 
-        pipeline.bind(
-                Cache,
-                jsons=jsons,
-                pickles=pickles)
+        pipeline.define(
+            scope=Cache,
+            cache=cache,
+            pickles=pickles)
 
     def sources(self, *sources):
         r"""

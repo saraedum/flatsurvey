@@ -55,6 +55,9 @@ class ConstantDefinition(Definition):
     def resolve(self, pipeline: "Pipeline"):
         return self._value
 
+    def __repr__(self):
+        return f"ConstantDefinition({self._value})"
+
 
 class TypeDefinition(Definition):
     def __init__(self, type):
@@ -62,6 +65,9 @@ class TypeDefinition(Definition):
 
     def resolve(self, pipeline):
         return self._type.create(pipeline)
+
+    def __repr__(self):
+        return f"TypeDefinition({self._type.__name__})"
 
 
 class ListDefinition(Definition):
@@ -73,6 +79,9 @@ class ListDefinition(Definition):
 
     def resolve(self, pipeline: "Pipeline"):
         return [definition.resolve(pipeline) for definition in self._value]
+
+    def __repr__(self):
+        return f"ListDefinition({self._value})"
 
 
 class Pipeline:
@@ -214,7 +223,16 @@ class Pipeline:
         clone._definitions = dict(self._definitions)
         return clone
 
-    def forget(self, key):
+    def forget(self, key=None, scope=None):
+        if scope is not None:
+            if key is None:
+                for key in list(self._definitions) + list(self._values):
+                    if isinstance(key, tuple) and key[0] == scope:
+                        self.forget(key=key)
+                return
+
+            key = (scope, key)
+
         if key in self._definitions:
             del self._definitions[key]
         if key in self._values:
