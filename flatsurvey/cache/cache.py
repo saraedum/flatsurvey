@@ -45,7 +45,6 @@ import click
 from flatsurvey.cache.pickles import Pickles
 from flatsurvey.command import Command
 from flatsurvey.pipeline import Pipeline
-from flatsurvey.reporting import Report
 from flatsurvey.ui.group import GroupedCommand
 
 
@@ -62,12 +61,12 @@ class Cache(Command):
 
     def __init__(
         self,
-        cache,
-        pickles: Pickles,
+        cache=None,
+        pickles: Pickles | None=None,
     ):
 
-        self._cache = cache
-        self._pickles = pickles
+        self._cache = cache or {}
+        self._pickles = pickles or Pickles()
 
         self._sources = [("CACHE", "DEFAULTS", "PICKLE")]
         self._defaults = [{}]

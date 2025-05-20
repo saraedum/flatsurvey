@@ -39,57 +39,23 @@ from flatsurvey.command import Command
 from flatsurvey.pipeline import Pipeline
 from flatsurvey.reporting.reporter import Reporter
 from flatsurvey.ui.group import GroupedCommand
+from flatsurvey.surfaces import Surface
 
 
-class Log(Reporter, Command):
-    # TODO: Extract a non-surface log as a base class and use it for the maintenance goals.
-    r"""
-    Writes progress and results as an unstructured log file.
-
-    EXAMPLES::
-
-        >>> from flatsurvey.surfaces import Ngon
-        >>> surface = Ngon((1, 1, 1))
-
-        >>> log = Log(surface)
-        >>> log.log(source=surface, message="Hello World")
-        [Ngon([1, 1, 1])] [Ngon] Hello World
-
-    """
-
-    def __init__(self, surface, stream=None, output=None, prefix=None):
-        super().__init__()
-
-        self._surface = surface
-
-        if prefix is not None:
-            if output is not None:
-                raise ValueError("at most one of stream, output, prefix must be given")
-            
-            import os.path
-            output = os.path.join(prefix, f"{surface.basename()}.log")
-
-        if output is not None:
-            if stream is not None:
-                raise ValueError("at most one of stream, output, prefix must be given")
-
-            stream = open(output, "w")
-
+class BaseLog(Reporter, Command):
+    def __init__(self, stream=None):
         if stream is None:
             import sys
             stream = sys.stdout
 
         self._stream = stream
 
-    def deform(self, deformation):
-        return Log(surface=deformation, stream=self._stream)
-
-    def _log_prefix(self, source):
-        return f"[{self._surface}] [{type(source).__name__}]"
-
     def _log(self, message):
         self._stream.write("%s\n" % (message,))
         self._stream.flush()
+
+    def _log_prefix(self, source):
+        return f"[{type(source).__name__}]"
 
     def log(self, source, message, **kwargs):
         r"""
@@ -110,31 +76,30 @@ class Log(Reporter, Command):
             message += f" ({k}: {v})"
         self._log(message)
 
-    @staticmethod
-    @click.command(
-        name="log",
-        cls=GroupedCommand,
-        group="Reports",
-        help=__doc__.split("EXAMPLES")[0],
-    )
-    @click.option(
-        "--output",
-        type=click.Path(file_okay=True, dir_okay=False, allow_dash=True),
-        default=None,
-        help="[default: stdout]",
-    )
-    @click.option(
-        "--prefix",
-        type=click.Path(exists=True, file_okay=False, dir_okay=True, allow_dash=False),
-        default=None,
-    )
-    @Pipeline.click
-    def click(pipeline: Pipeline, output, prefix):
-        pipeline.append("reporters", Log)
-        pipeline.define(
-            scope=Log,
-            output=output,
-            prefix=prefix)
+    async def result(self, source, result, **kwargs):
+        r"""
+        Report a result to the log.
+
+        EXAMPLES::
+
+            >>> from flatsurvey.surfaces import Ngon
+            >>> surface = Ngon((1, 1, 1))
+
+            >>> import asyncio
+            >>> log = Log(surface)
+            >>> result = log.result(source=surface, result="dense orbit closure", dimension=1337)
+            >>> asyncio.run(result)
+            [Ngon([1, 1, 1])] [Ngon] dense orbit closure (dimension: 1337)
+            >>> result = log.result(source=surface, result=None)
+            >>> asyncio.run(result)
+            [Ngon([1, 1, 1])] [Ngon] ¯\_(ツ)_/¯
+
+        """
+        shruggie = r"¯\_(ツ)_/¯"
+        result = shruggie if result is None else str(result)
+        if kwargs.pop("cached", False):
+            result = f"{result} (cached)"
+        self.log(source, result, **kwargs)
 
     def progress(
         self,
@@ -176,27 +141,78 @@ class Log(Reporter, Command):
 
         self.log(source, line)
 
-    async def result(self, source, result, **kwargs):
-        r"""
-        Report a result to the log.
 
-        EXAMPLES::
+class Log(BaseLog):
+    # TODO: Extract a non-surface log as a base class and use it for the maintenance goals.
+    r"""
+    Writes progress and results as an unstructured log file.
 
-            >>> from flatsurvey.surfaces import Ngon
-            >>> surface = Ngon((1, 1, 1))
+    EXAMPLES::
 
-            >>> import asyncio
-            >>> log = Log(surface)
-            >>> result = log.result(source=surface, result="dense orbit closure", dimension=1337)
-            >>> asyncio.run(result)
-            [Ngon([1, 1, 1])] [Ngon] dense orbit closure (dimension: 1337)
-            >>> result = log.result(source=surface, result=None)
-            >>> asyncio.run(result)
-            [Ngon([1, 1, 1])] [Ngon] ¯\_(ツ)_/¯
+        >>> from flatsurvey.surfaces import Ngon
+        >>> surface = Ngon((1, 1, 1))
 
-        """
-        shruggie = r"¯\_(ツ)_/¯"
-        result = shruggie if result is None else str(result)
-        if kwargs.pop("cached", False):
-            result = f"{result} (cached)"
-        self.log(source, result, **kwargs)
+        >>> log = Log(surface)
+        >>> log.log(source=surface, message="Hello World")
+        [Ngon([1, 1, 1])] [Ngon] Hello World
+
+    """
+
+    def __init__(self, surface: Surface, stream=None, output=None, prefix=None):
+        self._surface = surface
+
+        if prefix is not None:
+            if output is not None:
+                raise ValueError("at most one of stream, output, prefix must be given")
+            
+            import os.path
+            output = os.path.join(prefix, f"{surface.basename()}.log")
+
+        if output is not None:
+            if stream is not None:
+                raise ValueError("at most one of stream, output, prefix must be given")
+
+            stream = open(output, "w")
+
+        super().__init__(stream=stream)
+
+    def deform(self, deformation):
+        return Log(surface=deformation, stream=self._stream)
+
+    def _log_prefix(self, source):
+        return f"[{self._surface}] [{type(source).__name__}]"
+
+    @staticmethod
+    @click.command(
+        name="log",
+        cls=GroupedCommand,
+        group="Reports",
+        help=__doc__.split("EXAMPLES")[0],
+    )
+    @click.option(
+        "--output",
+        type=click.Path(file_okay=True, dir_okay=False, allow_dash=True),
+        default=None,
+        help="[default: stdout]",
+    )
+    @click.option(
+        "--prefix",
+        type=click.Path(exists=True, file_okay=False, dir_okay=True, allow_dash=False),
+        default=None,
+    )
+    @Pipeline.click
+    def click(pipeline: Pipeline, output, prefix):
+        pipeline.append("reporters", Log)
+        pipeline.define(
+            scope=Log,
+            output=output,
+            prefix=prefix)
+
+    @staticmethod
+    def create(pipeline: Pipeline):
+        with pipeline.scope(Log) as get:
+            return Log(
+                surface=get(Surface),
+                stream=get("stream", None),
+                output=get("output", None),
+                prefix=get("prefix", None))

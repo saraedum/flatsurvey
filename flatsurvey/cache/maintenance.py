@@ -41,7 +41,7 @@ TESTS::
 
 import click
 
-import flatsurvey.reporting.log
+from flatsurvey.reporting.log import BaseLog
 from flatsurvey.cache.externalize_pickles import ExternalizePickles
 from flatsurvey.cache.join import Join
 from flatsurvey.cache.split import Split
@@ -73,19 +73,6 @@ cli.add_command(Join.click)
 cli.add_command(ExternalizePickles.click)
 
 
-from flatsurvey.reporting.reporter import Reporter
-class Log(Reporter):
-    @staticmethod
-    def create(pipeline):
-        return Log()
-
-    async def result(self, source, result, **kwargs):
-        print(source, result, kwargs)
-
-    def log(self, source, message, **kwargs):
-        print(source, message, kwargs)
-
-
 @cli.result_callback()
 def process(commands, debug, verbose):
     r"""
@@ -112,7 +99,7 @@ def process(commands, debug, verbose):
     pipeline = Pipeline()
 
     from flatsurvey.reporting.report import Report
-    pipeline.append("reporters", Log)
+    pipeline.append("reporters", BaseLog())
 
     for command in commands:
         command(pipeline)

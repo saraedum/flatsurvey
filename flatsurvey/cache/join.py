@@ -100,9 +100,10 @@ class Join(Goal, Command):
             if self._prefix:
                 fname = f"{self._prefix}.{fname}"
 
-            self._report.log(self, f"Writing join to {fname}")
-
             with open(fname, "w") as output:
                 import json
 
                 json.dump({key: aggregate[key]}, output, indent=2)
+
+            await self._report.result(self, f"Wrote join to {fname}")
+

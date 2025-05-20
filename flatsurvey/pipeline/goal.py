@@ -69,7 +69,7 @@ class Goal(Consumer):
         if cache is None:
             from flatsurvey.cache import Cache
 
-            cache = Cache(pickles=None, report=None)
+            cache = Cache()
 
         self._cache = cache
         self._cache_only = cache_only

@@ -36,6 +36,12 @@ Utilities to create the graph of objects that are performing a survey.
 # *********************************************************************
 
 
+from typing import overload, TypeVar, Callable, Type
+from contextlib import contextmanager
+
+T = TypeVar("T")
+
+
 class Definition:
     @staticmethod
     def create(value):
@@ -64,7 +70,7 @@ class TypeDefinition(Definition):
         self._type = type
 
     def resolve(self, pipeline):
-        return self._type.create(pipeline)
+        return pipeline._values.get(self._type, self._type.create(pipeline))
 
     def __repr__(self):
         return f"TypeDefinition({self._type.__name__})"
@@ -98,6 +104,31 @@ class Pipeline:
 
         return command
 
+    @contextmanager
+    def scope(self, scope):
+        
+
+        @overload
+        def get(key: str, default: None | T | Callable[[], T]=None) -> T: ...
+        @overload
+        def get(key: Type[T], default: None | T | Callable[[], T]=None) -> T: ...
+
+        def get(key, default=None):
+            def create_default():
+                if default is None:
+                    raise ValueError(f"requested {key} not defined in {scope} or globally and no default provided")
+                if callable(default):
+                    return default()
+                return default
+
+            return self.get(
+                key=key,
+                scope=scope,
+                default=lambda: self.get(key=key, default=create_default))
+
+        yield get
+        return
+
     def append(self, key, value, scope=None):
         if scope is not None:
             key = (scope, key)
@@ -109,6 +140,7 @@ class Pipeline:
 
     def define(self, key=None, value=None, scope=None, **values):
         # TODO: Why does this first part not create a definition but inject a value?
+        # Maybe should call this set instead.
         if key is not None:
             if scope is not None:
                 key = (scope, key)
