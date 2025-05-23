@@ -20,14 +20,13 @@ Utilities for subcommands that can be invoked from the command line.
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from abc import abstractmethod
-
 
 class Command:
     r"""
     A subcommand that can be invoked from the command line.
 
-    Commands should inherit from this class.
+    Commands should inherit from this class and implement a static ``click``
+    method that uses ``click.command``.
 
     EXAMPLES::
 
@@ -57,7 +56,7 @@ class Command:
             'log'
 
         """
-        return cls.click.name
+        return cls.click.name  # pyright: ignore
 
     def __repr__(self):
         r"""

@@ -55,9 +55,10 @@ class CommandWithGroups(click.Group):
         commands = defaultdict(list)
         for command in self.list_commands(ctx):
             cmd = self.get_command(ctx, command)
+            assert cmd is not None
             group = "Commands"
             if hasattr(cmd, "group"):
-                group = cmd.group
+                group = cmd.group  # pyright: ignore
             commands[group].append((command, cmd.get_short_help_str()))
         for group in sorted(commands.keys()):
             with formatter.section(group):
