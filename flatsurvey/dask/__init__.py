@@ -1,6 +1,3 @@
-r"""
-Reads caches of previous results.
-"""
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -20,12 +17,7 @@ Reads caches of previous results.
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from flatsurvey.cache.cache import Cache
-from flatsurvey.cache.pickles import Pickles
-from flatsurvey.cache.externalize_pickles import ExternalizePickles
-from flatsurvey.cache.join import Join
-from flatsurvey.cache.split import Split
-
-commands = [Cache.click, Pickles.click]
-
-maintenance_commands = [ExternalizePickles.click, Join.click, Split.click]
+from flatsurvey.dask.scheduler_cancellation_token import SchedulerCancellationToken
+from flatsurvey.dask.worker_cancellation_token import WorkerCancellationToken
+from flatsurvey.dask.worker import DaskTask, DaskRunner
+from flatsurvey.dask.limits import TimeLimit, MemoryLimit

@@ -22,7 +22,7 @@ Splits cache files into smaller files.
 
 import click
 
-from flatsurvey.command import Command
+from flatsurvey.ui import Command
 from flatsurvey.pipeline import Goal
 
 

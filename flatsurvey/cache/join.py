@@ -22,9 +22,8 @@ Aggregate cache files.
 
 import click
 
-from flatsurvey.command import Command
-from flatsurvey.pipeline import Goal
-from flatsurvey.pipeline import Pipeline
+from flatsurvey.ui import Command
+from flatsurvey.pipeline import Goal, Pipeline
 from flatsurvey.reporting import Report
 
 
@@ -69,7 +68,7 @@ class Join(Goal, Command):
 
         for json in self._jsons:
             with open(json) as input:
-                from flatsurvey.cache.cache import Cache
+                from flatsurvey.cache import Cache
 
                 if Cache._is_empty(input):
                     continue

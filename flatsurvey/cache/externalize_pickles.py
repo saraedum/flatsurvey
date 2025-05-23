@@ -22,7 +22,7 @@ Extract pickles from cache files compressed into a separate directory.
 
 import click
 
-from flatsurvey.command import Command
+from flatsurvey.ui import Command
 from flatsurvey.pipeline import Goal
 
 
@@ -98,7 +98,7 @@ class ExternalizePickles(Goal, Command):
 
             return json
 
-        from flatsurvey.cache.cache import Cache
+        from flatsurvey.cache import Cache
 
         jsons = {fname: externalize(Cache.load(open(fname))) for fname in self._jsons}
 

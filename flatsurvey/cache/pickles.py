@@ -28,8 +28,7 @@ runs but unpickling them is not implemented in much generality, see #10.
 
 import click
 
-from flatsurvey.command import Command
-from flatsurvey.ui.group import GroupedCommand
+from flatsurvey.ui import Command, GroupedCommand
 
 
 class Pickles(Command):

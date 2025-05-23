@@ -7,7 +7,7 @@ EXAMPLES:
 
 We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
     
-    >>> from flatsurvey.pipeline.pipeline import Pipeline
+    >>> from flatsurvey.pipeline import Pipeline
     >>> survey = Pipeline()
 
     >>> from flatsurvey.surfaces import Ngons
@@ -48,11 +48,11 @@ from contextlib import asynccontextmanager
 from typing import Iterator, List
 
 import dask.distributed
-from cancel_token import CancellationToken
 
 from flatsurvey.pipeline import Pipeline
 from flatsurvey.surfaces import Surface
-from flatsurvey.ui.progress import SurveyProgress
+from flatsurvey.ui import SurveyProgress
+from flatsurvey.dask import SchedulerCancellationToken
 
 
 class Scheduler:
@@ -88,7 +88,7 @@ class Scheduler:
 
     EXAMPLES::
 
-        >>> from flatsurvey.pipeline.pipeline import Pipeline
+        >>> from flatsurvey.pipeline import Pipeline
         >>> pipeline = Pipeline()
         >>> pipeline.append("surfaces", [])
 
@@ -118,7 +118,7 @@ class Scheduler:
         EXAMPLES::
 
             >>> import asyncio
-            >>> from flatsurvey.pipeline.pipeline import Pipeline
+            >>> from flatsurvey.pipeline import Pipeline
             >>> pipeline = Pipeline()
             >>> pipeline.append("surfaces", [])
             >>> scheduler = Scheduler(survey_pipeline=pipeline)
@@ -141,7 +141,7 @@ class Scheduler:
                         return
 
                     await self._submit_jobs(pool, progress, token, jobs, surfaces)
-                    await self._await_pending_jobs(pool, progress, token, jobs)
+                    await self._await_pending_jobs(progress, jobs)
             finally:
                 # Terminate all workers immediately if we crash out of this code
                 # block. (If we terminated normally, then there's nothing we have
@@ -175,7 +175,7 @@ class Scheduler:
 
         EXAMPLES::
 
-            >>> from flatsurvey.pipeline.pipeline import Pipeline
+            >>> from flatsurvey.pipeline import Pipeline
             >>> pipeline = Pipeline()
             >>> pipeline.append("surfaces", [])
 
@@ -202,28 +202,13 @@ class Scheduler:
             True
 
         """
-        token = CancellationToken()
-
-        from flatsurvey.worker.dask import DaskCancellationToken
-        distributed_token = DaskCancellationToken(pool)
-
-        await distributed_token.reset(pool)
+        token = SchedulerCancellationToken(pool)
 
         def handle_sigint(_, __):
             if token.cancelled:
-                print("forcing scheduler to shut down")
-                
-                import asyncio
-                asyncio.get_running_loop().create_task(distributed_token.abort(pool))
-
-                import asyncio
-                asyncio.get_running_loop().create_task(pool.shutdown())  # pyright: ignore[reportArgumentType]
+                token.abort()
             else:
-                print("requested cancellation")
                 token.cancel()
-
-                import asyncio
-                asyncio.get_running_loop().create_task(distributed_token.cancel(pool))
 
         import signal
         from cysignals.pysignals import changesignal
@@ -239,7 +224,7 @@ class Scheduler:
 
         EXAMPLES::
 
-            >>> from flatsurvey.pipeline.pipeline import Pipeline
+            >>> from flatsurvey.pipeline import Pipeline
 
             >>> scheduler = Scheduler(survey_pipeline=Pipeline())
 
@@ -271,16 +256,25 @@ class Scheduler:
             connection_limit=2**16,
             # We want to use dask through its modern asynchronous API.
             asynchronous=True,
-            # Start a worker for each execution thread on the CPU. (Only
-            # relevant if we are not using an external scheduler.)
+            
+            # The following parameters are only relevant when not providing our
+            # own scheduler.
+
+            # Start a worker for each execution thread on the CPU.
             n_workers=cpu_count(),
             # We run each worker single-threaded, see worker/dask.py.
-            nthreads=1,
+            # nthreads=1,
+            threads_per_worker=1,
             # We preload worker/dask.py unless scheduler_file is set, see
             # documentation there.
             preload="flatsurvey.worker.dask",
+            # We would like to spawn isolated processes but this parameter
+            # seems to be ignored as of mid 2025. We do get n_workers worker
+            # but they all live in the
+            # same thread actually.
+            processes=True,
             # Disable the dask nanny, see module documentation of worker/dask.py
-            processes=False,
+            worker_class=dask.distributed.Worker,
         )
 
     def _create_surfaces(self):
@@ -292,7 +286,7 @@ class Scheduler:
 
         EXAMPLES::
 
-            >>> from flatsurvey.pipeline.pipeline import Pipeline
+            >>> from flatsurvey.pipeline import Pipeline
             >>> pipeline = Pipeline()
 
             >>> from flatsurvey.surfaces import Ngons
@@ -312,7 +306,7 @@ class Scheduler:
         from more_itertools import roundrobin
         return roundrobin(*self._survey_pipeline.get("surfaces"))
 
-    async def _seed_jobs(self, pool: dask.distributed.Client, progress: SurveyProgress, token: CancellationToken, surfaces: Iterator[Surface]) -> List[dask.distributed.Future]:
+    async def _seed_jobs(self, pool: dask.distributed.Client, progress: SurveyProgress, token: SchedulerCancellationToken, surfaces: Iterator[Surface]) -> List[dask.distributed.Future]:
         r"""
         Initialize the job queue with some things to work on without actually
         consuming results from the workers that might arrive in the meantime.
@@ -333,7 +327,7 @@ class Scheduler:
 
         return jobs
 
-    async def _submit_job(self, pool: dask.distributed.Client, progress: SurveyProgress, token: CancellationToken, surfaces: Iterator[Surface]) -> dask.distributed.Future | None:
+    async def _submit_job(self, pool: dask.distributed.Client, progress: SurveyProgress, token: SchedulerCancellationToken, surfaces: Iterator[Surface]) -> dask.distributed.Future | None:
         r"""
         Enqueue another surface for computation on a worker.
 
@@ -372,15 +366,16 @@ class Scheduler:
             pipeline = pipeline.clone()
 
             # The workers do not need a copy of the cache.
-            from flatsurvey.cache.cache import Cache
+            from flatsurvey.cache import Cache
             pipeline.forget(scope=Cache)
             pipeline.forget(Cache)
 
-            from flatsurvey.worker.dask import DaskTask
+            from flatsurvey.dask import DaskTask
 
             task = DaskTask(
+                pipeline,
                 repr=f"DaskTask(surface={surface!r}, goals={pipeline.describe("goals")})",
-                pipeline=pipeline
+                token=token,
             )
 
             if token.cancelled:
@@ -400,7 +395,7 @@ class Scheduler:
 
         EXAMPLES::
 
-            >>> from flatsurvey.pipeline.pipeline import Pipeline
+            >>> from flatsurvey.pipeline import Pipeline
             >>> pipeline = Pipeline()
             >>> pipeline.define("goals", [])
 
@@ -410,9 +405,8 @@ class Scheduler:
 
         ::
 
-            >>> from flatsurvey.jobs.orbit_closure import OrbitClosure
-            >>> from flatsurvey.surfaces.ngons import Ngon
-            >>> from flatsurvey.surfaces import Surface
+            >>> from flatsurvey.jobs import OrbitClosure
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> pipeline = Pipeline()
             >>> pipeline.append("goals", OrbitClosure)
             >>> pipeline.define(Surface, Ngon((1, 1, 1)))
@@ -431,7 +425,7 @@ class Scheduler:
 
         return not pending_goals
 
-    async def _submit_jobs(self, pool: dask.distributed.Client, progress: SurveyProgress, token: CancellationToken, jobs: List[dask.distributed.Future], surfaces: Iterator[Surface]) -> None:
+    async def _submit_jobs(self, pool: dask.distributed.Client, progress: SurveyProgress, token: SchedulerCancellationToken, jobs: List[dask.distributed.Future], surfaces: Iterator[Surface]) -> None:
         r"""
         Submit jobs for all ``surfaces`` to run in the ``pool`` of workers.
 
@@ -447,7 +441,7 @@ class Scheduler:
 
             assert jobs, "_submit_jobs needs jobs to wait for to keep the job queue filled"
 
-            completed = await self._await_pending_job(pool, progress, token, jobs)
+            completed = await self._await_pending_job(progress, jobs)
             assert completed, "await_pending_job must only return when a job terminated"
 
             for _ in range(completed):
@@ -462,17 +456,17 @@ class Scheduler:
 
                 jobs.append(job)
 
-    async def _await_pending_jobs(self, pool: dask.distributed.Client, progress: SurveyProgress, token: CancellationToken, jobs: List[dask.distributed.Future]):
+    async def _await_pending_jobs(self, progress: SurveyProgress, jobs: List[dask.distributed.Future]):
         r"""
         Wait for all ``jobs`` to complete.
 
         This is a helper method for :meth:`start`.
         """
         progress.set_activity("waiting for jobs to finish")
-        while await self._await_pending_job(pool, progress, token, jobs):
+        while await self._await_pending_job(progress, jobs):
             pass
 
-    async def _await_pending_job(self, pool: dask.distributed.Client, progress: SurveyProgress, token: CancellationToken, jobs: List[dask.distributed.Future]) -> int:
+    async def _await_pending_job(self, progress: SurveyProgress, jobs: List[dask.distributed.Future]) -> int:
         r"""
         Wait for at least one of the ``jobs`` to complete and remove completed
         job from that list.

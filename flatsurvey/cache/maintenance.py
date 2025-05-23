@@ -42,10 +42,8 @@ TESTS::
 import click
 
 from flatsurvey.reporting.log import BaseLog
-from flatsurvey.cache.externalize_pickles import ExternalizePickles
-from flatsurvey.cache.join import Join
-from flatsurvey.cache.split import Split
-from flatsurvey.ui.group import CommandWithGroups
+from flatsurvey.ui import CommandWithGroups
+import flatsurvey.cache
 
 
 @click.group(
@@ -68,9 +66,8 @@ def cli(debug, verbose):
     """
 
 
-cli.add_command(Split.click)
-cli.add_command(Join.click)
-cli.add_command(ExternalizePickles.click)
+for command in flatsurvey.cache.maintenance_commands:
+    cli.add_command(command)
 
 
 @cli.result_callback()
@@ -107,7 +104,7 @@ def process(commands, debug, verbose):
     try:
         import asyncio
 
-        from flatsurvey.worker.worker import Worker
+        from flatsurvey.worker import Worker
         asyncio.run(Worker.work(pipeline=pipeline, limits=[]))
     except Exception:
         if debug:

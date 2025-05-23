@@ -5,7 +5,7 @@ EXAMPLES:
 
 Limits can be used directly with the ``check`` method::
 
-    >>> from flatsurvey.limits import TimeLimit
+    >>> from flatsurvey.dask.limits import TimeLimit
     >>> limit = TimeLimit(TimeLimit.parse_limit('1s'))
     >>> limit.check()
     True
@@ -17,7 +17,7 @@ Limits can be used directly with the ``check`` method::
 
 Limits can also run in the background in async workflows::
 
-    >>> from flatsurvey.limits import TimeLimit, LimitChecker
+    >>> from flatsurvey.dask.limits import TimeLimit, LimitChecker
 
     >>> import asyncio
 
@@ -70,7 +70,7 @@ class Limit:
 
         EXAMPLES::
 
-            >>> from flatsurvey.limits import TimeLimit
+            >>> from flatsurvey.dask.limits import TimeLimit
             >>> limit = TimeLimit(TimeLimit.parse_limit('1ms'))
             >>> limit.check()
             True
@@ -155,7 +155,7 @@ class TimeLimit(Limit):
 
         EXAMPLES::
 
-            >>> from flatsurvey.limits import TimeLimit
+            >>> from flatsurvey.dask.limits import TimeLimit
             >>> TimeLimit.parse_limit('100ms')
             datetime.timedelta(microseconds=100000)
 
@@ -171,7 +171,7 @@ class TimeLimit(Limit):
 
         EXAMPLES::
 
-            >>> from flatsurvey.limits import TimeLimit
+            >>> from flatsurvey.dask.limits import TimeLimit
             >>> limit = TimeLimit(TimeLimit.parse_limit('10ms'))
 
             >>> import time
@@ -208,7 +208,7 @@ class MemoryLimit(Limit):
 
     EXMAPLES::
 
-        >>> from flatsurvey.limits import MemoryLimit
+        >>> from flatsurvey.dask.limits import MemoryLimit
         >>> limit = MemoryLimit(2**30)
         >>> limit.check()
         True
