@@ -42,7 +42,7 @@ import time
 
 import click
 
-from flatsurvey.command import Command
+from flatsurvey.ui import Command
 from flatsurvey.pipeline import Processor
 from flatsurvey.ui.group import GroupedCommand
 from flatsurvey.surfaces import Surface

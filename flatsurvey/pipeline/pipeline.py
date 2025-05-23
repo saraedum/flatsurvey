@@ -15,6 +15,98 @@ Utilities to create the graph of objects that are performing a survey.
     saddle connections) or we can leave them unconfigured and just use the
     defaults.
 
+EXAMPLES:
+
+The fundamental object here is the :class:`Pipeline`. It holds the rules to
+produce the object graph to run a survey of surfaces or a survey on a single
+surface. Basically, a pipeline can hold for each type (or string key) a rule on
+how to produce it::
+
+    >>> from flatsurvey.pipeline import Pipeline
+    >>> pipeline = Pipeline()
+
+The easiest rules are just constants::
+
+    >>> class Surface():
+    ...     def __repr__(self): return "surface"
+
+    >>> pipeline.define(Surface, Surface())
+
+Whenever somebody needs a string, we answer with this constant::
+
+    >>> pipeline.get(Surface)
+    surface
+
+The definition values can also be types, as long as they have a static
+``create`` method::
+
+    >>> class SaddleConnections:
+    ...     def __init__(self, surface):
+    ...         self._surface = surface 
+    ...
+    ...     @staticmethod
+    ...     def create(pipeline): return SaddleConnections(pipeline.get(Surface))
+
+    >>> pipeline.define("sc", SaddleConnections)
+
+    >>> pipeline.get("sc")._surface
+    surface
+
+Note that the constant is cached, you get the identical object every single
+time::
+
+    >>> pipeline.get("sc") is pipeline.get("sc")
+    True
+
+When asking for a type that has not been registered with ``define``, its
+``create`` is also called automatically::
+
+    >>> pipeline.get(SaddleConnections)._surface
+    surface
+
+We cannot redefine names that have been requested already::
+
+    >>> pipeline.define(SaddleConnections, SaddleConnections("..."))
+    Traceback (most recent call last):
+    ...
+    ValueError: cannot redefine ... in this pipeline
+
+However, we can explicitly "forget" values and definitions for a key::
+
+    >>> pipeline.forget(SaddleConnections)
+    >>> pipeline.define(SaddleConnections, SaddleConnections("..."))
+
+    >>> pipeline.get(SaddleConnections)._surface
+    '...'
+
+We can also only define or override a variable in a certain scope::
+
+    >>> class OrbitClosure:
+    ...     def __init__(self, sc, ambient):
+    ...         self._sc = sc
+    ...         self._ambient = ambient
+    ...
+    ...     @staticmethod
+    ...     def create(pipeline):
+    ...         with pipeline.scope(OrbitClosure) as scoped:
+    ...             return OrbitClosure(scoped.get(SaddleConnections), scoped.get(str))
+    ...     
+
+    >>> with pipeline.scope(OrbitClosure) as scoped:
+    ...     scoped.define(str, "H_6(5^2, 0^2)")
+
+    >>> pipeline.get(OrbitClosure)._ambient
+    'H_6(5^2, 0^2)'
+
+Oftentimes, you want to incrementally register a list of things under one key,
+say the goals of a survey::
+
+    >>> pipeline.append("Goals", OrbitClosure)
+    >>> pipeline.append("Goals", "something else")
+
+    >>> pipeline.get("Goals")
+    [<flatsurvey.pipeline.pipeline.OrbitClosure object at 0x...>, 'something else']
+
 """
 # *********************************************************************
 #  This file is part of flatsurvey.
@@ -36,54 +128,154 @@ Utilities to create the graph of objects that are performing a survey.
 # *********************************************************************
 
 
-from typing import overload, TypeVar, Callable, Type
+from abc import ABC, abstractmethod
+from collections.abc import Callable
 from contextlib import contextmanager
+from typing import overload, Type, override, Protocol, cast
 
-T = TypeVar("T")
+Key = str | Type
 
 
-class Definition:
+class HasCreate[T](Protocol):
+    r"""
+    A type that can be created from the definitions in the Pipeline.
+    """
+    @staticmethod
+    def create(pipeline: "Pipeline") -> T: ... 
+
+
+class Definition[T](ABC):
+    r"""
+    A definition for a value stored in a Pipeline.
+    """
+    @overload
+    @staticmethod
+    def create(value: "Definition[T]") -> "Definition[T]": ...
+
+    @overload
+    @staticmethod
+    def create(value: T) -> "Definition[T]": ...
+
+    @overload
+    @staticmethod
+    def create(value: Type[T]) -> "Definition[T]": ...
+
     @staticmethod
     def create(value):
+        r"""
+        Create a Definition from ``value``.
+
+        EXAMPLES::
+
+            >>> from flatsurvey.pipeline.pipeline import Definition
+            >>> Definition.create(123)
+            ConstantDefinition(123)
+
+            >>> Definition.create(Definition)
+            TypeDefinition(Definition)
+
+        """
+        if isinstance(value, Definition):
+            return value
+
         if isinstance(value, type):
-            value = TypeDefinition(value)
+            return TypeDefinition(value)
 
-        if not isinstance(value, Definition):
-            value = ConstantDefinition(value)
+        return ConstantDefinition(value)
 
-        return value
+    @abstractmethod
+    def resolve(self, pipeline: "Pipeline") -> T:
+        r"""
+        Return the value of this definition.
+
+        Subclasses must implement this.
+        """
+        raise NotImplementedError
 
 
-class ConstantDefinition(Definition):
-    def __init__(self, value):
+class ConstantDefinition[T](Definition[T]):
+    r"""
+    A constant value to be stored in a Pipeline.
+
+    EXAMPLES::
+
+        >>> from flatsurvey.pipeline.pipeline import Definition, Pipeline
+        >>> pipeline = Pipeline()
+
+        >>> definition = Definition.create(123)
+
+        >>> definition.resolve(pipeline)
+        123
+
+    """
+    def __init__(self, value: T):
         self._value = value
 
-    def resolve(self, pipeline: "Pipeline"):
+    @override
+    def resolve(self, pipeline: "Pipeline") -> T:
         return self._value
 
     def __repr__(self):
         return f"ConstantDefinition({self._value})"
 
 
-class TypeDefinition(Definition):
-    def __init__(self, type):
+class TypeDefinition[T : HasCreate](Definition[T]):
+    r"""
+    A value that is invoking ``.create`` on a type.
+
+    EXAMPLES::
+
+        >>> from flatsurvey.pipeline.pipeline import Definition, Pipeline
+        >>> pipeline = Pipeline()
+
+
+        >>> class A:
+        ...     @staticmethod
+        ...     def create(pipeline): return A()
+
+        >>> definition = Definition.create(A)
+
+        >>> definition.resolve(pipeline)
+        <flatsurvey.pipeline.pipeline.A object at 0x...>
+
+    """
+    def __init__(self, type: Type[T]):
         self._type = type
 
-    def resolve(self, pipeline):
+    @override
+    def resolve(self, pipeline) -> T:
         return pipeline._values.get(self._type, self._type.create(pipeline))
 
     def __repr__(self):
         return f"TypeDefinition({self._type.__name__})"
 
 
-class ListDefinition(Definition):
+class ListDefinition[T](Definition[list[T]]):
+    r"""
+    A value that is an (expandable) list of other definitions.
+
+    EXAMPLES::
+
+        >>> from flatsurvey.pipeline.pipeline import ListDefinition, Pipeline, Definition
+        >>> pipeline = Pipeline()
+
+
+        >>> definition = ListDefinition()
+        >>> definition.append(Definition.create(1))
+        >>> definition.append(Definition.create(2))
+
+        >>> definition.resolve(pipeline)
+        [1, 2]
+
+    """
     def __init__(self):
-        self._value = []
+        self._value: list[Definition[T]] = []
 
     def append(self, definition):
         self._value.append(definition)
 
-    def resolve(self, pipeline: "Pipeline"):
+    @override
+    def resolve(self, pipeline: "Pipeline") -> list[T]:
         return [definition.resolve(pipeline) for definition in self._value]
 
     def __repr__(self):
@@ -91,12 +283,46 @@ class ListDefinition(Definition):
 
 
 class Pipeline:
-    def __init__(self):
+    r"""
+    Rules to create the object graph performing a survey.
+
+    EXAMPLES:
+
+    Typically, a survey creates such a pipeline to describe the general setup::
+
+        >>> from flatsurvey.pipeline import Pipeline
+        >>> survey = Pipeline()
+        >>> survey.append("goals", "some goal")
+        >>> survey.define("surfaces", ["surface0", "surface1"])
+
+    To perform the survey, the survey is iterating over the surfaces and
+    sending a patched object graph to each worker::
+
+        >>> surfaces = survey.get("surfaces")
+
+        >>> work_template = survey.clone()
+        >>> work_template.forget("surfaces")
+
+        >>> for surface in surfaces:
+        ...     work = work_template.clone()
+        ...     work.define("surface", surface)
+        ...     # would send item to an actual worker process and process it there
+        ...     work.get("surface"), work.get("goals")
+        ('surface0', ['some goal'])
+        ('surface1', ['some goal'])
+
+    """
+    def __init__(self, parent: "Pipeline | None" = None):
+        self._parent = parent
         self._values = {}
         self._definitions = {}
+        self._scopes = {}
 
     @staticmethod
     def click(wrapped):
+        r"""
+        Decorator helper to add a pipeline argument to a click command handler.
+        """
         def command(*args, **kwargs):
             def wrapper(pipeline: Pipeline):
                 wrapped(pipeline, *args, **kwargs)
@@ -105,235 +331,140 @@ class Pipeline:
         return command
 
     @contextmanager
-    def scope(self, scope):
-        
+    def scope(self, scope: str | Type):
+        r"""
+        Return the scoped pipeline for ``scope``.
+        """
+        if scope not in self._scopes:
+            self._scopes[scope] = Pipeline(self)
 
-        @overload
-        def get(key: str, default: None | T | Callable[[], T]=None) -> T: ...
-        @overload
-        def get(key: Type[T], default: None | T | Callable[[], T]=None) -> T: ...
+        yield self._scopes[scope]
 
-        def get(key, default=None):
-            def create_default():
-                if default is None:
-                    raise ValueError(f"requested {key} not defined in {scope} or globally and no default provided")
-                if callable(default):
-                    return default()
-                return default
-
-            return self.get(
-                key=key,
-                scope=scope,
-                default=lambda: self.get(key=key, default=create_default))
-
-        yield get
-        return
-
-    def append(self, key, value, scope=None):
-        if scope is not None:
-            key = (scope, key)
-
+    def append(self, key: Key, value):
+        r"""
+        Append ``value`` to the list definition for ``key``.
+        """
         if key not in self._definitions:
             self._definitions[key] = ListDefinition()
 
         self._definitions[key].append(Definition.create(value))
 
-    def define(self, key=None, value=None, scope=None, **values):
-        # TODO: Why does this first part not create a definition but inject a value?
-        # Maybe should call this set instead.
+    @overload
+    def define(self, key: Key, value: object): ...
+
+    @overload
+    def define(self, **value): ...
+
+    def define(self, key: Key | None=None, value=None, **values):
+        r"""
+        Set the rule to create ``key`` to ``value``.
+
+        Alternatively, key/value pairs can be given as keyword arguments.
+        """
         if key is not None:
-            if scope is not None:
-                key = (scope, key)
-
-            assert key not in values
-            values[key] = value
-
-        for key, value in values.items():
-            if scope is not None:
-                key = (scope, key)
-
             if key in self._definitions:
                 raise ValueError(f"cannot redefine {key} in this pipeline");
 
             self._definitions[key] = Definition.create(value)
 
-    def get(self, key, default=None, *, scope=None):
-        if scope is not None:
-            key = (scope, key)
+        for key, value in values.items():
+            self.define(key=key, value=value)
 
+    @overload
+    def set(self, key: Key, value: object): ...
+
+    @overload
+    def set(self, **value): ...
+
+    def set(self, key: Key | None=None, value=None, **values):
+        r"""
+        Set the value of ``key`` to the actual ``value``.
+
+        Alternatively, key/value pairs can be given as keyword arguments.
+
+        For constant values, this is essentially like ``define``, however,
+        ``forget`` will forget about the values set with ``set``.
+
+        The values must be actual values and not types or definitions.
+        """
+        if key is not None:
+            if key in self._values:
+                raise ValueError(f"cannot reset {key} in this pipeline");
+
+            self._values[key] = value
+
+        for key, value in values.items():
+            self.set(key=key, value=value)
+
+    def get[T](self, key: Key, default: T | Callable[[], T] | None = None) -> T:
+        r"""
+        Resolve the ``key`` in this pipeline.
+
+        If no ``key`` has been register in this scope or a parent scope, return
+        ``default`` if set.
+        """
         if key not in self._values:
             if key not in self._definitions:
+                if self._parent:
+                    return self._parent.get(key, default)
+
                 if isinstance(key, type):
                     self.define(key=key, value=key)
                 else:
-                    if default is not None:
-                        return default()
+                    if default is None:
+                        raise Exception(f"cannot resolve {key} in this pipeline and no default given")
 
-                    raise Exception(f"cannot resolve {key} in this pipeline and no default given")
+                    if callable(default):
+                        return cast(T, default())
+
+                    return default
 
             value = self._definitions[key].resolve(self)
-            self._values[key] = value
+            self.set(key, value)
 
         return self._values[key]
-
-    # def append(self, key, gettable, scope=None):
-    #     key = (scope, key)
-
-    #     self._bindings.setdefault(key, [])
-    #     
-    #     bound = self._bindings[key]
-    #     if not isinstance(bound, list):
-    #         raise NotImplementedError(f"cannot append to nonlist for {key}")
-
-    #     bound.append(gettable)
-
-    # def bind(self, key, gettable, scope=None):
-    #     key = (scope, key)
-
-    #     if key in self._bindings:
-    #         raise ValueError("bindings cannot be modified")
-
-    #     self._bindings[key] = gettable
-
-    def describe(self, key):
-        # TODO
-        return str(self._definitions[key])
 
     def __repr__(self):
         return f"Pipeline with definitions {self._definitions} and values {self._values}"
 
-    # def get(self, key, default=None, scope=None):
-    #     if (scope, key) not in self._values:
-    #         if (scope, key) in self._bindings:
-    #             self.set(key, 
-    #         if key not in self._bindings:
-    #             if isinstance(key, type):
-    #                 self._bindings[key] = (key, [], {})
-
-    #         self.set(key, self.instantiate(self._bindings[key]))
-
-    #     return self._values[key]
-
-    # def instantiate(self, constructor):
-    #     if isinstance(constructor, list):
-    #         return [self.get(key) for key in constructor]
-
-    #     if isinstance(constructor, type):
-    #         constructor = (constructor, [], {})
-
-    #     if isinstance(constructor, tuple) and len(constructor) == 3:
-    #         constructor, args, kwargs = constructor
-    #         from inspect import signature, Parameter
-
-    #         parameters = list(signature(constructor).parameters.values())
-
-    #         for param in parameters[len(args):]:
-    #             name = param.name
-    #             if name not in kwargs:
-    #                 default = param.default
-    #                 if default is not Parameter.empty:
-    #                     kwargs[name] = param.default
-    #                     continue
-
-    #                 t = param.annotation
-    #                 if t is not Parameter.empty:
-    #                     kwargs[name] = self.get(t)
-    #                     continue
-
-    #                 if name in self._bindings or name in self._values:
-    #                     kwargs[name] = self.get(name)
-    #                     continue
-
-    #                 raise ValueError(f"cannot instantiate {constructor} because {name} is missing a type annotation or default value and the name has no value or binding set in this pipeline")
-
-    #         return constructor(*args, **kwargs)
-
-    #     raise NotImplementedError(f"cannot instantiate {constructor}")
-
     def clone(self):
+        r"""
+        Return a copy of the pipeline.
+
+        The copy has the same definitions but forgets about the concrete values
+        that these definitions produced if any.
+
+        EXAMPLES::
+
+            >>> from flatsurvey.pipeline import Pipeline
+            >>> pipeline = Pipeline()
+
+            >>> class Surface():
+            ...     def __repr__(self): return "surface"
+            ...     @staticmethod
+            ...     def create(pipeline): return Surface()
+
+            >>> pipeline.get(Surface) is pipeline.get(Surface)
+            True
+
+            >>> clone = pipeline.clone()
+            >>> pipeline.get(Surface) is clone.get(Surface)
+            False
+
+        """
         clone = Pipeline()
         clone._definitions = dict(self._definitions)
+        clone._scopes = {scope: child.clone() for (scope, child) in self._scopes.items()}
         return clone
 
-    def forget(self, key=None, scope=None):
-        if scope is not None:
-            if key is None:
-                for key in list(self._definitions) + list(self._values):
-                    if isinstance(key, tuple) and key[0] == scope:
-                        self.forget(key=key)
-                return
-
-            key = (scope, key)
+    def forget(self, key: Key | None=None):
+        if key is None:
+            self._values = {}
+            self._definitions = {}
+            self._scopes = {}
 
         if key in self._definitions:
             del self._definitions[key]
+
         if key in self._values:
             del self._values[key]
-
-
-## class SurveyPipeline:
-##     def __init__(self):
-##         self._surfaces = []
-##         self._template = PipelineTemplate()
-## 
-##     def configure(self, name, binding):
-##         if name == "surfaces":
-##             self._surfaces.extend(binding)
-## 
-##         self._template.bind(name, binding)
-## 
-##     def __iter__(self):
-##         from more_itertools import roundrobin
-## 
-##         for surface in roundrobin(*self._surfaces):
-##             yield self._template.create(surface)
-## 
-## 
-## class PipelineTemplate:
-##     def __init__(self):
-##         self._factories = {}
-## 
-##     def register_named_factories(self, name, factories):
-##         raise Exception
-## 
-##     def register_type_factory(self, type, factory):
-##         raise Exception
-## 
-##     # def register_factory(self, name, factory):
-##     #     if isinstance(factory, list):
-##     #         if name not in self._factories:
-##     #             self._factories
-##     #         if name not in self._bindings:
-##     #             self._bindings[name] = []
-##     #         self._bindings[name].extend(binding)
-##     #     else:
-##     #         if name in self._bindings:
-##     #             raise NotImplementedError(f"cannot handle multiple values for {name} yet")
-##     #         self._bindings[name] = binding
-## 
-##     def create_pipeline(self, constants):
-##         raise Exception
-##         # return Pipeline({**self._bindings, "surface": surface})
-## 
-## 
-## class Pipeline:
-##     def __init__(self, template, constants):
-##         self._template = template
-##         self._values = dict(constants)
-## 
-##     def get(self, type, default=None):
-##         raise Exception
-## 
-##     def get(self, name, default=None):
-##         raise Exception
-## 
-##     def get(self, name, default=None):
-##         raise Exception
-##         if name not in self._values:
-##             if name not in self._bindings:
-##                 if default:
-##                     return default(self)
-## 
-##                 raise ValueError(f"pipeline does not define {name!r}")
-## 
-##         self._bindings[name](self)

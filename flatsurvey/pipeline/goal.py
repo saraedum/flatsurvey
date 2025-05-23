@@ -33,7 +33,7 @@ EXAMPLES:
 
 import click
 
-from flatsurvey.pipeline.consumer import Consumer
+from flatsurvey.pipeline import Consumer
 
 
 class Goal(Consumer):

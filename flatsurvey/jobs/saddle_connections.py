@@ -35,7 +35,7 @@ The saddle connections on a translation surface.
 
 import click
 
-from flatsurvey.command import Command
+from flatsurvey.ui import Command
 from flatsurvey.pipeline import Producer
 from flatsurvey.ui.group import GroupedCommand
 from flatsurvey.surfaces import Surface

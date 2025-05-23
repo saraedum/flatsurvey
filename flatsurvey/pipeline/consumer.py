@@ -29,10 +29,10 @@ Any goal of a computation implements the Consumer interface::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 
 
-class Consumer:
+class Consumer(ABC):
     r"""
     In the pipeline graph of jobs, anything that an edge points to is a
     Consumer. So consumers take in intermediate results that come out of a

@@ -39,7 +39,7 @@ non-cylinder.
 
 import click
 
-from flatsurvey.command import Command
+from flatsurvey.ui import Command
 from flatsurvey.pipeline import Goal
 from flatsurvey.ui.group import GroupedCommand
 
