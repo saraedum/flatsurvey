@@ -17,7 +17,7 @@
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-import flatsurvey.worker.restart
+from flatsurvey.restart import Restart
 from flatsurvey.surfaces.surface import Surface
 
 
@@ -53,7 +53,7 @@ class Deformation(Surface):
     def cache_predicate(self, exact, cache=None):
         return lambda result: False
 
-    class Restart(flatsurvey.worker.restart.Restart):
+    class Restart(Restart):
         def __init__(self, deformed, old):
             self._deformation = Deformation(deformed=deformed, old=old)
 

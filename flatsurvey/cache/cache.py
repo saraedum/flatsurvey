@@ -42,7 +42,7 @@ EXAMPLES::
 
 import click
 
-from flatsurvey.cache import Pickles
+from flatsurvey.cache.pickles import Pickles
 from flatsurvey.ui import Command
 from flatsurvey.pipeline import Pipeline
 from flatsurvey.ui import GroupedCommand
