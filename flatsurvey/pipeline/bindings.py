@@ -17,27 +17,27 @@ Utilities to create the graph of objects that are performing a survey.
 
 EXAMPLES:
 
-The fundamental object here is the :class:`Pipeline`. It holds the rules to
+The fundamental object here is the :class:`Bindings`. It holds the rules to
 produce the object graph to run a survey of surfaces or a survey on a single
-surface. Basically, a pipeline can hold for each type (or string key) a rule on
+surface. Basically, a bindings can hold for each type (or string key) a rule on
 how to produce it::
 
-    >>> from flatsurvey.pipeline import Pipeline
-    >>> pipeline = Pipeline()
+    >>> from flatsurvey.pipeline import Bindings
+    >>> bindings = Bindings()
 
 The easiest rules are just constants::
 
     >>> class Surface():
     ...     def __repr__(self): return "surface"
 
-    >>> pipeline.define(Surface, Surface())
+    >>> bindings.define(Surface, Surface())
 
 Whenever somebody needs a string, we answer with this constant::
 
-    >>> pipeline.get(Surface)
+    >>> bindings.get(Surface)
     surface
 
-The definition values can also be types, as long as they have a static
+The binding values can also be types, as long as they have a static
 ``create`` method::
 
     >>> class SaddleConnections:
@@ -45,38 +45,38 @@ The definition values can also be types, as long as they have a static
     ...         self._surface = surface 
     ...
     ...     @staticmethod
-    ...     def create(pipeline): return SaddleConnections(pipeline.get(Surface))
+    ...     def create(bindings): return SaddleConnections(bindings.get(Surface))
 
-    >>> pipeline.define("sc", SaddleConnections)
+    >>> bindings.define("sc", SaddleConnections)
 
-    >>> pipeline.get("sc")._surface
+    >>> bindings.get("sc")._surface
     surface
 
 Note that the constant is cached, you get the identical object every single
 time::
 
-    >>> pipeline.get("sc") is pipeline.get("sc")
+    >>> bindings.get("sc") is bindings.get("sc")
     True
 
 When asking for a type that has not been registered with ``define``, its
 ``create`` is also called automatically::
 
-    >>> pipeline.get(SaddleConnections)._surface
+    >>> bindings.get(SaddleConnections)._surface
     surface
 
 We cannot redefine names that have been requested already::
 
-    >>> pipeline.define(SaddleConnections, SaddleConnections("..."))
+    >>> bindings.define(SaddleConnections, SaddleConnections("..."))
     Traceback (most recent call last):
     ...
-    ValueError: cannot redefine ... in this pipeline
+    ValueError: cannot redefine ... in this bindings
 
-However, we can explicitly "forget" values and definitions for a key::
+However, we can explicitly "forget" values and bindings for a key::
 
-    >>> pipeline.forget(SaddleConnections)
-    >>> pipeline.define(SaddleConnections, SaddleConnections("..."))
+    >>> bindings.forget(SaddleConnections)
+    >>> bindings.define(SaddleConnections, SaddleConnections("..."))
 
-    >>> pipeline.get(SaddleConnections)._surface
+    >>> bindings.get(SaddleConnections)._surface
     '...'
 
 We can also only define or override a variable in a certain scope::
@@ -87,25 +87,25 @@ We can also only define or override a variable in a certain scope::
     ...         self._ambient = ambient
     ...
     ...     @staticmethod
-    ...     def create(pipeline):
-    ...         with pipeline.scope(OrbitClosure) as scoped:
+    ...     def create(bindings):
+    ...         with bindings.scope(OrbitClosure) as scoped:
     ...             return OrbitClosure(scoped.get(SaddleConnections), scoped.get(str))
     ...     
 
-    >>> with pipeline.scope(OrbitClosure) as scoped:
+    >>> with bindings.scope(OrbitClosure) as scoped:
     ...     scoped.define(str, "H_6(5^2, 0^2)")
 
-    >>> pipeline.get(OrbitClosure)._ambient
+    >>> bindings.get(OrbitClosure)._ambient
     'H_6(5^2, 0^2)'
 
 Oftentimes, you want to incrementally register a list of things under one key,
 say the goals of a survey::
 
-    >>> pipeline.append("Goals", OrbitClosure)
-    >>> pipeline.append("Goals", "something else")
+    >>> bindings.append("Goals", OrbitClosure)
+    >>> bindings.append("Goals", "something else")
 
-    >>> pipeline.get("Goals")
-    [<flatsurvey.pipeline.pipeline.OrbitClosure object at 0x...>, 'something else']
+    >>> bindings.get("Goals")
+    [<flatsurvey.pipeline.bindings.OrbitClosure object at 0x...>, 'something else']
 
 """
 # *********************************************************************
@@ -138,73 +138,73 @@ Key = str | Type
 
 class HasCreate[T](Protocol):
     r"""
-    A type that can be created from the definitions in the Pipeline.
+    A type that can be created from the bindings in the Bindings.
     """
     @staticmethod
-    def create(pipeline: "Pipeline") -> T: ... 
+    def create(bindings: "Bindings") -> T: ... 
 
 
-class Definition[T](ABC):
+class Binding[T](ABC):
     r"""
-    A definition for a value stored in a Pipeline.
+    A binding for a value stored in a Bindings.
     """
     @overload
     @staticmethod
-    def create(value: "Definition[T]") -> "Definition[T]": ...
+    def create(value: "Binding[T]") -> "Binding[T]": ...
 
     @overload
     @staticmethod
-    def create(value: T) -> "Definition[T]": ...
+    def create(value: T) -> "Binding[T]": ...
 
     @overload
     @staticmethod
-    def create(value: Type[T]) -> "Definition[T]": ...
+    def create(value: Type[T]) -> "Binding[T]": ...
 
     @staticmethod
     def create(value):
         r"""
-        Create a Definition from ``value``.
+        Create a Binding from ``value``.
 
         EXAMPLES::
 
-            >>> from flatsurvey.pipeline.pipeline import Definition
-            >>> Definition.create(123)
-            ConstantDefinition(123)
+            >>> from flatsurvey.pipeline.bindings import Binding
+            >>> Binding.create(123)
+            ConstantBinding(123)
 
-            >>> Definition.create(Definition)
-            TypeDefinition(Definition)
+            >>> Binding.create(Binding)
+            TypeBinding(Binding)
 
         """
-        if isinstance(value, Definition):
+        if isinstance(value, Binding):
             return value
 
         if isinstance(value, type):
-            return TypeDefinition(value)
+            return TypeBinding(value)
 
-        return ConstantDefinition(value)
+        return ConstantBinding(value)
 
     @abstractmethod
-    def resolve(self, pipeline: "Pipeline") -> T:
+    def resolve(self, bindings: "Bindings") -> T:
         r"""
-        Return the value of this definition.
+        Return the value of this binding.
 
         Subclasses must implement this.
         """
         raise NotImplementedError
 
 
-class ConstantDefinition[T](Definition[T]):
+class ConstantBinding[T](Binding[T]):
     r"""
-    A constant value to be stored in a Pipeline.
+    A constant value to be stored in a Bindings.
 
     EXAMPLES::
 
-        >>> from flatsurvey.pipeline.pipeline import Definition, Pipeline
-        >>> pipeline = Pipeline()
+        >>> from flatsurvey.pipeline.bindings import Binding, Bindings
+        >>> bindings = Bindings()
 
-        >>> definition = Definition.create(123)
+        >>> binding = Binding.create(123)
 
-        >>> definition.resolve(pipeline)
+        >>> binding.resolve(bindings)
         123
 
     """
@@ -212,86 +212,86 @@ class ConstantDefinition[T](Definition[T]):
         self._value = value
 
     @override
-    def resolve(self, pipeline: "Pipeline") -> T:
+    def resolve(self, bindings: "Bindings") -> T:
         return self._value
 
     def __repr__(self):
-        return f"ConstantDefinition({self._value})"
+        return f"ConstantBinding({self._value})"
 
 
-class TypeDefinition[T : HasCreate](Definition[T]):
+class TypeBinding[T : HasCreate](Binding[T]):
     r"""
     A value that is invoking ``.create`` on a type.
 
     EXAMPLES::
 
-        >>> from flatsurvey.pipeline.pipeline import Definition, Pipeline
-        >>> pipeline = Pipeline()
+        >>> from flatsurvey.pipeline.bindings import Binding, Bindings
+        >>> bindings = Bindings()
 
 
         >>> class A:
         ...     @staticmethod
-        ...     def create(pipeline): return A()
+        ...     def create(bindings): return A()
 
-        >>> definition = Definition.create(A)
+        >>> binding = Binding.create(A)
 
-        >>> definition.resolve(pipeline)
-        <flatsurvey.pipeline.pipeline.A object at 0x...>
+        >>> binding.resolve(bindings)
+        <flatsurvey.pipeline.bindings.A object at 0x...>
 
     """
     def __init__(self, type: Type[T]):
         self._type = type
 
     @override
-    def resolve(self, pipeline) -> T:
-        return pipeline._values.get(self._type, self._type.create(pipeline))
+    def resolve(self, bindings) -> T:
+        return bindings._values.get(self._type, self._type.create(bindings))
 
     def __repr__(self):
-        return f"TypeDefinition({self._type.__name__})"
+        return f"TypeBinding({self._type.__name__})"
 
 
-class ListDefinition[T](Definition[list[T]]):
+class ListBinding[T](Binding[list[T]]):
     r"""
-    A value that is an (expandable) list of other definitions.
+    A value that is an (expandable) list of other bindings.
 
     EXAMPLES::
 
-        >>> from flatsurvey.pipeline.pipeline import ListDefinition, Pipeline, Definition
-        >>> pipeline = Pipeline()
+        >>> from flatsurvey.pipeline.bindings import ListBinding, Bindings, Binding
+        >>> bindings = Bindings()
 
 
-        >>> definition = ListDefinition()
-        >>> definition.append(Definition.create(1))
-        >>> definition.append(Definition.create(2))
+        >>> binding = ListBinding()
+        >>> binding.append(Binding.create(1))
+        >>> binding.append(Binding.create(2))
 
-        >>> definition.resolve(pipeline)
+        >>> binding.resolve(bindings)
         [1, 2]
 
     """
     def __init__(self):
-        self._value: list[Definition[T]] = []
+        self._value: list[Binding[T]] = []
 
-    def append(self, definition):
-        self._value.append(definition)
+    def append(self, binding):
+        self._value.append(binding)
 
     @override
-    def resolve(self, pipeline: "Pipeline") -> list[T]:
-        return [definition.resolve(pipeline) for definition in self._value]
+    def resolve(self, bindings: "Bindings") -> list[T]:
+        return [binding.resolve(bindings) for binding in self._value]
 
     def __repr__(self):
-        return f"ListDefinition({self._value})"
+        return f"ListBinding({self._value})"
 
 
-class Pipeline:
+class Bindings:
     r"""
     Rules to create the object graph performing a survey.
 
     EXAMPLES:
 
-    Typically, a survey creates such a pipeline to describe the general setup::
+    Typically, a survey creates such a bindings to describe the general setup::
 
-        >>> from flatsurvey.pipeline import Pipeline
-        >>> survey = Pipeline()
+        >>> from flatsurvey.pipeline import Bindings
+        >>> survey = Bindings()
         >>> survey.append("goals", "some goal")
         >>> survey.define("surfaces", ["surface0", "surface1"])
 
@@ -312,20 +312,22 @@ class Pipeline:
         ('surface1', ['some goal'])
 
     """
-    def __init__(self, parent: "Pipeline | None" = None):
+    def __init__(self, parent: "Bindings | None" = None):
         self._parent = parent
         self._values = {}
-        self._definitions = {}
+        self._bindings = {}
         self._scopes = {}
 
     @staticmethod
     def click(wrapped):
         r"""
-        Decorator helper to add a pipeline argument to a click command handler.
+        Decorator helper to add a bindings argument to a click command handler.
         """
+        from functools import wraps
+        @wraps(wrapped)
         def command(*args, **kwargs):
-            def wrapper(pipeline: Pipeline):
-                wrapped(pipeline, *args, **kwargs)
+            def wrapper(bindings: Bindings):
+                wrapped(bindings, *args, **kwargs)
             return wrapper
 
         return command
@@ -333,21 +335,21 @@ class Pipeline:
     @contextmanager
     def scope(self, scope: str | Type):
         r"""
-        Return the scoped pipeline for ``scope``.
+        Return the scoped bindings for ``scope``.
         """
         if scope not in self._scopes:
-            self._scopes[scope] = Pipeline(self)
+            self._scopes[scope] = Bindings(self)
 
         yield self._scopes[scope]
 
     def append(self, key: Key, value):
         r"""
-        Append ``value`` to the list definition for ``key``.
+        Append ``value`` to the list binding for ``key``.
         """
-        if key not in self._definitions:
-            self._definitions[key] = ListDefinition()
+        if key not in self._bindings:
+            self._bindings[key] = ListBinding()
 
-        self._definitions[key].append(Definition.create(value))
+        self._bindings[key].append(Binding.create(value))
 
     @overload
     def define(self, key: Key, value: object): ...
@@ -362,10 +364,10 @@ class Pipeline:
         Alternatively, key/value pairs can be given as keyword arguments.
         """
         if key is not None:
-            if key in self._definitions:
-                raise ValueError(f"cannot redefine {key} in this pipeline");
+            if key in self._bindings:
+                raise ValueError(f"cannot redefine {key} in this bindings");
 
-            self._definitions[key] = Definition.create(value)
+            self._bindings[key] = Binding.create(value)
 
         for key, value in values.items():
             self.define(key=key, value=value)
@@ -385,11 +387,11 @@ class Pipeline:
         For constant values, this is essentially like ``define``, however,
         ``forget`` will forget about the values set with ``set``.
 
-        The values must be actual values and not types or definitions.
+        The values must be actual values and not types or bindings.
         """
         if key is not None:
             if key in self._values:
-                raise ValueError(f"cannot reset {key} in this pipeline");
+                raise ValueError(f"cannot reset {key} in this bindings");
 
             self._values[key] = value
 
@@ -398,13 +400,13 @@ class Pipeline:
 
     def get[T](self, key: Key, default: T | Callable[[], T] | None = None) -> T:
         r"""
-        Resolve the ``key`` in this pipeline.
+        Resolve the ``key`` in this bindings.
 
         If no ``key`` has been register in this scope or a parent scope, return
         ``default`` if set.
         """
         if key not in self._values:
-            if key not in self._definitions:
+            if key not in self._bindings:
                 if self._parent:
                     return self._parent.get(key, default)
 
@@ -412,59 +414,59 @@ class Pipeline:
                     self.define(key=key, value=key)
                 else:
                     if default is None:
-                        raise Exception(f"cannot resolve {key} in this pipeline and no default given")
+                        raise Exception(f"cannot resolve {key} in this bindings and no default given")
 
                     if callable(default):
                         return cast(T, default())
 
                     return default
 
-            value = self._definitions[key].resolve(self)
+            value = self._bindings[key].resolve(self)
             self.set(key, value)
 
         return self._values[key]
 
     def __repr__(self):
-        return f"Pipeline with definitions {self._definitions} and values {self._values}"
+        return f"Bindings with bindings {self._bindings} and values {self._values}"
 
     def clone(self):
         r"""
-        Return a copy of the pipeline.
+        Return a copy of the bindings.
 
-        The copy has the same definitions but forgets about the concrete values
-        that these definitions produced if any.
+        The copy has the same bindings but forgets about the concrete values
+        that these bindings produced if any.
 
         EXAMPLES::
 
-            >>> from flatsurvey.pipeline import Pipeline
-            >>> pipeline = Pipeline()
+            >>> from flatsurvey.pipeline import Bindings
+            >>> bindings = Bindings()
 
             >>> class Surface():
             ...     def __repr__(self): return "surface"
             ...     @staticmethod
-            ...     def create(pipeline): return Surface()
+            ...     def create(bindings): return Surface()
 
-            >>> pipeline.get(Surface) is pipeline.get(Surface)
+            >>> bindings.get(Surface) is bindings.get(Surface)
             True
 
-            >>> clone = pipeline.clone()
-            >>> pipeline.get(Surface) is clone.get(Surface)
+            >>> clone = bindings.clone()
+            >>> bindings.get(Surface) is clone.get(Surface)
             False
 
         """
-        clone = Pipeline()
-        clone._definitions = dict(self._definitions)
+        clone = Bindings()
+        clone._bindings = dict(self._bindings)
         clone._scopes = {scope: child.clone() for (scope, child) in self._scopes.items()}
         return clone
 
     def forget(self, key: Key | None=None):
         if key is None:
             self._values = {}
-            self._definitions = {}
+            self._bindings = {}
             self._scopes = {}
 
-        if key in self._definitions:
-            del self._definitions[key]
+        if key in self._bindings:
+            del self._bindings[key]
 
         if key in self._values:
             del self._values[key]

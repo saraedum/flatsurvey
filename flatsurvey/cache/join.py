@@ -23,7 +23,7 @@ Aggregate cache files.
 import click
 
 from flatsurvey.ui import Command
-from flatsurvey.pipeline import Goal, Pipeline
+from flatsurvey.pipeline import Goal, Bindings
 from flatsurvey.reporting import Report
 
 
@@ -46,16 +46,16 @@ class Join(Goal, Command):
     @click.option(
         "--prefix", type=str, help="a common prefix for the output files", default=None
     )
-    @Pipeline.click
-    def click(pipeline: Pipeline, jsons, prefix):
-        pipeline.append("goals", Join)
-        pipeline.define(scope=Join, jsons=jsons, prefix=prefix)
+    @Bindings.click
+    def click(bindings: Bindings, jsons, prefix):
+        bindings.append("goals", Join)
+        bindings.define(scope=Join, jsons=jsons, prefix=prefix)
 
     @staticmethod
-    def create(pipeline: Pipeline):
-        jsons = pipeline.get("jsons", scope=Join)
-        prefix = pipeline.get("prefix", scope=Join)
-        report = pipeline.get(Report)
+    def create(bindings: Bindings):
+        jsons = bindings.get("jsons", scope=Join)
+        prefix = bindings.get("prefix", scope=Join)
+        report = bindings.get(Report)
 
         return Join(jsons=jsons, prefix=prefix, report=report)
 

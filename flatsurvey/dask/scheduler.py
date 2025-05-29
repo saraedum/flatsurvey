@@ -7,8 +7,8 @@ EXAMPLES:
 
 We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
     
-    >>> from flatsurvey.pipeline import Pipeline
-    >>> survey = Pipeline()
+    >>> from flatsurvey.pipeline import Bindings
+    >>> survey = Bindings()
 
     >>> from flatsurvey.surfaces import Ngons
     >>> ngons = Ngons(vertices=3, length="e-antic", min=0, limit=None, count=2, literature='include', family=None, filter=None)
@@ -17,7 +17,7 @@ We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
     >>> from flatsurvey.jobs import OrbitClosure
     >>> survey.append("goals", OrbitClosure)
 
-    >>> scheduler = Scheduler(survey_pipeline=survey)
+    >>> scheduler = Scheduler(survey_bindings=survey)
 
     >>> import asyncio
     >>> asyncio.run(scheduler.start())  # random progress output
@@ -49,7 +49,7 @@ from typing import Iterator, List
 
 import dask.distributed
 
-from flatsurvey.pipeline import Pipeline
+from flatsurvey.pipeline import Bindings
 from flatsurvey.surfaces import Surface
 from flatsurvey.ui import SurveyProgress
 from flatsurvey.dask import SchedulerCancellationToken
@@ -62,8 +62,8 @@ class Scheduler:
 
     INPUT::
 
-    - ``survey_pipeline`` -- a :class:`Pipeline` that specifies which
-      computations should be performed by this survey. This pipeline must have
+    - ``survey_bindings`` -- a :class:`Bindings` that specifies which
+      computations should be performed by this survey. This bindings must have
       a ``"surfaces"`` entry for all the surfaces that should be surveyed.
 
     - ``scheduler`` -- a dask scheduler file to connect to; if not given (the
@@ -88,22 +88,22 @@ class Scheduler:
 
     EXAMPLES::
 
-        >>> from flatsurvey.pipeline import Pipeline
-        >>> pipeline = Pipeline()
-        >>> pipeline.append("surfaces", [])
+        >>> from flatsurvey.pipeline import Bindings
+        >>> bindings = Bindings()
+        >>> bindings.append("surfaces", [])
 
-        >>> Scheduler(survey_pipeline=pipeline)
+        >>> Scheduler(survey_bindings=bindings)
         Scheduler(…)
 
     """
 
     def __init__(
         self,
-        survey_pipeline: Pipeline,
+        survey_bindings: Bindings,
         scheduler_json=None,
         queue_limit=None,
     ):
-        self._survey_pipeline = survey_pipeline
+        self._survey_bindings = survey_bindings
         self._scheduler_json = scheduler_json
         self._queue_limit = queue_limit
 
@@ -118,10 +118,10 @@ class Scheduler:
         EXAMPLES::
 
             >>> import asyncio
-            >>> from flatsurvey.pipeline import Pipeline
-            >>> pipeline = Pipeline()
-            >>> pipeline.append("surfaces", [])
-            >>> scheduler = Scheduler(survey_pipeline=pipeline)
+            >>> from flatsurvey.pipeline import Bindings
+            >>> bindings = Bindings()
+            >>> bindings.append("surfaces", [])
+            >>> scheduler = Scheduler(survey_bindings=bindings)
             >>> asyncio.run(scheduler.start())  # random progress output
             on ...: no jobs were required to complete this survey
             ...
@@ -175,11 +175,11 @@ class Scheduler:
 
         EXAMPLES::
 
-            >>> from flatsurvey.pipeline import Pipeline
-            >>> pipeline = Pipeline()
-            >>> pipeline.append("surfaces", [])
+            >>> from flatsurvey.pipeline import Bindings
+            >>> bindings = Bindings()
+            >>> bindings.append("surfaces", [])
 
-            >>> scheduler = Scheduler(survey_pipeline=pipeline)
+            >>> scheduler = Scheduler(survey_bindings=bindings)
 
             >>> import os, signal
 
@@ -224,9 +224,9 @@ class Scheduler:
 
         EXAMPLES::
 
-            >>> from flatsurvey.pipeline import Pipeline
+            >>> from flatsurvey.pipeline import Bindings
 
-            >>> scheduler = Scheduler(survey_pipeline=Pipeline())
+            >>> scheduler = Scheduler(survey_bindings=Bindings())
 
             >>> async def create_pool():
             ...     pool = await scheduler._create_pool()
@@ -286,14 +286,14 @@ class Scheduler:
 
         EXAMPLES::
 
-            >>> from flatsurvey.pipeline import Pipeline
-            >>> pipeline = Pipeline()
+            >>> from flatsurvey.pipeline import Bindings
+            >>> bindings = Bindings()
 
             >>> from flatsurvey.surfaces import Ngons
             >>> ngons = Ngons(vertices=3, length="e-antic", min=0, limit=None, count=2, literature='include', family=None, filter=None)
-            >>> pipeline.append("surfaces", ngons)
+            >>> bindings.append("surfaces", ngons)
 
-            >>> scheduler = Scheduler(survey_pipeline=pipeline)
+            >>> scheduler = Scheduler(survey_bindings=bindings)
 
             >>> surfaces = scheduler._create_surfaces()
             >>> list(surfaces)
@@ -304,7 +304,7 @@ class Scheduler:
 
         """
         from more_itertools import roundrobin
-        return roundrobin(*self._survey_pipeline.get("surfaces"))
+        return roundrobin(*self._survey_bindings.get("surfaces"))
 
     async def _seed_jobs(self, pool: dask.distributed.Client, progress: SurveyProgress, token: SchedulerCancellationToken, surfaces: Iterator[Surface]) -> List[dask.distributed.Future]:
         r"""
@@ -348,14 +348,14 @@ class Scheduler:
             if surface is None:
                 return None
 
-            pipeline = self._survey_pipeline.clone()
-            pipeline.forget("surfaces")
-            pipeline.define(Surface, surface)
+            bindings = self._survey_bindings.clone()
+            bindings.forget("surfaces")
+            bindings.define(Surface, surface)
 
             if token.cancelled:
                 return None
 
-            cached = await self._resolve_from_cache(pipeline)
+            cached = await self._resolve_from_cache(bindings)
 
             assert surface._surface.cache is None, "to prevent memory leaks, surface must not be created to resolve caches"  # pyright: ignore[reportFunctionMemberAccess]
 
@@ -363,18 +363,18 @@ class Scheduler:
                 # Everything could be answered from cached data. Proceed to next surface.
                 continue
 
-            pipeline = pipeline.clone()
+            bindings = bindings.clone()
 
             # The workers do not need a copy of the cache.
             from flatsurvey.cache import Cache
-            pipeline.forget(scope=Cache)
-            pipeline.forget(Cache)
+            bindings.forget(scope=Cache)
+            bindings.forget(Cache)
 
             from flatsurvey.dask import DaskTask
 
             task = DaskTask(
-                pipeline,
-                repr=f"DaskTask(surface={surface!r}, goals={pipeline.describe("goals")})",
+                bindings,
+                repr=f"DaskTask(surface={surface!r}, goals={bindings.describe("goals")})",
                 token=token,
             )
 
@@ -386,37 +386,37 @@ class Scheduler:
             return pool.submit(task)
 
     @staticmethod
-    async def _resolve_from_cache(pipeline: Pipeline):
+    async def _resolve_from_cache(bindings: Bindings):
         r"""
-        Return whether all ``goals`` for the task encoded in the ``pipeline``
+        Return whether all ``goals`` for the task encoded in the ``bindings``
         could be resolved from cached data.
 
         This is a helper method for :meth:`_submit_job`.
 
         EXAMPLES::
 
-            >>> from flatsurvey.pipeline import Pipeline
-            >>> pipeline = Pipeline()
-            >>> pipeline.define("goals", [])
+            >>> from flatsurvey.pipeline import Bindings
+            >>> bindings = Bindings()
+            >>> bindings.define("goals", [])
 
             >>> import asyncio
-            >>> asyncio.run(Scheduler._resolve_from_cache(pipeline))
+            >>> asyncio.run(Scheduler._resolve_from_cache(bindings))
             True
 
         ::
 
             >>> from flatsurvey.jobs import OrbitClosure
             >>> from flatsurvey.surfaces import Ngon, Surface
-            >>> pipeline = Pipeline()
-            >>> pipeline.append("goals", OrbitClosure)
-            >>> pipeline.define(Surface, Ngon((1, 1, 1)))
+            >>> bindings = Bindings()
+            >>> bindings.append("goals", OrbitClosure)
+            >>> bindings.define(Surface, Ngon((1, 1, 1)))
 
             >>> import asyncio
-            >>> asyncio.run(Scheduler._resolve_from_cache(pipeline))
+            >>> asyncio.run(Scheduler._resolve_from_cache(bindings))
             False
 
         """
-        goals = pipeline.get("goals")
+        goals = bindings.get("goals")
 
         for goal in goals:
             await goal.consume_cache()

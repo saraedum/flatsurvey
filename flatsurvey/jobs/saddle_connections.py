@@ -69,12 +69,12 @@ class SaddleConnections(Producer, Command):
         )
 
     @staticmethod
-    def create(pipeline):
+    def create(bindings):
         return SaddleConnections(
-            surface=pipeline.get(Surface),
-            report=pipeline.get(Report),
-            limit=pipeline.get("limit", default=lambda: SaddleConnections.DEFAULT_LIMIT, scope=SaddleConnections),
-            bound=pipeline.get("bound", default=lambda: SaddleConnections.DEFAULT_BOUND, scope=SaddleConnections),
+            surface=bindings.get(Surface),
+            report=bindings.get(Report),
+            limit=bindings.get("limit", default=lambda: SaddleConnections.DEFAULT_LIMIT, scope=SaddleConnections),
+            bound=bindings.get("bound", default=lambda: SaddleConnections.DEFAULT_BOUND, scope=SaddleConnections),
         )
 
     def _by_length(self):

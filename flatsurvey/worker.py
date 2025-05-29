@@ -71,17 +71,14 @@ TESTS::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from typing import List
-
 import click
 
 import flatsurvey.cache
 import flatsurvey.jobs
 import flatsurvey.reporting
 import flatsurvey.surfaces
-from flatsurvey.pipeline import Pipeline
+from flatsurvey.pipeline import Bindings
 from flatsurvey.ui.group import CommandWithGroups
-from flatsurvey.worker.restart import Restart
 from flatsurvey.reporting.report import Report
 
 
@@ -154,12 +151,12 @@ def process(commands, debug, mem_limit, time_limit, verbose):
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG if verbose > 1 else logging.INFO)
 
-    from flatsurvey.pipeline import Pipeline
+    from flatsurvey.pipeline import Bindings
 
-    pipeline = Pipeline()
+    bindings = Bindings()
 
     for command in commands:
-        command(pipeline)
+        command(bindings)
 
     limits = []
     if mem_limit is not None:
@@ -175,7 +172,7 @@ def process(commands, debug, mem_limit, time_limit, verbose):
     try:
         import asyncio
 
-        asyncio.run(Worker.work(pipeline=pipeline, limits=limits))
+        asyncio.run(Worker.work(bindings=bindings, limits=limits))
     except Exception:
         if debug:
             pdb.post_mortem()
@@ -205,18 +202,18 @@ class Worker:
         self._report = report
 
     @staticmethod
-    def create(pipeline):
-        return Worker(goals=pipeline.get("goals"), report=pipeline.get(Report))
+    def create(bindings):
+        return Worker(goals=bindings.get("goals"), report=bindings.get(Report))
 
     @classmethod
-    async def work(cls, /, pipeline: Pipeline, limits=[]):
-        worker = pipeline.get(Worker)
+    async def work(cls, /, bindings: Bindings, limits=[]):
+        worker = bindings.get(Worker)
 
         try:
             await worker.start(limits=limits)
         except Restart as restart:
             print("Performing restart")
-            await Worker.work(pipeline=restart.restart(pipeline), limits=limits)
+            await Worker.work(bindings=restart.restart(bindings), limits=limits)
 
     async def start(self, limits=[]):
         r"""

@@ -21,18 +21,18 @@ dask client and have it run a task from this module::
 
     >>> from flatsurvey.surfaces import Ngon, Surface
     >>> from flatsurvey.jobs import OrbitClosure
-    >>> from flatsurvey.pipeline import Pipeline
+    >>> from flatsurvey.pipeline import Bindings
 
-    >>> survey = Pipeline()
+    >>> survey = Bindings()
     >>> survey.append("goals", OrbitClosure)
 
-    >>> pipeline1 = survey.clone()
-    >>> pipeline1.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
+    >>> bindings1 = survey.clone()
+    >>> bindings1.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
 
-    >>> pipeline2 = survey.clone()
-    >>> pipeline2.define(Surface, Ngon(angles=[1, 1, 2], length="e-antic"))
+    >>> bindings2 = survey.clone()
+    >>> bindings2.define(Surface, Ngon(angles=[1, 1, 2], length="e-antic"))
 
-    >>> tasks = [DaskTask(pipeline=pipeline1), DaskTask(pipeline=pipeline2)]
+    >>> tasks = [DaskTask(bindings=bindings1), DaskTask(bindings=bindings2)]
     >>> tasks
     [DaskTask(…), DaskTask(…)]
 
@@ -125,13 +125,13 @@ class Task:
 
         >>> from flatsurvey.surfaces import Ngon, Surface
         >>> from flatsurvey.jobs import OrbitClosure
-        >>> from flatsurvey.pipeline import Pipeline
+        >>> from flatsurvey.pipeline import Bindings
 
-        >>> pipeline = Pipeline()
-        >>> pipeline.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
-        >>> pipeline.append("goals", OrbitClosure)
+        >>> bindings = Bindings()
+        >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
+        >>> bindings.append("goals", OrbitClosure)
 
-        >>> task = DaskTask(pipeline=pipeline)
+        >>> task = DaskTask(bindings=bindings)
         >>> task
         DaskTask(…)
 
@@ -153,12 +153,12 @@ class Task:
     # below.
     LIMITS = []
 
-    # TODO: We should probably force that the parameter here is "pipeline" since that's the only thing the worker understands. Unless we allow configuration of the Worker.
-    def __init__(self, pipeline, token: SchedulerCancellationToken, repr="DaskTask(…)"):
+    # TODO: We should probably force that the parameter here is "bindings" since that's the only thing the worker understands. Unless we allow configuration of the Worker.
+    def __init__(self, bindings, token: SchedulerCancellationToken, repr="DaskTask(…)"):
         from pickle import dumps
 
         self._repr = repr
-        self._pipeline = dumps(pipeline)
+        self._bindings = dumps(bindings)
         self._token = token.id
 
     def __call__(self):
@@ -173,13 +173,13 @@ class Task:
 
             >>> from flatsurvey.surfaces import Ngon, Surface
             >>> from flatsurvey.jobs import OrbitClosure
-            >>> from flatsurvey.pipeline import Pipeline
+            >>> from flatsurvey.pipeline import Bindings
 
-            >>> pipeline = Pipeline()
-            >>> pipeline.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
-            >>> pipeline.append("goals", OrbitClosure)
+            >>> bindings = Bindings()
+            >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
+            >>> bindings.append("goals", OrbitClosure)
 
-            >>> task = DaskTask(pipeline=pipeline)
+            >>> task = DaskTask(bindings=bindings)
             >>> task()
 
         """
@@ -211,13 +211,13 @@ class Task:
 
             >>> from flatsurvey.surfaces import Ngon, Surface
             >>> from flatsurvey.jobs import OrbitClosure
-            >>> from flatsurvey.pipeline import Pipeline
+            >>> from flatsurvey.pipeline import Bindings
 
-            >>> pipeline = Pipeline()
-            >>> pipeline.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
-            >>> pipeline.append("goals", OrbitClosure)
+            >>> bindings = Bindings()
+            >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
+            >>> bindings.append("goals", OrbitClosure)
 
-            >>> task = DaskTask(pipeline=pipeline)
+            >>> task = DaskTask(bindings=bindings)
             >>> task.run()
             [Ngon([1, 1, 1])] [OrbitClosure] dimension: 2/2
             [Ngon([1, 1, 1])] [OrbitClosure] GL(2,R)-orbit closure of dimension at least 2 in H_1(0) (ambient dimension 2) (dimension: 2) (directions: 1) (directions_with_cylinders: 1) (dense: True)
@@ -226,13 +226,13 @@ class Task:
         from pickle import loads
 
         try:
-            pipeline = loads(self._pipeline)
+            bindings = loads(self._bindings)
         except Exception as e:
             import pickletools
-            raise ValueError(f"Failed to unpickle job: {pickletools.dis(self._pipeline)}") from e
+            raise ValueError(f"Failed to unpickle job: {pickletools.dis(self._bindings)}") from e
             
         import asyncio
 
         from flatsurvey.worker import Worker
 
-        return asyncio.run(Worker.work(pipeline, limits=DaskTask.LIMITS))
+        return asyncio.run(Worker.work(bindings, limits=DaskTask.LIMITS))

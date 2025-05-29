@@ -91,21 +91,21 @@ def process(commands, debug, verbose):
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG if verbose > 1 else logging.INFO)
 
-    from flatsurvey.pipeline import Pipeline
+    from flatsurvey.pipeline import Bindings
 
-    pipeline = Pipeline()
+    bindings = Bindings()
 
     from flatsurvey.reporting.report import Report
-    pipeline.append("reporters", BaseLog())
+    bindings.append("reporters", BaseLog())
 
     for command in commands:
-        command(pipeline)
+        command(bindings)
 
     try:
         import asyncio
 
         from flatsurvey.worker import Worker
-        asyncio.run(Worker.work(pipeline=pipeline, limits=[]))
+        asyncio.run(Worker.work(pipeline=bindings, limits=[]))
     except Exception:
         if debug:
             pdb.post_mortem()

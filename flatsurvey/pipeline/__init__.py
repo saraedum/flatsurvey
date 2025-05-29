@@ -28,7 +28,7 @@ targeted by an edge. (And Processors when they are both.)
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from flatsurvey.pipeline.pipeline import Pipeline
+from flatsurvey.pipeline.bindings import Bindings
 from flatsurvey.pipeline.consumer import Consumer
 from flatsurvey.pipeline.goal import Goal
 from flatsurvey.pipeline.processor import Processor

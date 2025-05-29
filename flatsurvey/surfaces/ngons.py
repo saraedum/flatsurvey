@@ -62,7 +62,7 @@ EXAMPLES::
 import click
 from sage.misc.cachefunc import cached_method
 
-from flatsurvey.pipeline import Pipeline
+from flatsurvey.pipeline import Bindings
 from flatsurvey.surfaces.surface import Surface
 from flatsurvey.ui.group import GroupedCommand
 
@@ -593,9 +593,9 @@ class Ngon(Surface):
         default="e-antic",
         help="how side lengths are chosen [default: e-antic]",
     )
-    @Pipeline.click
-    def click(pipeline: Pipeline, angle, length):
-        pipeline.define(Surface, Ngon(angles=angle, length=length))
+    @Bindings.click
+    def click(bindings: Bindings, angle, length):
+        bindings.define(Surface, Ngon(angles=angle, length=length))
 
 
 class Ngons:
@@ -604,31 +604,31 @@ class Ngons:
 
     EXAMPLES::
 
-        >>> from flatsurvey.pipeline.pipeline import Pipeline
+        >>> from flatsurvey.pipeline.bindings import Bindings
         >>> # TODO: Call Ngons() directly instead of going through click.
-        >>> pipeline = Pipeline()
-        >>> Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=6, literature='include', family=None, filter=None)(pipeline)
-        >>> list(pipeline.get("surfaces")[0])
+        >>> bindings = Bindings()
+        >>> Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=6, literature='include', family=None, filter=None)(bindings)
+        >>> list(bindings.get("surfaces")[0])
         [Ngon([1, 1, 1]), Ngon([1, 1, 2]), Ngon([1, 1, 3]), Ngon([1, 2, 2]), Ngon([1, 1, 4]), Ngon([1, 2, 3])]
 
-        >>> pipeline = Pipeline()
-        >>> Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=6, literature='include', family=None, filter=None)(pipeline)
-        >>> list(pipeline.get("surfaces")[0])
+        >>> bindings = Bindings()
+        >>> Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=6, literature='include', family=None, filter=None)(bindings)
+        >>> list(bindings.get("surfaces")[0])
         [Ngon([1, 1, 1]), Ngon([1, 1, 2]), Ngon([1, 1, 3]), Ngon([1, 2, 2]), Ngon([1, 1, 4]), Ngon([1, 2, 3])]
 
-        >>> pipeline = Pipeline()
-        >>> Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=3, literature='include', family=None, filter='lambda a, b, c: (a + b + c) % 2 == 0')(pipeline)
-        >>> list(pipeline.get("surfaces")[0])
+        >>> bindings = Bindings()
+        >>> Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=3, literature='include', family=None, filter='lambda a, b, c: (a + b + c) % 2 == 0')(bindings)
+        >>> list(bindings.get("surfaces")[0])
         [Ngon([1, 1, 2]), Ngon([1, 1, 4]), Ngon([1, 2, 3])]
 
-        >>> pipeline = Pipeline()
-        >>> Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=3, literature='include', family='(1, 1, n)', filter=None)(pipeline)
-        >>> list(pipeline.get("surfaces")[0])
+        >>> bindings = Bindings()
+        >>> Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=3, literature='include', family='(1, 1, n)', filter=None)(bindings)
+        >>> list(bindings.get("surfaces")[0])
         [Ngon([1, 1, 1]), Ngon([1, 1, 2]), Ngon([1, 1, 3])]
 
-        >>> pipeline = Pipeline()
-        >>> Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=3, literature='include', family='[(1, 1, n), (1, 2, 12*n)]', filter=None)(pipeline)
-        >>> list(pipeline.get("surfaces")[0])
+        >>> bindings = Bindings()
+        >>> Ngons.click.callback(3, 'e-antic', min=0, limit=None, count=3, literature='include', family='[(1, 1, n), (1, 2, 12*n)]', filter=None)(bindings)
+        >>> list(bindings.get("surfaces")[0])
         [Ngon([1, 1, 1]), Ngon([1, 2, 12]), Ngon([1, 1, 2])]
 
     """
@@ -759,9 +759,9 @@ class Ngons:
         default=None,
         help="only produce the n-gons which satisfy this lambda expression, e.g., 'lambda a, b, c: (a + b + c) % 2 == 0'",
     )
-    @Pipeline.click
-    def click(pipeline: Pipeline, vertices, length, min, limit, count, literature, family, filter):
-        pipeline.append("surfaces", Ngons(vertices=vertices, length=length, min=min, limit=limit, count=count, literature=literature, family=family, filter=filter))
+    @Bindings.click
+    def click(bindings: Bindings, vertices, length, min, limit, count, literature, family, filter):
+        bindings.append("surfaces", Ngons(vertices=vertices, length=length, min=min, limit=limit, count=count, literature=literature, family=family, filter=filter))
 
 
 def rotations(partition):

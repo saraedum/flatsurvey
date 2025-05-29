@@ -19,18 +19,18 @@
 
 from abc import ABC, abstractmethod
 
-from flatsurvey.pipeline import Pipeline
+from flatsurvey.pipeline import Bindings
 
 
 class Restart(Exception, ABC):
     r"""
     An exception that signals that the worker should restart on a modified
-    pipeline.
+    bindings.
     """
     @abstractmethod
-    def restart(self, pipeline: Pipeline) -> Pipeline:
+    def restart(self, bindings: Bindings) -> Bindings:
         r"""
-        Return a modified pipeline that the worker should work on instead after
+        Return a modified bindings that the worker should work on instead after
         the restart.
         """
         raise NotImplementedError

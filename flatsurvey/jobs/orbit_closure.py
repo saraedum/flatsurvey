@@ -54,8 +54,7 @@ EXAMPLES::
 import click
 
 from flatsurvey.ui import Command
-from flatsurvey.pipeline import Goal
-from flatsurvey.pipeline import Pipeline
+from flatsurvey.pipeline import Goal, Bindings
 from flatsurvey.ui.group import GroupedCommand
 from flatsurvey.cache import Cache
 from flatsurvey.surfaces import Surface
@@ -128,17 +127,17 @@ class OrbitClosure(Goal, Command):
         self._progress = ProgressReporting(self._report, self)
 
     @staticmethod
-    def create(pipeline):
+    def create(bindings):
         return OrbitClosure(
-            surface=pipeline.get(Surface),
-            report=pipeline.get(Report),
-            flow_decompositions=pipeline.get(FlowDecompositions),
-            saddle_connections=pipeline.get(SaddleConnections),
-            cache=pipeline.get(Cache),
-            stale_limit=pipeline.get("stale_limit", lambda: OrbitClosure.DEFAULT_STALE_LIMIT, scope=OrbitClosure),
-            expansions_limit=pipeline.get("expansions_limit", lambda: OrbitClosure.DEFAULT_EXPANSIONS_LIMIT, scope=OrbitClosure),
-            deform=pipeline.get("deform", lambda: OrbitClosure.DEFAULT_DEFORM, scope=OrbitClosure),
-            cache_only=pipeline.get("cache_only", lambda: Goal.DEFAULT_CACHE_ONLY, scope=OrbitClosure),
+            surface=bindings.get(Surface),
+            report=bindings.get(Report),
+            flow_decompositions=bindings.get(FlowDecompositions),
+            saddle_connections=bindings.get(SaddleConnections),
+            cache=bindings.get(Cache),
+            stale_limit=bindings.get("stale_limit", lambda: OrbitClosure.DEFAULT_STALE_LIMIT, scope=OrbitClosure),
+            expansions_limit=bindings.get("expansions_limit", lambda: OrbitClosure.DEFAULT_EXPANSIONS_LIMIT, scope=OrbitClosure),
+            deform=bindings.get("deform", lambda: OrbitClosure.DEFAULT_DEFORM, scope=OrbitClosure),
+            cache_only=bindings.get("cache_only", lambda: Goal.DEFAULT_CACHE_ONLY, scope=OrbitClosure),
         )
 
     async def consume_cache(self):
@@ -241,10 +240,10 @@ class OrbitClosure(Goal, Command):
         help="When set, we deform the input surface as soon as we found a third dimension in the tangent space and restart. This is often beneficial if the input surface has lots of symmetries and also when the Boshernitzan criterion can rarely be applied due to SAF=0.",
     )
     @Goal._cache_only_option
-    @Pipeline.click
-    def click(pipeline: Pipeline, stale_limit, expansions_limit, deform, cache_only):
-        pipeline.append("goals", OrbitClosure)
-        pipeline.define(
+    @Bindings.click
+    def click(bindings: Bindings, stale_limit, expansions_limit, deform, cache_only):
+        bindings.append("goals", OrbitClosure)
+        bindings.define(
             scope=OrbitClosure,
             stale_limit=stale_limit,
             expansions_limit=expansions_limit,

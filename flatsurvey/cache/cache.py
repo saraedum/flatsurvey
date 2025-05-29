@@ -44,7 +44,7 @@ import click
 
 from flatsurvey.cache.pickles import Pickles
 from flatsurvey.ui import Command
-from flatsurvey.pipeline import Pipeline
+from flatsurvey.pipeline import Bindings
 from flatsurvey.ui import GroupedCommand
 
 
@@ -104,10 +104,10 @@ class Cache(Command):
             return {}
 
     @staticmethod
-    def create(pipeline: Pipeline):
+    def create(bindings: Bindings):
         return Cache(
-            cache=pipeline.get("cache", default=lambda: {}, scope=Cache),
-            pickles=pipeline.get("pickles", default=lambda: None, scope=Cache),
+            cache=bindings.get("cache", default=lambda: {}, scope=Cache),
+            pickles=bindings.get("pickles", default=lambda: None, scope=Cache),
         )
 
     @staticmethod
@@ -132,8 +132,8 @@ class Cache(Command):
         type=str,
         help="directory of pickle files to resolve references in JSON files",
     )
-    @Pipeline.click
-    def click(pipeline: Pipeline, json, pickles):
+    @Bindings.click
+    def click(bindings: Bindings, json, pickles):
         cache = {}
 
         def load(file):
@@ -157,7 +157,7 @@ class Cache(Command):
             else:
                 load(open(j, "rb"))
 
-        pipeline.define(
+        bindings.define(
             scope=Cache,
             cache=cache,
             pickles=pickles)

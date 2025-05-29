@@ -57,17 +57,17 @@ class Deformation(Surface):
         def __init__(self, deformed, old):
             self._deformation = Deformation(deformed=deformed, old=old)
 
-        def restart(self, pipeline):
+        def restart(self, bindings):
             # We keep the reporting so that any data is written to the log
             # files for the undeformed surface.
             from flatsurvey.reporting import Report
-            report = pipeline.get(Report)
+            report = bindings.get(Report)
             report = report.deform(self._deformation)
 
-            pipeline = pipeline.clone()
-            pipeline.forget(Report)
-            pipeline.define(Report, report)
-            pipeline.forget(Surface)
-            pipeline.define(Surface, self._deformation)
+            bindings = bindings.clone()
+            bindings.forget(Report)
+            bindings.define(Report, report)
+            bindings.forget(Surface)
+            bindings.define(Surface, self._deformation)
 
-            return pipeline
+            return bindings

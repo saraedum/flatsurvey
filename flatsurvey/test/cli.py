@@ -24,6 +24,11 @@ scenarios so we wrap it in more convenient ways here.
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
+import click
+from click.testing import CliRunner
+
+from flatsurvey.pipeline import Bindings
+
 
 def invoke(command, *args):
     r"""
@@ -43,9 +48,28 @@ def invoke(command, *args):
     Exception: expected error
 
     """
-    from click.testing import CliRunner
-
     invocation = CliRunner().invoke(command, args, catch_exceptions=False)
+    output = invocation.output.strip()
+    if output:
+        print(output)
+
+
+def invoke_subcommand(command, *args, bindings: Bindings | None=None):
+    if bindings is None:
+        bindings = Bindings()
+
+    @click.group(chain=True)
+    def doctest():
+        pass
+
+    doctest.add_command(command)
+
+    @doctest.result_callback()
+    def process(commands):
+        for command in commands:
+            command(bindings)
+
+    invocation = CliRunner().invoke(doctest, (command.name,) + args, catch_exceptions=False)
     output = invocation.output.strip()
     if output:
         print(output)

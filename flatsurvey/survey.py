@@ -167,12 +167,12 @@ def process(
         logger.setLevel(logging.DEBUG if verbose > 1 else logging.INFO)
 
     try:
-        from flatsurvey.pipeline import Pipeline
+        from flatsurvey.pipeline import Bindings
 
-        pipeline = Pipeline()
+        bindings = Bindings()
 
         for subcommand in subcommands:
-            subcommand(pipeline)
+            subcommand(bindings)
 
         import asyncio
         import sys
@@ -182,7 +182,7 @@ def process(
         sys.exit(
             asyncio.new_event_loop().run_until_complete(
                 Scheduler(
-                    survey_pipeline=pipeline,
+                    survey_bindings=bindings,
                     queue_limit=queue,
                     scheduler_json=scheduler,
                 ).start()

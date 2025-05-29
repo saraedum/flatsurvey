@@ -53,10 +53,10 @@ class SaddleConnectionOrientations(Processor, Command):
         self._seen = None
 
     @staticmethod
-    def create(pipeline):
+    def create(bindings):
         return SaddleConnectionOrientations(
-            saddle_connections=pipeline.get(SaddleConnections),
-            report=pipeline.get(Report)
+            saddle_connections=bindings.get(SaddleConnections),
+            report=bindings.get(Report)
         )
 
     async def _consume(self, connection, cost):
