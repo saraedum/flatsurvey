@@ -24,7 +24,6 @@ import click
 
 from flatsurvey.ui import Command
 from flatsurvey.pipeline import Goal, Bindings
-from flatsurvey.reporting import Report
 
 
 class Join(Goal, Command):
@@ -53,6 +52,8 @@ class Join(Goal, Command):
 
     @staticmethod
     def create(bindings: Bindings):
+        from flatsurvey.reporting import Report
+
         jsons = bindings.get("jsons", scope=Join)
         prefix = bindings.get("prefix", scope=Join)
         report = bindings.get(Report)

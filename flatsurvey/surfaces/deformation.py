@@ -44,6 +44,8 @@ EXAMPLES::
 
 from flatsurvey.restart import Restart
 from flatsurvey.surfaces.surface import Surface
+from flatsurvey.cache import Cache
+from flatsurvey.pipeline import Bindings
 
 
 class Deformation(Surface):
@@ -116,16 +118,32 @@ class Deformation(Surface):
             and self._old == other._old
         )
 
-    def cache_predicate(self, exact, cache=None):
+    def cache_predicate(self, exact: bool, cache: Cache | None=None):
+        r"""
+        Return a predicate that can be used to filter cache rows for this surface.
+
+        Currently, we do not want a deformation to use caches at all, so this
+        is just the constant ``False``. We assume that this is a fairly random
+        deformation that is not going to be present in the cache anyway.
+        """
         return lambda result: False
 
     class Restart(Restart):
+        r"""
+        An exception that can be raised anywhere in the worker to restart work
+        on a surface with a ``deformed`` version.
+        """
         def __init__(self, deformed, old):
             self._deformation = Deformation(deformed=deformed, old=old)
 
-        def restart(self, bindings):
-            # We keep the reporting so that any data is written to the log
-            # files for the undeformed surface.
+        def restart(self, bindings: Bindings):
+            r"""
+            Return a modification of the bindings that define the survey of the
+            ``old`` surface to run on the ``deformed`` surface instead.
+            """
+            # We mangle the report and inject it back into the bindings so that
+            # the reporting has a chance to write any results to the files for
+            # the unmodified surface.
             from flatsurvey.reporting import Report
             report = bindings.get(Report)
             report = report.deform(self._deformation)
@@ -133,6 +151,7 @@ class Deformation(Surface):
             bindings = bindings.clone()
             bindings.forget(Report)
             bindings.define(Report, report)
+
             bindings.forget(Surface)
             bindings.define(Surface, self._deformation)
 

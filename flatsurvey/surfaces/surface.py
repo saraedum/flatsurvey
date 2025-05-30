@@ -29,7 +29,10 @@ EXAMPLES::
 
 from abc import abstractmethod
 
+from typing import Callable, Any
+
 from sage.misc.cachefunc import cached_method
+from flatsurvey.cache import Cache
 
 
 class Surface:
@@ -47,9 +50,10 @@ class Surface:
     def __init__(self, eliminate_marked_points=True):
         self._eliminate_marked_points = eliminate_marked_points
 
-    def reference(self):
+    def reference(self) -> "Surface | str | None":
         r"""
-        Return a literature reference where this surface has been studied, a practically identical (but simpler) surface, or ``None``.
+        Return a literature reference where this surface has been studied, a
+        practically identical (but simpler) surface, or ``None``.
 
         EXAMPLES::
 
@@ -156,7 +160,8 @@ class Surface:
 
         return re.sub("[^\\w]+", "-", repr(self)).strip("-").lower()
 
-    def cache_predicate(self, exact, cache=None):
+    @abstractmethod
+    def cache_predicate(self, exact: bool, cache: Cache | None=None) -> Callable[[Any], bool]:
         r"""
         Return a predicate that can be used to filter cache rows for this surface.
 
