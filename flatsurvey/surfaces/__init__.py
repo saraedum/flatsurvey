@@ -29,10 +29,9 @@ line interface that is used to generate them.
 
 from flatsurvey.surfaces.deformation import Deformation
 from flatsurvey.surfaces.ngons import Ngon, Ngons
-from flatsurvey.surfaces.pickle import pickle
 from flatsurvey.surfaces.surface import Surface
 from flatsurvey.surfaces.thurston_veech import ThurstonVeech, ThurstonVeechs
 
 generators = [Ngons.click, ThurstonVeechs.click]
 
-commands = [Ngon.click, ThurstonVeech.click, pickle]
+commands = [Ngon.click, ThurstonVeech.click]
