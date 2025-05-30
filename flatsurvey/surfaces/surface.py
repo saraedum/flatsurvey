@@ -156,6 +156,50 @@ class Surface:
 
         return re.sub("[^\\w]+", "-", repr(self)).strip("-").lower()
 
+    def cache_predicate(self, exact, cache=None):
+        r"""
+        Return a predicate that can be used to filter cache rows for this surface.
+
+        Each result stored in the cache is going to be filtered through this
+        predicate to determine whether the result actually applies to this
+        surface.
+
+        INPUT:
+
+        - ``exact`` -- whether to only match results that have been obtained
+          for the exact same surface, e.g., when given two polygon unfolding,
+          whether the exact side lengths must match (or just the angles
+          involved.)
+
+        - ``cache`` -- the cache for which this predicate is going to be used
+          (or ``None`` to obtain a generic predicate.)
+
+        EXAMPLES::
+            
+            >>> from flatsurvey.surfaces import Ngon
+            >>> surface = Ngon((1, 1, 1))
+
+            >>> class CacheSurface:
+            ...     def __init__(self, surface):
+            ...         self.type = type(surface).__name__
+            ...         self.angles = surface.angles
+
+            >>> class CacheRow:
+            ...     def __init__(self, surface):
+            ...         self.surface = CacheSurface(surface)
+
+            >>> predicate = surface.cache_predicate(exact=True)
+            >>> predicate(CacheRow(surface))
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: exact filtering is not supported yet
+
+            >>> predicate = surface.cache_predicate(exact=False)
+            >>> predicate(CacheRow(surface))
+            True
+
+        """
+
     def __repr__(self):
         raise NotImplementedError(
             "to be able to log results for surfaces we need a printable representation"

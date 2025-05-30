@@ -1,3 +1,28 @@
+r"""
+Deformations of surfaces
+
+During an orbit closure search, it might be necessary to replace a given
+surface with a deformation in the orbit closure to be able to determine the
+full dimension of the orbit closure of the original surface.
+
+EXAMPLES::
+
+    >>> from flatsurvey.surfaces import Ngon, Deformation
+    >>> from flatsurf.geometry.pyflatsurf_conversion import from_pyflatsurf
+    >>> from flatsurf import GL2ROrbitClosure
+
+    >>> S = Ngon((1, 1, 1))
+
+    >>> O = GL2ROrbitClosure(S.surface())
+
+    >>> delta = [O.V2(v, 0).vector for v in O.lift(O.tangent_space_basis()[0])]
+    >>> deformation = from_pyflatsurf((O._surface + delta).surface())
+
+    >>> T = Deformation(deformation, S)
+    >>> T
+    Deformation of Ngon([1, 1, 1])
+
+"""
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -23,6 +48,7 @@ from flatsurvey.surfaces.surface import Surface
 
 class Deformation(Surface):
     def __init__(self, deformed, old):
+        super().__init__(old._eliminate_marked_points)
         self._deformed = deformed
         self._old = old
 
@@ -30,14 +56,54 @@ class Deformation(Surface):
         return f"Deformation of {self._old}"
 
     @property
-    def _eliminate_marked_points(self):
-        return self._old._eliminate_marked_points
-
-    @property
     def orbit_closure_dimension_upper_bound(self):
+        r"""
+        Return an upper bound for the dimension of the orbit closure.
+
+        This is the same as the upper bound for the surface before deformation.
+
+        EXAMPLES::
+
+            >>> from flatsurvey.surfaces import Ngon, Deformation
+            >>> from flatsurf.geometry.pyflatsurf_conversion import from_pyflatsurf
+            >>> from flatsurf import GL2ROrbitClosure
+
+            >>> S = Ngon((1, 1, 1))
+
+            >>> O = GL2ROrbitClosure(S.surface())
+
+            >>> delta = [O.V2(v, 0).vector for v in O.lift(O.tangent_space_basis()[0])]
+            >>> deformation = from_pyflatsurf((O._surface + delta).surface())
+
+            >>> T = Deformation(deformation, S)
+            >>> T.orbit_closure_dimension_upper_bound
+            2
+
+        """
         return self._old.orbit_closure_dimension_upper_bound
 
     def _surface(self):
+        r"""
+        Return the underlying sage-flatsurf surface.
+
+        EXAMPLES::
+
+            >>> from flatsurvey.surfaces import Ngon, Deformation
+            >>> from flatsurf.geometry.pyflatsurf_conversion import from_pyflatsurf
+            >>> from flatsurf import GL2ROrbitClosure
+
+            >>> S = Ngon((1, 1, 1))
+
+            >>> O = GL2ROrbitClosure(S.surface())
+
+            >>> delta = [O.V2(v, 0).vector for v in O.lift(O.tangent_space_basis()[0])]
+            >>> deformation = from_pyflatsurf((O._surface + delta).surface())
+
+            >>> T = Deformation(deformation, S)
+            >>> T.surface()
+            Translation Surface in H_1(0) built from 2 isosceles triangles
+
+        """
         return self._deformed
 
     def __hash__(self):
