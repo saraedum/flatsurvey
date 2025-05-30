@@ -57,25 +57,17 @@ class SaddleConnections(Producer, Command):
         self._bound = bound
 
         self._connections = None
-
-        from flatsurvey.reporting.report import ProgressReporting
-
-        self._progress = ProgressReporting(
-            self._report,
-            self,
-            defaults=dict(
-                count=0, what="connections", activity="enumerating saddle connections"
-            ),
-        )
+        self._count = 0
 
     @staticmethod
     def create(bindings):
-        return SaddleConnections(
-            surface=bindings.get(Surface),
-            report=bindings.get(Report),
-            limit=bindings.get("limit", default=lambda: SaddleConnections.DEFAULT_LIMIT, scope=SaddleConnections),
-            bound=bindings.get("bound", default=lambda: SaddleConnections.DEFAULT_BOUND, scope=SaddleConnections),
-        )
+        with bindings.scope(SaddleConnections) as scoped:
+            return SaddleConnections(
+                surface=scoped.get(Surface),
+                report=scoped.get(Report),
+                limit=scoped.get("limit", default=lambda: SaddleConnections.DEFAULT_LIMIT),
+                bound=scoped.get("bound", default=lambda: SaddleConnections.DEFAULT_BOUND),
+            )
 
     def _by_length(self):
         self.__connections = (
@@ -112,10 +104,9 @@ class SaddleConnections(Producer, Command):
         try:
             self._current = next(self._connections)
 
-            self._progress.progress(advance=1)
+            self._report.progress(source=self, what="connections", count=self._count)
             return not Producer.EXHAUSTED
         except StopIteration:
-            self._progress.hide()
             return Producer.EXHAUSTED
 
     @classmethod

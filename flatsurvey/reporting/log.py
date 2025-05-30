@@ -4,7 +4,7 @@ Writes progress and results as an unstructured log file.
 EXAMPLES::
 
     >>> from flatsurvey.test.cli import invoke
-    >>> from flatsurvey.worker.worker import worker
+    >>> from flatsurvey.worker import worker
     >>> invoke(worker, "log", "--help") # doctest: +NORMALIZE_WHITESPACE
     Usage: worker log [OPTIONS]
       Writes progress and results as an unstructured log file.
@@ -12,6 +12,18 @@ EXAMPLES::
       --output FILE      [default: stdout]
       --prefix DIRECTORY
       --help             Show this message and exit.
+
+::
+
+    >>> from flatsurvey.cache.maintenance import cli as maintenance
+    >>> invoke(maintenance, "log", "--help") # doctest: +NORMALIZE_WHITESPACE
+    Usage: cli log [OPTIONS]
+      Writes progress and results as an unstructured log file.
+      Unlike :class:`Log` this is a generic text log writer that can be used outside
+      surveys (e.g. by maintenance tasks.)
+    Options:
+      --output FILE  [default: stdout]
+      --help         Show this message and exit.
 
 """
 # *********************************************************************
@@ -36,25 +48,115 @@ EXAMPLES::
 import click
 
 from flatsurvey.ui import Command
-from flatsurvey.pipeline import Pipeline
+from flatsurvey.pipeline import Bindings
 from flatsurvey.reporting.reporter import Reporter
 from flatsurvey.ui.group import GroupedCommand
 from flatsurvey.surfaces import Surface
 
 
-class BaseLog(Reporter, Command):
-    def __init__(self, stream=None):
+class GenericLog(Reporter, Command):
+    r"""
+    Writes progress and results as an unstructured log file.
+
+    Unlike :class:`Log` this is a generic text log writer that can be used
+    outside surveys (e.g. by maintenance tasks.)
+
+    EXAMPLES::
+
+        >>> from flatsurvey.reporting.log import GenericLog
+        >>> GenericLog()
+        log
+
+    """
+    def __init__(self, output=None, stream=None):
+        super().__init__()
+
+        if output is not None:
+            if stream is not None:
+                raise ValueError("at most one of stream or output must be given")
+
+            stream = open(output, "w")
+
         if stream is None:
             import sys
             stream = sys.stdout
 
         self._stream = stream
 
+    @staticmethod
+    @click.command(
+        name="log",
+        cls=GroupedCommand,
+        group="Reports",
+        help=__doc__.split("EXAMPLES")[0],  # type: ignore
+    )
+    @click.option(
+        "--output",
+        type=click.Path(file_okay=True, dir_okay=False, allow_dash=True),
+        default=None,
+        help="[default: stdout]",
+    )
+    @Bindings.click
+    def click(bindings: Bindings, output):
+        r"""
+        Parse command line options into ``bindings``.
+
+        TESTS::
+
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> invoke_subcommand(GenericLog.click)
+
+        """
+        with bindings.scope(GenericLog) as scoped:
+            scoped.define(output=output)
+
+    @staticmethod
+    def create(bindings: Bindings):
+        r"""
+        Create an instance of this class from the ``bindings`` (that have been
+        typically set by :meth:`click`.)
+
+        TESTS::
+
+            >>> from flatsurvey.pipeline import Bindings
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> bindings = Bindings()
+            >>> invoke_subcommand(GenericLog.click, bindings=bindings)
+            >>> GenericLog.create(bindings)
+            log
+
+        """
+        with bindings.scope(GenericLog) as scoped:
+            return GenericLog(
+                output=scoped.get("output", lambda: None))
+
     def _log(self, message):
+        r"""
+        Writes a ``message`` to the underlying log stream.
+
+        TESTS::
+
+            >>> from flatsurvey.reporting.log import GenericLog
+            >>> log = GenericLog()
+            >>> log._log("message")
+            message
+
+        """
         self._stream.write("%s\n" % (message,))
         self._stream.flush()
 
     def _log_prefix(self, source):
+        r"""
+        Return the prefix to use for each log message coming from ``source``.
+
+        TESTS::
+
+            >>> from flatsurvey.reporting.log import GenericLog
+            >>> log = GenericLog()
+            >>> log._log_prefix(log)
+            '[GenericLog]'
+
+        """
         return f"[{type(source).__name__}]"
 
     def log(self, source, message, **kwargs):
@@ -105,12 +207,9 @@ class BaseLog(Reporter, Command):
         self,
         source,
         count=None,
-        advance=None,
         what=None,
         total=None,
         message=None,
-        parent=None,
-        activity=None,
     ):
         r"""
         Write a progress update to the log.
@@ -127,9 +226,6 @@ class BaseLog(Reporter, Command):
             [Ngon([1, 1, 1])] [Ngon] dimension: 10/?
 
         """
-        if advance is not None:
-            return
-
         if count is not None and what is not None:
             line = f"{what}: {count}/{total or '?'}"
             if message:
@@ -142,8 +238,7 @@ class BaseLog(Reporter, Command):
         self.log(source, line)
 
 
-class Log(BaseLog):
-    # TODO: Extract a non-surface log as a base class and use it for the maintenance goals.
+class Log(GenericLog):
     r"""
     Writes progress and results as an unstructured log file.
 
@@ -177,9 +272,44 @@ class Log(BaseLog):
         super().__init__(stream=stream)
 
     def deform(self, deformation):
+        r"""
+        Return a new logger that continues the previous logger's job after the
+        underlying surface has been replaced with a ``deformation``.
+
+        INPUT:
+
+        - ``deformation`` -- a :class:`Surface`
+
+        EXAMPLES::
+
+            >>> from flatsurvey.surfaces import Ngon
+            >>> surface = Ngon((1, 1, 1))
+
+            >>> log = Log(surface)
+            >>> log.log(source=surface, message="Hello World")
+            [Ngon([1, 1, 1])] [Ngon] Hello World
+
+            >>> log = log.deform(Ngon((1, 1, 2)))
+            >>> log.log(source=surface, message="Hello World")
+            [Ngon([1, 1, 2])] [Ngon] Hello World
+
+        """
         return Log(surface=deformation, stream=self._stream)
 
     def _log_prefix(self, source):
+        r"""
+        Return the prefix to use for each log message coming from ``source``.
+
+        TESTS::
+
+            >>> from flatsurvey.surfaces import Ngon
+            >>> surface = Ngon((1, 1, 1))
+
+            >>> log = Log(surface)
+            >>> log._log_prefix(log)
+            '[Ngon([1, 1, 1])] [Log]'
+
+        """
         return f"[{self._surface}] [{type(source).__name__}]"
 
     @staticmethod
@@ -187,7 +317,7 @@ class Log(BaseLog):
         name="log",
         cls=GroupedCommand,
         group="Reports",
-        help=__doc__.split("EXAMPLES")[0],
+        help=__doc__.split("EXAMPLES")[0],  # type: ignore
     )
     @click.option(
         "--output",
@@ -200,19 +330,51 @@ class Log(BaseLog):
         type=click.Path(exists=True, file_okay=False, dir_okay=True, allow_dash=False),
         default=None,
     )
-    @Pipeline.click
-    def click(pipeline: Pipeline, output, prefix):
-        pipeline.append("reporters", Log)
-        pipeline.define(
+    @Bindings.click
+    def click(bindings: Bindings, output, prefix):
+        r"""
+        Parse command line options into ``bindings``.
+
+        TESTS::
+
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> invoke_subcommand(Log.click)
+
+        """
+        bindings.append("reporters", Log)
+        bindings.define(
             scope=Log,
             output=output,
             prefix=prefix)
 
     @staticmethod
-    def create(pipeline: Pipeline):
-        with pipeline.scope(Log) as get:
+    def create(bindings: Bindings):
+        r"""
+        Create an instance of this class from the ``bindings`` (that have been
+        typically set by :meth:`click`.)
+
+        TESTS::
+
+            >>> from flatsurvey.pipeline import Bindings
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> from flatsurvey.surfaces import Ngon, Surface
+            >>> bindings = Bindings()
+            >>> invoke_subcommand(Log.click, bindings=bindings)
+            >>> bindings.define(Surface, Ngon((1, 1, 1)))
+            >>> Log.create(bindings)
+            log
+
+        """
+        with bindings.scope(Log) as scoped:
             return Log(
-                surface=get(Surface),
-                stream=get("stream", None),
-                output=get("output", None),
-                prefix=get("prefix", None))
+                surface=scoped.get(Surface),
+                stream=scoped.get("stream", lambda: None),
+                output=scoped.get("output", lambda: None),
+                prefix=scoped.get("prefix", lambda: None))
+
+
+__test__ = {
+    # doctests of .click do not run unless explicitly mentioned here due to the click decorator.
+    "GenericLog.click": GenericLog.click.__doc__,
+    "Log.click": Log.click.__doc__,
+}

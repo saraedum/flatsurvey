@@ -4,7 +4,7 @@ Writes results as JSON files.
 EXAMPLES::
 
     >>> from flatsurvey.test.cli import invoke
-    >>> from flatsurvey.worker.worker import worker
+    >>> from flatsurvey.worker import worker
     >>> invoke(worker, "json", "--help") # doctest: +NORMALIZE_WHITESPACE
     Usage: worker json [OPTIONS]
       Writes results in JSON format.
@@ -37,7 +37,7 @@ EXAMPLES::
 import click
 
 from flatsurvey.ui import Command
-from flatsurvey.pipeline import Pipeline
+from flatsurvey.pipeline import Bindings
 from flatsurvey.reporting.reporter import Reporter
 from flatsurvey.ui.group import GroupedCommand
 from flatsurvey.surfaces import Surface
@@ -49,7 +49,6 @@ class Json(Reporter, Command):
 
     EXAMPLES::
 
-        >>> from flatsurvey.reporting.json import Json
         >>> from flatsurvey.surfaces import Ngon
         >>> surface = Ngon((1, 1, 1))
         >>> Json(surface)
@@ -73,14 +72,14 @@ class Json(Reporter, Command):
         self._output = output
         self._pickles = pickles
 
-        self._data = {"surface": surface}
+        self._data: dict = {"surface": surface}
 
     @staticmethod
     @click.command(
         name="json",
         cls=GroupedCommand,
         group="Reports",
-        help=__doc__.split("EXAMPLES")[0],
+        help=__doc__.split("EXAMPLES")[0],  # type: ignore
     )
     @click.option(
         "--output",
@@ -94,23 +93,71 @@ class Json(Reporter, Command):
         default=None,
     )
     @click.option("--pickles/--no-pickles", default=False)
-    @Pipeline.click
-    def click(pipeline: Pipeline, output, prefix, pickles):
-        pipeline.append("reporters", Json)
-        pipeline.define(
-            scope=Json,
-            output=output,
-            prefix=prefix,
-            pickles=pickles)
+    @Bindings.click
+    def click(bindings: Bindings, output, prefix, pickles):
+        r"""
+        Parse command line options into ``bindings``.
+
+        TESTS::
+
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> invoke_subcommand(Json.click)
+
+        """
+        bindings.append("reporters", Json)
+        with bindings.scope(Json) as scoped:
+            scoped.define(output=output, prefix=prefix, pickles=pickles)
 
     @staticmethod
-    def create(pipeline):
-        surface = pipeline.get(Surface)
-        output = pipeline.get("output", scope=Json)
-        prefix = pipeline.get("prefix", scope=Json)
-        pickles = pipeline.get("pickles", scope=Json)
+    def create(bindings):
+        r"""
+        Create a JSON reporter from the configuration in the ``bindings``.
+
+        TESTS::
+
+            >>> from flatsurvey.pipeline import Bindings
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> from flatsurvey.surfaces import Ngon, Surface
+            >>> bindings = Bindings()
+            >>> invoke_subcommand(Json.click, bindings=bindings)
+            >>> bindings.define(Surface, Ngon((1, 1, 1)))
+            >>> Json.create(bindings)
+            json
+
+        """
+        with bindings.scope(Json) as scoped:
+            surface = scoped.get(Surface)
+            output = scoped.get("output")
+            prefix = scoped.get("prefix")
+            pickles = scoped.get("pickles")
 
         return Json(surface, output=output, prefix=prefix, pickles=pickles)
+
+    def deform(self, deformation):
+        r"""
+        Return a new logger that continues the previous logger's job after the
+        underlying surface has been replaced with a ``deformation``.
+
+        INPUT:
+
+        - ``deformation`` -- a :class:`Surface`
+
+        EXAMPLES:
+
+        We want to write data about a deformed surface to the original
+        surface's file so we do not change anything here. (The surface is only
+        used to determine the file name, it's not written anywhere in the JSON
+        file automatically.)::
+
+            >>> from flatsurvey.surfaces import Ngon
+            >>> surface = Ngon((1, 1, 1))
+
+            >>> json = Json(surface)
+            >>> json.deform(Ngon((1, 1, 2))) is json
+            True
+
+        """
+        return self
 
     async def result(self, source, result, **kwargs):
         r"""
@@ -118,13 +165,14 @@ class Json(Reporter, Command):
 
         EXAMPLES::
 
-            >>> from flatsurvey.reporting.json import Json
             >>> from flatsurvey.surfaces import Ngon
             >>> surface = Ngon((1, 1, 1))
             >>> json = Json(surface)
 
             >>> import asyncio
             >>> asyncio.run(json.result(source=None, result=True))
+            >>> json.flush()
+            {"surface": {"angles": [1, 1, 1], "type": "Ngon", "pickle": "dropped"}, "None": [{"timestamp": "...", "value": true}]}
 
         """
         from datetime import datetime, timezone
@@ -144,7 +192,6 @@ class Json(Reporter, Command):
 
         EXAMPLES::
 
-            >>> from flatsurvey.reporting.json import Json
             >>> from flatsurvey.surfaces import Ngon
             >>> surface = Ngon((1, 1, 1))
             >>> json = Json(surface, pickles=True)
@@ -180,7 +227,6 @@ class Json(Reporter, Command):
         Anything that is unknown is rendered as its pickle, so we can let any
         object that we don't understand through without changes::
 
-            >>> from flatsurvey.reporting.json import Json
             >>> from flatsurvey.surfaces import Ngon
             >>> surface = Ngon((1, 1, 1))
             >>> json = Json(surface)
@@ -200,7 +246,6 @@ class Json(Reporter, Command):
 
         EXAMPLES::
 
-            >>> from flatsurvey.reporting.json import Json
             >>> from flatsurvey.surfaces import Ngon
             >>> surface = Ngon((1, 1, 1))
             >>> json = Json(surface)
@@ -223,3 +268,9 @@ class Json(Reporter, Command):
         ) as stream:
             stream.write(json.dumps(self._data, default=self._serialize_to_pickle))
             stream.flush()
+
+
+__test__ = {
+    # doctests of Json.click do not run unless explicitly mentioned here due to the click decorator.
+    "Json.click": Json.click.__doc__,
+}

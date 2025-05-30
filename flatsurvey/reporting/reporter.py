@@ -88,12 +88,9 @@ class Reporter:
         self,
         source,
         count=None,
-        advance=None,
         what=None,
         total=None,
         message=None,
-        parent=None,
-        activity=None,
     ):
         r"""
         Report that ``source`` has made some progress.

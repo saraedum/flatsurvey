@@ -43,7 +43,7 @@ import time
 import click
 
 from flatsurvey.ui import Command
-from flatsurvey.pipeline import Processor
+from flatsurvey.pipeline import Processor, Bindings
 from flatsurvey.ui.group import GroupedCommand
 from flatsurvey.surfaces import Surface
 from flatsurvey.jobs.saddle_connection_orientations import SaddleConnectionOrientations
@@ -74,13 +74,14 @@ class FlowDecompositions(Processor, Command):
         self._limit = limit
 
     @staticmethod
-    def create(pipeline):
-        return FlowDecompositions(
-            surface=pipeline.get(Surface),
-            saddle_connection_orientations=pipeline.get(SaddleConnectionOrientations),
-            report=pipeline.get(Report),
-            limit=pipeline.get("limit", default=lambda: FlowDecompositions.DEFAULT_LIMIT, scope=FlowDecompositions)
-        )
+    def create(bindings: Bindings):
+        with bindings.scope(FlowDecompositions) as scoped:
+            return FlowDecompositions(
+                surface=scoped.get(Surface),
+                saddle_connection_orientations=scoped.get(SaddleConnectionOrientations),
+                report=scoped.get(Report),
+                limit=scoped.get("limit", default=lambda: FlowDecompositions.DEFAULT_LIMIT)
+            )
 
     @classmethod
     @click.command(

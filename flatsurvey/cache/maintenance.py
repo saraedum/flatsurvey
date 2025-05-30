@@ -6,14 +6,11 @@ TESTS::
     >>> from flatsurvey.test.cli import invoke
     >>> invoke(cli) # doctest: +NORMALIZE_WHITESPACE
     Usage: cli [OPTIONS] COMMAND1 [ARGS]... [COMMAND2 [ARGS]...]...
-    <BLANKLINE>
       Mangle cache files.
-    <BLANKLINE>
     Options:
       --debug
       --help         Show this message and exit.
       -v, --verbose  Enable verbose message, repeat for debug message.
-    <BLANKLINE>
     Commands:
       externalize-pickles
       join
@@ -41,7 +38,6 @@ TESTS::
 
 import click
 
-from flatsurvey.reporting.log import BaseLog
 from flatsurvey.ui import CommandWithGroups
 import flatsurvey.cache
 
@@ -70,6 +66,10 @@ for command in flatsurvey.cache.maintenance_commands:
     cli.add_command(command)
 
 
+from flatsurvey.reporting import GenericLog
+cli.add_command(GenericLog.click)
+
+
 @cli.result_callback()
 def process(commands, debug, verbose):
     r"""
@@ -95,8 +95,8 @@ def process(commands, debug, verbose):
 
     bindings = Bindings()
 
-    from flatsurvey.reporting.report import Report
-    bindings.append("reporters", BaseLog())
+    from flatsurvey.reporting import GenericLog, Report
+    bindings.append("reporters", GenericLog)
 
     for command in commands:
         command(bindings)

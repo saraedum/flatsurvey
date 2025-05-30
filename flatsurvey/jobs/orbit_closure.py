@@ -122,23 +122,20 @@ class OrbitClosure(Goal, Command):
         self._lower_bound = 0
         self._upper_bound = 0
 
-        from flatsurvey.reporting.report import ProgressReporting
-
-        self._progress = ProgressReporting(self._report, self)
-
     @staticmethod
     def create(bindings):
-        return OrbitClosure(
-            surface=bindings.get(Surface),
-            report=bindings.get(Report),
-            flow_decompositions=bindings.get(FlowDecompositions),
-            saddle_connections=bindings.get(SaddleConnections),
-            cache=bindings.get(Cache),
-            stale_limit=bindings.get("stale_limit", lambda: OrbitClosure.DEFAULT_STALE_LIMIT, scope=OrbitClosure),
-            expansions_limit=bindings.get("expansions_limit", lambda: OrbitClosure.DEFAULT_EXPANSIONS_LIMIT, scope=OrbitClosure),
-            deform=bindings.get("deform", lambda: OrbitClosure.DEFAULT_DEFORM, scope=OrbitClosure),
-            cache_only=bindings.get("cache_only", lambda: Goal.DEFAULT_CACHE_ONLY, scope=OrbitClosure),
-        )
+        with bindings.scope(OrbitClosure) as scoped:
+            return OrbitClosure(
+                surface=scoped.get(Surface),
+                report=scoped.get(Report),
+                flow_decompositions=scoped.get(FlowDecompositions),
+                saddle_connections=scoped.get(SaddleConnections),
+                cache=scoped.get(Cache),
+                stale_limit=scoped.get("stale_limit", lambda: OrbitClosure.DEFAULT_STALE_LIMIT),
+                expansions_limit=scoped.get("expansions_limit", lambda: OrbitClosure.DEFAULT_EXPANSIONS_LIMIT),
+                deform=scoped.get("deform", lambda: OrbitClosure.DEFAULT_DEFORM),
+                cache_only=scoped.get("cache_only", lambda: Goal.DEFAULT_CACHE_ONLY),
+            )
 
     async def consume_cache(self):
         r"""
@@ -325,11 +322,11 @@ class OrbitClosure(Goal, Command):
         # TODO: If this is a billiard, use symmetries.
         orbit_closure.update_tangent_space_from_flow_decomposition(decomposition)
 
-        self._progress.progress(
+        self._report.progress(
+            source=self,
             what="dimension",
             count=self.dimension,
             total=self._surface.orbit_closure_dimension_upper_bound,
-            activity="orbit closure",
         )
 
         assert (
@@ -378,7 +375,7 @@ class OrbitClosure(Goal, Command):
             and self.dimension > 3
             and self._directions >= self._stale_limit
         ):
-            self._progress.progress(message="deforming surface")
+            self._report.progress(source=self, message="deforming surface")
 
             tangents = [
                 orbit_closure.lift(v) for v in orbit_closure.tangent_space_basis()[2:]
@@ -449,10 +446,7 @@ class OrbitClosure(Goal, Command):
 
                         raise Deformation.Restart(surface, old=self._surface)
                     except cppyy.gbl.std.invalid_argument:
-                        print(f"Failed to deform {orbit_closure._surface} with {n}")
-                        self._progress.progress(
-                            message="failed to deform surface, retrying"
-                        )
+                        self._report.log(source=self, message=f"Failed to deform {orbit_closure._surface} with {n}")
                         continue
 
                 scale += 1

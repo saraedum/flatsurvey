@@ -105,10 +105,11 @@ class Cache(Command):
 
     @staticmethod
     def create(bindings: Bindings):
-        return Cache(
-            cache=bindings.get("cache", default=lambda: {}, scope=Cache),
-            pickles=bindings.get("pickles", default=lambda: None, scope=Cache),
-        )
+        with bindings.scope(Cache) as scoped:
+            return Cache(
+                cache=scoped.get("cache", default=lambda: {}),
+                pickles=scoped.get("pickles", default=lambda: None),
+            )
 
     @staticmethod
     @click.command(
