@@ -49,6 +49,32 @@ from flatsurvey.pipeline import Bindings
 
 
 class Deformation(Surface):
+    r"""
+    A surface that is considered a "deformed" version of an ``old`` original
+    surface.
+
+    Currently, we use this to move away from pathological surfaces in the orbit
+    closure where our approach would never be able to determine the full
+    dimension of the orbit closure.
+
+    EXAMPLES::
+
+        >>> from flatsurvey.surfaces import Ngon, Deformation
+        >>> from flatsurf.geometry.pyflatsurf_conversion import from_pyflatsurf
+        >>> from flatsurf import GL2ROrbitClosure
+
+        >>> S = Ngon((1, 1, 1))
+
+        >>> O = GL2ROrbitClosure(S.surface())
+
+        >>> delta = [O.V2(v, 0).vector for v in O.lift(O.tangent_space_basis()[0])]
+        >>> deformation = from_pyflatsurf((O._surface + delta).surface())
+
+        >>> T = Deformation(deformation, S)
+        >>> T
+        Deformation of Ngon([1, 1, 1])
+
+    """
     def __init__(self, deformed, old):
         super().__init__(old._eliminate_marked_points)
         self._deformed = deformed
@@ -132,6 +158,9 @@ class Deformation(Surface):
         r"""
         An exception that can be raised anywhere in the worker to restart work
         on a surface with a ``deformed`` version.
+
+        This exception is raised during the orbit closure search when the
+        search has spent too many iterations without making any progress.
         """
         def __init__(self, deformed, old):
             self._deformation = Deformation(deformed=deformed, old=old)

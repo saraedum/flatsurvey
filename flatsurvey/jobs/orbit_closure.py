@@ -53,6 +53,8 @@ EXAMPLES::
 
 import click
 
+from sage.misc.cachefunc import cached_method
+
 from flatsurvey.ui import Command
 from flatsurvey.pipeline import Goal, Bindings
 from flatsurvey.ui.group import GroupedCommand
@@ -250,7 +252,23 @@ class OrbitClosure(Goal, Command):
 
     @property
     def dimension(self):
-        return self._surface.orbit_closure().dimension()
+        return self._orbit_closure().dimension()
+
+    @cached_method
+    def _orbit_closure(self):
+        r"""
+        Return the orbit closure of the surface (as has been determined so far.)
+
+        EXAMPLES::
+
+            >>> from flatsurvey.surfaces import Ngon
+            >>> Ngon((1, 1, 1)).orbit_closure()
+            GL(2,R)-orbit closure of dimension at least 2 in H_1(0) (ambient dimension 2)
+
+        """
+        from flatsurf import GL2ROrbitClosure
+
+        return GL2ROrbitClosure(self._surface.surface())
 
     @property
     def dense(self):
@@ -316,7 +334,7 @@ class OrbitClosure(Goal, Command):
             self._cylinders_without_increase += 1
             self._directions_with_cylinders += 1
 
-        orbit_closure = self._surface.orbit_closure()
+        orbit_closure = self._orbit_closure()
         dimension = self.dimension
 
         # TODO: If this is a billiard, use symmetries.
@@ -501,9 +519,15 @@ class OrbitClosure(Goal, Command):
         if not self.reported():
             await self._report.result(
                 self,
-                self._surface.orbit_closure(),
+                self._orbit_closure(),
                 dimension=self.dimension,
                 directions=self._directions,
                 directions_with_cylinders=self._directions_with_cylinders,
                 dense=self.dense,
             )
+
+
+__test__ = {
+    # Work around https://trac.sagemath.org/ticket/33951
+    "OrbitClosure._orbit_closure": OrbitClosure._orbit_closure.__doc__,
+}

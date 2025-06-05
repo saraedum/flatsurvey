@@ -1,12 +1,9 @@
 r"""
 Translation Surfaces and Related Structures of Interest
 
-There are two kinds of closely related structures in the ``sources`` module,
-individual sources, such as a particular unfolding of a polygon, and generators
-of families of such structures such as unfoldings of all triangles.
-
-This module does not expose the actual structures but the ``click`` command
-line interface that is used to generate them.
+There are two kinds of closely related structures in this module, individual
+surfaces, such as a particular unfolding of a polygon, and generators of
+families of such surfaces such as unfoldings of all triangles.
 """
 # *********************************************************************
 #  This file is part of flatsurvey.

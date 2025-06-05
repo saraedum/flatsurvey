@@ -266,7 +266,7 @@ class Ngon(Surface):
 
         assert (0, 1, 0) in S.labels()
 
-        for (sign, x, y) in S.labels():
+        for (_, x, y) in S.labels():
             from sage.all import matrix
 
             symmetries.add(

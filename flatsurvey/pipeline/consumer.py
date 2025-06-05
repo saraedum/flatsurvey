@@ -122,7 +122,7 @@ class Consumer(ABC):
             >>> orientations = SaddleConnectionOrientations(saddle_connections=connections, report=None)
 
             >>> import asyncio
-            >>> consume = orientations.consume(next(iter(surface.flat_triangulation().connections())), cost=0)
+            >>> consume = orientations.consume(next(iter(surface.surface().pyflatsurf().codomain().flat_triangulation().connections())), cost=0)
             >>> asyncio.run(consume)
             True
 

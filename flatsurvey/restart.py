@@ -26,6 +26,13 @@ class Restart(Exception, ABC):
     r"""
     An exception that signals that the worker should restart on a modified
     bindings.
+
+    .. NOTE::
+
+
+        Using exception like this for such high-level control flow is a dubious
+        pattern to say the least. But it is also very convenient.
+
     """
     @abstractmethod
     def restart(self, bindings: Bindings) -> Bindings:

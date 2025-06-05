@@ -27,7 +27,7 @@ EXAMPLES::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 from typing import Callable, Any
 
@@ -35,7 +35,7 @@ from sage.misc.cachefunc import cached_method
 from flatsurvey.cache import Cache
 
 
-class Surface:
+class Surface(ABC):
     r"""
     Abstract base class for translation surfaces.
 
@@ -66,24 +66,6 @@ class Surface:
         """
         return None
 
-    # This should probably live on the OrbitClosure job and not here so
-    # it is pickled correctly, see #44.
-    @cached_method
-    def orbit_closure(self):
-        r"""
-        Return the orbit closure of this surface (as has been determined so far.)
-
-        EXAMPLES::
-
-            >>> from flatsurvey.surfaces import Ngon
-            >>> Ngon((1, 1, 1)).orbit_closure()
-            GL(2,R)-orbit closure of dimension at least 2 in H_1(0) (ambient dimension 2)
-
-        """
-        from flatsurf import GL2ROrbitClosure
-
-        return GL2ROrbitClosure(self.surface())
-
     @property
     def orbit_closure_dimension_upper_bound(self):
         r"""
@@ -99,19 +81,6 @@ class Surface:
         raise NotImplementedError(
             "to be able to compute the orbit closure we need an upper bound on the dimensions"
         )
-
-    def flat_triangulation(self):
-        r"""
-        Return the underlying translation surface as a libflatsurf object.
-
-        EXAMPLES::
-
-            >>> from flatsurvey.surfaces import Ngon
-            >>> Ngon((1, 1, 1)).flat_triangulation()  # doctest: +ELLIPSIS
-            FlatTriangulationCombinatorial(vertices = (1, -3, 2, -1, 3, -2), faces = (1, 2, 3)(-1, -2, -3)) with vectors {1: (0, ...), 2: (..., ...), 3: (..., ...)}
-
-        """
-        return self.orbit_closure()._surface
 
     @cached_method
     def surface(self):
@@ -144,6 +113,7 @@ class Surface:
             Minimal Translation Cover of Genus 0 Rational Cone Surface built from 2 equilateral triangles
 
         """
+        raise NotImplementedError
 
     def basename(self):
         r"""
@@ -226,8 +196,6 @@ class Surface:
 
 
 __test__ = {
-    # Work around https://trac.sagemath.org/ticket/33951
-    "Surface.orbit_closure": Surface.orbit_closure.__doc__,
     # Work around https://trac.sagemath.org/ticket/33951
     "Surface.surface": Surface.surface.__doc__,
 }

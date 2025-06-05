@@ -1,6 +1,11 @@
 r"""
 Translation surfaces coming from Thurston-Veech constructions
 
+.. NOTE::
+
+    This code is as of mid 2025 essentially untested. We never ran any surveys
+    with this so likely things do not work correctly.
+
 EXAMPLES::
 
     >>> from flatsurvey.surfaces.thurston_veech import ThurstonVeech
@@ -35,6 +40,7 @@ from sage.misc.cachefunc import cached_method
 
 from flatsurvey.surfaces.surface import Surface
 from flatsurvey.ui.group import GroupedCommand
+from flatsurvey.pipeline import Bindings
 
 
 class ThurstonVeech(Surface):
@@ -115,7 +121,7 @@ class ThurstonVeech(Surface):
         # automorphisms... Something needs to be done for each block of
         # the monodromy. See #13.
         A = self.orientable_automorphisms()
-        from sage.all import libgap
+        from sage.all import libgap  # type: ignore
 
         if not libgap.IsTrivial(A):
             oo = self.origami().quotient(A)
@@ -169,7 +175,7 @@ class ThurstonVeech(Surface):
         o = self.origami()
         n = o.nb_squares()
 
-        from sage.all import libgap
+        from sage.all import libgap  # type: ignore
 
         M = libgap.Group([o.r(), o.u()])
         Sn = libgap.SymmetricGroup(n)
@@ -180,10 +186,10 @@ class ThurstonVeech(Surface):
         # 1. compute action of the automorphisms on horiz / vert cylinders
         from surface_dynamics.misc.permutation import perm_dense_cycles
 
-        hcyls, hdeg = perm_dense_cycles(o.r_tuple(), n)
-        vcyls, vdeg = perm_dense_cycles(o.u_tuple(), n)
-        hreps = [None] * len(self.hm)
-        vreps = [None] * len(self.vm)
+        hcyls, _ = perm_dense_cycles(o.r_tuple(), n)
+        vcyls, _ = perm_dense_cycles(o.u_tuple(), n)
+        hreps: list[int] = [None] * len(self.hm)  # type: ignore
+        vreps: list[int] = [None] * len(self.vm)  # type: ignore
         for i in range(n):
             j = hcyls[i]
             if hreps[j] is None:
@@ -227,6 +233,12 @@ class ThurstonVeech(Surface):
         vLiftedStab = libgap.PreImage(vH, vStab)
         return hLiftedStab.Intersection(hLiftedStab, vLiftedStab)
 
+    def cache_predicate(self, exact, cache=None):
+        # We have not done any real surveys with Thurston Veech surfaces yet.
+        # Once we do, we need to implement this, i.e., figure out which data we
+        # write to the cache keys and then filter on that.
+        raise NotImplementedError
+
     def __hash__(self):
         return hash((tuple(self.hp), tuple(self.vp), tuple(self.hm), tuple(self.vm)))
 
@@ -239,12 +251,12 @@ class ThurstonVeech(Surface):
             and self.vm == other.vm
         )
 
-    @classmethod
+    @staticmethod
     @click.command(
         name="thurston-veech",
         cls=GroupedCommand,
         group="Surfaces",
-        help=__doc__.split("EXAMPLES")[0],
+        help=__doc__.split("EXAMPLES")[0],  # type: ignore
     )
     @click.option(
         "--horizontal-permutation", "-h", type=str, help="horizontal permutaiton"
@@ -256,13 +268,14 @@ class ThurstonVeech(Surface):
     @click.option(
         "--vertical-multiplicities", "-n", type=str, help="vertical multiplicities"
     )
+    @Bindings.click
     def click(
+        bindings: Bindings,
         horizontal_permutation,
         vertical_permutation,
         horizontal_multiplicities,
         vertical_multiplicities,
     ):
-        raise NotImplementedError
         import json
 
         hp = json.loads(horizontal_permutation)
@@ -270,13 +283,7 @@ class ThurstonVeech(Surface):
         hm = json.loads(horizontal_multiplicities)
         vm = json.loads(vertical_multiplicities)
 
-        return {
-            "bindings": [
-                PartialBindingSpec(ThurstonVeech, name="surface")(
-                    hp=hp, vp=vp, hm=hm, vm=vm
-                )
-            ]
-        }
+        bindings.define(Surface, ThurstonVeech(hp=hp, vp=vp, hm=hm, vm=vm))
 
 
 class ThurstonVeechs:
@@ -284,12 +291,12 @@ class ThurstonVeechs:
     The translation surfaces obtained from Thurston-Veech construction.
     """
 
-    @classmethod
+    @staticmethod
     @click.command(
         name="thurston-veech",
         cls=GroupedCommand,
         group="Surfaces",
-        help=__doc__.split("EXAMPLES")[0],
+        help=__doc__.split("EXAMPLES")[0],  # type: ignore
     )
     @click.option("--stratum", type=str, required=True)
     @click.option("--component", type=str, required=False)
@@ -314,7 +321,8 @@ class ThurstonVeechs:
         help="also include ngons described in literature",
         show_default=True,
     )
-    def click(stratum, component, nb_squares_limit, multiplicities_limit, literature):
+    @Bindings.click
+    def click(bindings: Bindings, stratum, component, nb_squares_limit, multiplicities_limit, literature):
         def surfaces():
             from surface_dynamics import AbelianStratum
 
@@ -392,7 +400,7 @@ class ThurstonVeechs:
                                     seen.add(tv)
                                     yield tv
 
-        return {"surfaces": [surfaces()]}
+        bindings.append("surfaces", surfaces())
 
 
 __test__ = {

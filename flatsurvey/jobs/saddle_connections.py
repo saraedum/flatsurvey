@@ -71,7 +71,7 @@ class SaddleConnections(Producer, Command):
 
     def _by_length(self):
         self.__connections = (
-            self._surface.orbit_closure()._surface.connections().byLength()
+            self._surface.surface().pyflatsurf().codomain().flat_triangulation().connections().byLength()
         )
         if self._bound is not None:
             self.__connections = self.__connections.bound(self._bound)
@@ -83,8 +83,8 @@ class SaddleConnections(Producer, Command):
 
     def randomize(self, lower_bound):
         self.__connections = (
-            self._surface.orbit_closure()
-            ._surface.connections()
+            self._surface.surface().pyflatsurf().codomain().flat_triangulation()
+            .connections()
             .sample()
             .lowerBound(lower_bound)
         )

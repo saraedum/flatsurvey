@@ -40,6 +40,8 @@ EXAMPLES::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
+from typing import Any
+
 import click
 
 from flatsurvey.cache.pickles import Pickles
@@ -290,7 +292,8 @@ class Cache(Command):
 
         return with_defaults()
 
-    def get(self, section, predicate=None, single=None):
+    # TODO: Simplify this interface. Move the single magic into a separate method so we can have a clear return type contract.
+    def get(self, section, predicate=None, single=None) -> list[Any]:
         r"""
         Return the results for ``section`` that satisfy ``predicate``.
 
@@ -368,9 +371,9 @@ class Cache(Command):
             section = section.name()
 
         if predicate is None:
-
-            def predicate(node):
+            def true(_):
                 return True
+            predicate = true
 
         if isinstance(predicate, str):
             if single is None:

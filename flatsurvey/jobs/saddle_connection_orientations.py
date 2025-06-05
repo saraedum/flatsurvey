@@ -77,7 +77,7 @@ class SaddleConnectionOrientations(Processor, Command):
             except Exception:
                 pass
 
-        flat_triangulation = self._saddle_connections._surface.flat_triangulation()
+        flat_triangulation = self._saddle_connections._surface.surface().pyflatsurf().codomain().flat_triangulation()
         source = cppyy.gbl.flatsurf.Vertex.source(
             connection.source(), flat_triangulation.combinatorial()
         )

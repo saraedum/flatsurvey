@@ -139,7 +139,9 @@ class FlowDecompositions(Processor, Command):
 
         """
         start = time.perf_counter()
-        self._current = self._surface.orbit_closure().decomposition(
+
+        from flatsurf import GL2ROrbitClosure
+        self._current = GL2ROrbitClosure(self._surface.surface()).decomposition(
             orientation, self._limit
         )
         cost += time.perf_counter() - start
