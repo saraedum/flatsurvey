@@ -12,7 +12,7 @@ EXAMPLES::
     >>> from flatsurvey.worker import worker
     >>> invoke(worker, "local-cache", "--help") # doctest: +NORMALIZE_WHITESPACE
     Usage: worker local-cache [OPTIONS]
-      A cache of previous results stored in local JSON files.
+      A readonly cache of previous results, read from local JSON files.
     Options:
       -j, --json PATH    JSON files to read cached data from or a directory to read
                          recursively
@@ -40,9 +40,10 @@ EXAMPLES::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from typing import Literal, Callable
+from typing import Literal, Any
 
 import click
+import orjson
 
 from flatsurvey.cache.pickles import Pickles
 from flatsurvey.cache.node import ResultSet
@@ -52,11 +53,28 @@ from flatsurvey.ui import GroupedCommand
 
 
 Source = Literal["CACHE", "DEFAULTS", "PICKLE"]
+CacheEntry = dict[str, Any]
 
 
 class Cache(Command):
     r"""
-    A cache of previous results stored in local JSON files.
+    A readonly cache of previous results, read from local JSON files.
+
+    INPUT:
+
+    - ``cache`` -- a dict or ``None`` (default: ``None``); the underlying data
+      in the cache, typically parsed from JSON files. This is a dictionary from
+      strings, the sections of the cache such as ``"orbit_closure"`` to a list
+      of results in that section. If ``None``, the cache is empty.
+
+    - ``pickles`` -- a :class:`Pickles`` object or ``None`` (default:
+      ``None``); a source of serialized data. Each entry in ``cache`` may for
+      space reasons only hold limited information about an object and defer to
+      a pickle under a ``"pickle"`` key. E.g., when storing the unfolding of a
+      triangle, we might only hold the angles as a triple of integers and refer
+      to a pickle which holds the actual unfolding for more complex queries to
+      the surface. If ``None``, then pickles referenced in ``cache`` cannot be
+      resolved.
 
     EXAMPLES::
 
@@ -67,13 +85,10 @@ class Cache(Command):
 
     def __init__(
         self,
-        cache=None,
+        cache: dict[str, list[CacheEntry]] | None = None,
         pickles: Pickles | None=None,
     ):
-
-        # TODO: Document
         self._cache = cache or {}
-        # TODO: Document
         self._pickles = pickles or Pickles()
 
         # The last tuple in this list specifies from which source cache
@@ -84,10 +99,12 @@ class Cache(Command):
         # to resolve properties from a cache entry that cannot be found in the
         # cache without actually loading the pickle (which is often very
         # expensive.) See sources() and defaults() for details.
-        self._defaults = [{}]
+        self._defaults: list[CacheEntry] = [{}]
 
-        # TODO: Document
-        self._shas = {}
+        # A cache mapping the values of the ``"pickle"`` fields of entries back
+        # to the cache entries, i.e., self._shas[entry["pickle"]] == entry
+        # holds for each entry of the section of the _cache.
+        self._shas: dict[str, CacheEntry] = {}
 
     @staticmethod
     def create(bindings: Bindings):
@@ -102,7 +119,7 @@ class Cache(Command):
         name="local-cache",
         cls=GroupedCommand,
         group="Cache",
-        help=__doc__.split("EXAMPLES")[0],  # type: ignore
+        help=__doc__.split("INPUT")[0],  # type: ignore
     )
     @click.option(
         "--json",
@@ -130,12 +147,8 @@ class Cache(Command):
             """
             try:
                 data = file.read().strip() or '{}'
-                try:
-                    import orjson as json
-                except ModuleNotFoundError:
-                    import json
 
-                parsed = json.loads(data)
+                parsed = orjson.loads(data)
             except Exception as e:
                 print(f"Failed to parse {file}, {e}. Ignoring.")
                 return
@@ -147,7 +160,7 @@ class Cache(Command):
             import os.path
 
             if os.path.isdir(j):
-                for root, dirs, files in os.walk(j):
+                for root, _, files in os.walk(j):
                     for f in files:
                         if f.endswith(".json"):
                             load(open(os.path.join(root, f), "rb"))
@@ -363,56 +376,3 @@ class Cache(Command):
                 self._shas[section][sha].append(entry)
 
         return self._shas[section].get(sha, [])
-
-    # def make(self, value, name, kind=None):
-    #     r"""
-    #     Return a cache node for ``name`` holding ``value`` of type ``kind``.
-
-    #     EXAMPLES::
-
-    #         >>> from io import StringIO
-    #         >>> cache = Cache(jsons=(StringIO('''{"surface": [{
-    #         ...   "pickle": "some-unique-pickle-hash"
-    #         ... }]}'''),), pickles=None, report=None)
-
-    #         >>> cache.make({"dimension": 1337}, "OrbitClosure")
-    #         {'dimension': 1337}
-
-    #     Lists are unpacked into lists of cache nodes::
-
-    #         >>> cache.make([{"dimension": 13}, {"dimension": 37}], "OrbitClosures")
-    #         [{'dimension': 13}, {'dimension': 37}]
-
-    #     Some specific ``name``s references cache nodes of a different kind::
-
-    #         >>> cache.make("some-unique-pickle-hash", "surface")
-    #         {'pickle': 'some-unique-pickle-hash'}
-
-    #     """
-    #     if kind is None:
-    #         if isinstance(value, dict) and "type" in value:
-    #             kind = value["type"]
-    #         else:
-    #             kind = name
-
-    #     if value is None:
-    #         return None
-
-    #     if isinstance(value, list):
-    #         if name.endswith("s"):
-    #             name = name[:-1]
-    #         else:
-    #             name = None
-    #         return [self.make(v, name=name) for v in value]
-
-    #     if isinstance(value, str) and name in ["surface"]:
-    #         from flatsurvey.cache.node import ReferenceNode
-
-    #         return ReferenceNode(value, "surface", cache=self)
-
-    #     if isinstance(value, (bool, int, str)):
-    #         return value
-
-    #     from flatsurvey.cache.node import Node
-
-    #     return Node(value, cache=self, kind=kind)

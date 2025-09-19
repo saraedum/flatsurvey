@@ -41,7 +41,7 @@ class Command:
     """
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         r"""
         Return the name of this command for the command line.
 
