@@ -33,7 +33,7 @@ from flatsurvey.ui import Command, GroupedCommand
 
 class Pickles(Command):
     def __init__(self, providers=()):
-        self._providers = [PickleProvider.make(provider) for provider in providers]
+        self._providers = providers
 
     @classmethod
     @click.command(
@@ -71,17 +71,10 @@ class Pickles(Command):
 
             return unpickled
 
-        raise KeyError(pickle)
+        raise ValueError(f"No pickle for {pickle} found")
 
 
 class PickleProvider:
-    @staticmethod
-    def make(data):
-        if isinstance(data, bytes):
-            return StaticPickleProvider(data)
-
-        raise NotImplementedError("PickleProvider.make() has not been implemented yet")
-
     def load(self, raw):
         # Work around some current problems in many of our pickles:
         # - Pickles import sage.rings.number_field but SageMath cannot handle
@@ -99,14 +92,17 @@ class PickleProvider:
 
 
 class StaticPickleProvider(PickleProvider):
-    def __init__(self, data):
+    def __init__(self, data, digest=None):
         self._pickle = data
 
         from hashlib import sha256
 
-        sha = sha256()
-        sha.update(data)
-        self._digest = sha.hexdigest()
+        if digest is None:
+            sha = sha256()
+            sha.update(data)
+            digest = sha.hexdigest()
+
+        self._digest = digest
 
     def unpickle(self, digest, kind):
         if digest == self._digest:

@@ -21,9 +21,12 @@ Nodes in a tree of :class:`Results`.
 # *********************************************************************
 
 
+from flatsurvey.cache.pickles import Pickles
+
+
 class Node:
     r"""
-    Adds lazy-loading to a primitive item from the cache.
+    A row from the cache with some added lazy-loading.
 
     EXAMPLES::
 
@@ -126,3 +129,109 @@ class ReferenceNode(Node):
 
     def __repr__(self):
         return repr(self._resolve())
+
+
+# TODO: Rename this file.
+class ResultSet:
+    def __init__(self, rows, sources, quorum="unique"):
+        self._rows = rows
+        self._sources = sources
+        self._quorum = quorum
+
+    def __repr__(self):
+        return f"{len(self._rows)} cached results"
+
+    def __len__(self):
+        return len(self._rows)
+
+    def __getattr__(self, name):
+        if not self._rows:
+            raise AttributeError("no results found in cache")
+
+        if self._quorum == "unique":
+            return self._getattr_unique(name)
+        else:
+            raise NotImplementedError
+
+    def _getattr_unique(self, name):
+        values = self._getattrs(name)
+        assert values, "_getattr_unique should not be callable when there are now results"
+
+        value = values.pop()
+        for other in values:
+            if other != value:
+                raise AttributeError(f"{name} is inconsistent in this cached result set, found {values}")
+
+        return value
+
+    def _getattrs(self, name):
+        return [self._getattr(row, name) for row in self._rows]
+
+    def _getattr(self, row, name, source=None):
+        # TODO: This pattern is not pretty. Also is it really sane to inherit the defaults down?
+        def as_result_set(result):
+            if isinstance(result, dict):
+                return ResultSet([result], sources=self._sources, quorum="unique")
+            return result
+
+        if source is None:
+            for source in self._sources:
+                try:
+                    return self._getattr(row, name, source=source)
+                except AttributeError:
+                    pass
+
+            raise AttributeError(f"cached result has no {name}")
+
+        if source == "CACHE":
+            try:
+                return as_result_set(row[name])
+            except KeyError:
+                raise AttributeError(f"cached result has no {name}")
+
+        if isinstance(source, dict):
+            try:
+                return as_result_set(source[name])
+            except KeyError:
+                raise AttributeError(f"cached result has no {name}")
+
+        if isinstance(source, Pickles):
+            try:
+                pickle = row["pickle"]
+            except KeyError:
+                raise AttributeError(f"cached result has no {name}")
+
+            kind = row.get("type", None)
+
+            return as_result_set(source.unpickle(pickle, kind))
+
+        raise NotImplementedError(source)
+
+    def __hash__(self):
+        raise TypeError
+
+    def __eq__(self, other):
+        raise NotImplementedError
+
+    def __ne__(self, other):
+        raise NotImplementedError
+
+    def __bool__(self):
+        return bool(self._rows)
+
+    def latest(self):
+        raise NotImplementedError
+
+    def unique(self):
+        raise NotImplementedError
+
+    def any(self):
+        raise NotImplementedError
+
+    def filter(self, predicate):
+        rows = [result._rows[0] for result in self if predicate(result)]
+        return ResultSet(rows, sources=self._sources, quorum=self._quorum)
+
+    def __iter__(self):
+        for row in self._rows:
+            yield ResultSet([row], sources=self._sources, quorum="unique")
