@@ -138,6 +138,15 @@ class Cache(Command):
     )
     @Bindings.click
     def click(bindings: Bindings, json, pickles):
+        r"""
+        Parse command line options into ``bindings``.
+
+        TESTS::
+
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> invoke_subcommand(Cache.click)
+
+        """
         cache = {}
 
         def load(file):

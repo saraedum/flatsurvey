@@ -22,10 +22,8 @@ Reads caches of previous results.
 
 from flatsurvey.cache.cache import Cache
 from flatsurvey.cache.pickles import Pickles
-from flatsurvey.cache.externalize_pickles import ExternalizePickles
 from flatsurvey.cache.join import Join
-from flatsurvey.cache.split import Split
 
 commands = [Cache.click, Pickles.click]
 
-maintenance_commands = [ExternalizePickles.click, Join.click, Split.click]
+maintenance_commands = [Join.click]

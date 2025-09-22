@@ -78,6 +78,7 @@ class Node:
 
                 if source == "PICKLE":
                     if isinstance(self._value, dict) and "pickle" in self._value:
+                        # TODO: ignore "dropped", try to read the pickle directly, or read from the hash.pickle.gz, or continue with a warning.
                         instance = self._cache.unpickle(
                             self._value["pickle"], self._kind
                         )

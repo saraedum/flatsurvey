@@ -65,7 +65,7 @@ class Goal(Consumer):
         help="Do not perform any computation. Only query the cache.",
     )
 
-    def __init__(self, producers, cache, cache_only=DEFAULT_CACHE_ONLY, report=None):
+    def __init__(self, producers, cache=None, cache_only=DEFAULT_CACHE_ONLY, report=None):
         if cache is None:
             from flatsurvey.cache import Cache
 
