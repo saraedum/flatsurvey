@@ -56,6 +56,9 @@ class Json(Reporter, Command):
 
     """
 
+    # TODO: Generalize the "surface" here. We want to track any configuration for this survey, i.e., anything that is not a "result".
+    # The logic that "Join" uses is that anything that does not map to a list is configuration.
+
     def __init__(self, surface: Surface, output=None, prefix=None, pickles=False):
         super().__init__()
 
@@ -268,6 +271,20 @@ class Json(Reporter, Command):
         ) as stream:
             stream.write(json.dumps(self._data, default=self._serialize_to_pickle))
             stream.flush()
+
+    @staticmethod
+    def load(file) -> dict:
+        r"""
+        Load a JSON file into the cache dict with the fast orjson.
+        """
+        import orjson
+        try:
+            data = file.read().strip() or '{}'
+
+            return orjson.loads(data)
+        except Exception as e:
+            print(f"Failed to parse {file}, {e}. Ignoring.")
+            return {}
 
 
 __test__ = {

@@ -10,7 +10,7 @@ EXAMPLES::
 
     >>> from flatsurvey.test.cli import invoke
     >>> from flatsurvey.worker import worker
-    >>> invoke(worker, "local-cache", "--help") # doctest: +NORMALIZE_WHITESPACE
+    >>> invoke(worker, "local-cache", "--help")  # doctest: +NORMALIZE_WHITESPACE
     Usage: worker local-cache [OPTIONS]
       A readonly cache of previous results, read from local JSON files.
     Options:
@@ -40,10 +40,11 @@ EXAMPLES::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
+# TODO: Make sure that the cache can handle both Join'ed files and vanilla JSON output files.
+
 from typing import Literal, Any
 
 import click
-import orjson
 
 from flatsurvey.cache.pickles import Pickles
 from flatsurvey.cache.node import ResultSet
@@ -108,6 +109,20 @@ class Cache(Command):
 
     @staticmethod
     def create(bindings: Bindings):
+        r"""
+        Return a ``Cache`` instance from the configuration registered in ``bindings``.
+
+        TESTS::
+
+            >>> from flatsurvey.pipeline import Bindings
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> from flatsurvey.cache import Cache
+            >>> bindings = Bindings()
+            >>> invoke_subcommand(Cache.click, bindings=bindings)
+            >>> Cache.create(bindings)
+            local-cache
+
+        """
         with bindings.scope(Cache) as scoped:
             return Cache(
                 cache=scoped.get("cache", default=lambda: {}),
@@ -150,19 +165,9 @@ class Cache(Command):
         cache = {}
 
         def load(file):
-            r"""
-            Load a JSON file into the cache dict with the fast orjson if
-            installed, otherwise with Python's standard json.
-            """
-            try:
-                data = file.read().strip() or '{}'
+            from flatsurvey.reporting.json import Json
 
-                parsed = orjson.loads(data)
-            except Exception as e:
-                print(f"Failed to parse {file}, {e}. Ignoring.")
-                return
-
-            for section, results in parsed.items():
+            for section, results in Json.load(file).items():
                 cache.setdefault(section, []).extend(results)
 
         for j in json:
@@ -385,3 +390,9 @@ class Cache(Command):
                 self._shas[section][sha].append(entry)
 
         return self._shas[section].get(sha, [])
+
+
+__test__ = {
+    # doctests of click do not run unless explicitly mentioned here due to the click decorator.
+    "Cache.click": Cache.click.__doc__,
+}

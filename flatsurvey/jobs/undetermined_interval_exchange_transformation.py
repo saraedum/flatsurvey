@@ -39,11 +39,11 @@ import time
 import click
 
 from flatsurvey.ui import Command
-from flatsurvey.pipeline import Goal
+from flatsurvey.pipeline import ConsumerGoal
 from flatsurvey.ui.group import GroupedCommand
 
 
-class UndeterminedIntervalExchangeTransformation(Goal, Command):
+class UndeterminedIntervalExchangeTransformation(ConsumerGoal, Command):
     r"""
     Tracks undetermined Interval Exchange Transformations.
 
@@ -68,7 +68,7 @@ class UndeterminedIntervalExchangeTransformation(Goal, Command):
         flow_decompositions,
         saddle_connection_orientations,
         cache,
-        cache_only=Goal.DEFAULT_CACHE_ONLY,
+        cache_only=ConsumerGoal.DEFAULT_CACHE_ONLY,
         limit=DEFAULT_LIMIT,
     ):
         self._surface = surface
@@ -160,7 +160,7 @@ class UndeterminedIntervalExchangeTransformation(Goal, Command):
         iets = [result.result for result in results]
 
         await self._report.result(self, None, iets=iets, cached=True)
-        self._resolved = Goal.COMPLETED
+        self._resolved = ConsumerGoal.COMPLETED
 
     @classmethod
     @click.command(
@@ -176,7 +176,7 @@ class UndeterminedIntervalExchangeTransformation(Goal, Command):
         show_default=True,
         help="Zorich induction steps to perform before giving up",
     )
-    @Goal._cache_only_option
+    @ConsumerGoal._cache_only_option
     def click(limit):
         raise NotImplementedError
         return {
@@ -287,7 +287,7 @@ class UndeterminedIntervalExchangeTransformation(Goal, Command):
                 orientation=self._saddle_connection_orientations._current,
             )
 
-        return not Goal.COMPLETED
+        return not ConsumerGoal.COMPLETED
 
     @classmethod
     def reduce(self, results):

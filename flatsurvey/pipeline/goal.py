@@ -1,9 +1,7 @@
 r"""
-The goal of a survey.
+A generic goal of a program run.
 
-A goal is a specialized :class:`Consumer` that is typically not a
-:class:`Producer` at the same time and form its verdict from cached previous
-runs.
+Invocations of flatsurvey run until all registered goals have been resolved.
 
 EXAMPLES:
 
@@ -31,50 +29,11 @@ EXAMPLES:
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-import click
-
-from flatsurvey.pipeline import Consumer
+from abc import ABC, abstractmethod
 
 
-class Goal(Consumer):
-    r"""
-    In the pipeline graph of jobs, a Goal is just a :class:`Consumer` with some
-    added facilities that are shared by all actual goals. In practice this
-    means that all consumers that are not a :class:`Producer` at the same time
-    should most likely inherit from Goal.
-
-    EXAMPLES::
-
-        >>> from flatsurvey.surfaces import Ngon
-        >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections
-        >>> from flatsurvey.jobs.orbit_closure import OrbitClosure
-        >>> surface = Ngon((1, 1, 1))
-        >>> connections = SaddleConnections(surface, report=None)
-        >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(connections, report=None))
-        >>> goal = OrbitClosure(surface=surface, report=None, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=None)
-        >>> isinstance(goal, Goal)
-        True
-
-    """
-    DEFAULT_CACHE_ONLY = False
-
-    _cache_only_option = click.option(
-        "--cache-only",
-        default=DEFAULT_CACHE_ONLY,
-        is_flag=True,
-        help="Do not perform any computation. Only query the cache.",
-    )
-
-    def __init__(self, producers, cache=None, cache_only=DEFAULT_CACHE_ONLY, report=None):
-        if cache is None:
-            from flatsurvey.cache import Cache
-
-            cache = Cache()
-
-        self._cache = cache
-        self._cache_only = cache_only
-
-        super().__init__(producers=producers, report=report)
-
-    async def consume_cache(self):
+class Goal(ABC):
+    @abstractmethod
+    async def resolve(self):
         pass
+

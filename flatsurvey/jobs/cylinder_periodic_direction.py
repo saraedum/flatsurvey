@@ -40,11 +40,11 @@ non-cylinder.
 import click
 
 from flatsurvey.ui import Command
-from flatsurvey.pipeline import Goal
+from flatsurvey.pipeline import ConsumerGoal
 from flatsurvey.ui.group import GroupedCommand
 
 
-class CylinderPeriodicDirection(Goal, Command):
+class CylinderPeriodicDirection(ConsumerGoal, Command):
     r"""
     Determines whether there is a direction for which the surface decomposes
     into cylinders.
@@ -66,7 +66,7 @@ class CylinderPeriodicDirection(Goal, Command):
         report,
         flow_decompositions,
         cache,
-        cache_only=Goal.DEFAULT_CACHE_ONLY,
+        cache_only=ConsumerGoal.DEFAULT_CACHE_ONLY,
         limit=DEFAULT_LIMIT,
     ):
         super().__init__(
@@ -186,7 +186,7 @@ class CylinderPeriodicDirection(Goal, Command):
         default=DEFAULT_LIMIT,
         help="stop search after having looked at that many flow decompositions  [default: no limit]",
     )
-    @Goal._cache_only_option
+    @ConsumerGoal._cache_only_option
     def click(limit, cache_only):
         raise NotImplementedError
         return {

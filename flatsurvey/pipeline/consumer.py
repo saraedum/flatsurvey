@@ -63,6 +63,8 @@ class Consumer(ABC):
     COMPLETED = False
 
     def __init__(self, producers, report=None):
+        super().__init__()
+
         self._producers = producers
 
         # Some consumers can be resolved, e.g., when we are sure that we
@@ -178,13 +180,11 @@ class Consumer(ABC):
                 if await producer.produce() != Producer.EXHAUSTED:
                     break
             else:
-                return not Consumer.COMPLETED
+                return
 
             import asyncio
 
             await asyncio.sleep(0)
-
-        return Consumer.COMPLETED
 
     def reported(self):
         r"""
