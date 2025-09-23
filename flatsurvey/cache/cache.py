@@ -40,9 +40,8 @@ EXAMPLES::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-# TODO: Make sure that the cache can handle both Join'ed files and vanilla JSON output files.
-
 from typing import Literal, Any
+from pathlib import Path
 
 import click
 
@@ -162,33 +161,85 @@ class Cache(Command):
             >>> invoke_subcommand(Cache.click)
 
         """
-        cache = {}
-
-        def load(file):
-            from flatsurvey.reporting.json import Json
-
-            for section, results in Json.load(file).items():
-                cache.setdefault(section, []).extend(results)
-
-        for j in json:
-            import os.path
-
-            if os.path.isdir(j):
-                for root, _, files in os.walk(j):
-                    for f in files:
-                        if f.endswith(".json"):
-                            load(open(os.path.join(root, f), "rb"))
-            elif hasattr(j, "fileno"):
-                import os
-
-                load(os.fdopen(os.dup(j.fileno())))
-            else:
-                load(open(j, "rb"))
+        jsons = [Path(fname) for fname in json]
 
         bindings.define(
             scope=Cache,
-            cache=cache,
+            cache=Cache.load(jsons),
             pickles=pickles)
+
+    @staticmethod
+    def load(jsons: list[Path]) -> dict:
+        from collections import defaultdict
+
+        subjects = defaultdict(lambda: [])
+
+        for parsed in Cache._load_parse(jsons):
+            for subject, values in Cache._load_create_subjects(parsed).items():
+                subjects[subject].extend(values)
+
+        return subjects
+
+    @staticmethod
+    def _load_parse(jsons: list[Path]):
+        r"""
+        Helper method for :meth:`load` that presents the JSON input as an
+        iterator over parsed dicts.
+
+        EXAMPLES::
+
+            >>> from pathlib import Path
+            >>> from tempfile import TemporaryDirectory
+
+            >>> with TemporaryDirectory() as tmpdir:
+            ...     tmpdir = Path(tmpdir)
+            ...     with open(tmpdir / "a.json", "w") as json: _ = json.write('{"subject": {"result": true}}')
+            ...     with open(tmpdir / "b.json", "w") as json: _ = json.write('{"subject": {"result": false}}')
+            ...     list(Cache._load_parse([tmpdir / "a.json", tmpdir / "b.json"]))
+            [{'subject': {'result': True}}, {'subject': {'result': False}}]
+
+        """
+        for json in jsons:
+            from flatsurvey.reporting.json import Json
+            with open(json, "r") as input:
+                yield Json.load(input)
+
+    @staticmethod
+    def _load_create_subjects(parsed: dict):
+        r"""
+        Helper method for :meth:`load` that rewrites the dict ``parsed`` into a
+        subject centered dict.
+
+        EXAMPLES::
+
+            >>> Cache._load_create_subjects({})
+            {}
+
+        Survey configuration is copied into each result::
+
+            >>> Cache._load_create_subjects({
+            ...     "surface": "some-surface",
+            ...     "seed": 1337,
+            ...     "orbit-closure": [{"dense": None}, {"dense": True}]
+            ... })
+            {'orbit-closure': [{'surface': 'some-surface', 'seed': 1337, 'dense': None}, {'surface': 'some-surface', 'seed': 1337, 'dense': True}]}
+
+        Note that anything that isn't a list is considered configuration, see :meth:`Json.result`.
+
+        """
+        configuration = {}
+        subjects = {}
+
+        for key, value in parsed.items():
+            if isinstance(value, list):
+                subjects[key] = value
+            else:
+                configuration[key] = value
+
+        # Copy configuration into each result if missing.
+        subjects = {subject: [dict(**configuration, **result) for result in results] for subject, results in subjects.items()}
+
+        return subjects
 
     def sources(self, *sources: Source):
         r"""

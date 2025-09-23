@@ -2,7 +2,8 @@ r"""
 Aggregate cache files.
 
 Combines JSON files that are produced by the
-:class:`flatsurvey.reporting.json.Json` reporter into files grouped by topic.
+:class:`flatsurvey.reporting.json.Json` reporter into files grouped by subject,
+i.e., type of result.
 
 EXAMPLES::
 
@@ -107,67 +108,6 @@ class Join(Goal, Command):
                 jsons=scoped.get("jsons"),
                 outdir=scoped.get("outdir"))
 
-    def _resolve_parsed_data(self):
-        r"""
-        Helper method for :meth:`resolve` that presents the JSON input as an
-        iterator over parsed dicts.
-
-        EXAMPLES::
-
-            >>> from pathlib import Path
-            >>> from tempfile import TemporaryDirectory
-
-            >>> with TemporaryDirectory() as tmpdir:
-            ...     tmpdir = Path(tmpdir)
-            ...     with open(tmpdir / "a.json", "w") as json: _ = json.write('{"subject": {"result": true}}')
-            ...     with open(tmpdir / "b.json", "w") as json: _ = json.write('{"subject": {"result": false}}')
-            ...     join = Join(jsons=[tmpdir / "a.json", tmpdir / "b.json"], outdir=tmpdir)
-            ...     list(join._resolve_parsed_data())
-            [{'subject': {'result': True}}, {'subject': {'result': False}}]
-
-        """
-        for json in self._jsons:
-            from flatsurvey.reporting.json import Json
-            with open(json, "r") as input:
-                yield Json.load(input)
-
-    @staticmethod
-    def _resolve_create_subjects(parsed):
-        r"""
-        Helper method for :meth:`resolve` that rewrites the dict ``parsed``
-        into a subject centered dict.
-
-        EXAMPLES::
-
-            >>> Join._resolve_create_subjects({})
-            {}
-
-        Survey configuration is copied into each result::
-
-            >>> Join._resolve_create_subjects({
-            ...     "surface": "some-surface",
-            ...     "seed": 1337,
-            ...     "orbit-closure": [{"dense": None}, {"dense": True}]
-            ... })
-            {'orbit-closure': [{'surface': 'some-surface', 'seed': 1337, 'dense': None}, {'surface': 'some-surface', 'seed': 1337, 'dense': True}]}
-
-        Note that anything that isn't a list is considered configuration, see :meth:`Json.result`.
-
-        """
-        configuration = {}
-        subjects = {}
-
-        for key, value in parsed.items():
-            if isinstance(value, list):
-                subjects[key] = value
-            else:
-                configuration[key] = value
-
-        # Copy configuration into each result if missing.
-        subjects = {subject: [dict(**configuration, **result) for result in results] for subject, results in subjects.items()}
-
-        return subjects
-
     async def resolve(self):
         r"""
         Perform this maintenance task, i.e., read the JSON files and repackage
@@ -196,15 +136,14 @@ class Join(Goal, Command):
                 }
               ]
             }
+
+        Note that this is idempotent. Processing the output through the join
+        again leaves the files unmodified.
             
         """
-        from collections import defaultdict
+        from flatsurvey.cache import Cache
 
-        subjects = defaultdict(lambda: [])
-
-        for parsed in self._resolve_parsed_data():
-            for subject, values in self._resolve_create_subjects(parsed).items():
-                subjects[subject].extend(values)
+        subjects = Cache.load(self._jsons)
 
         for subject, values in subjects.items():
             with open(self._outdir / f"{subject}.json", "w") as output:
