@@ -46,7 +46,7 @@ from pathlib import Path
 import click
 
 from flatsurvey.cache.pickles import Pickles
-from flatsurvey.cache.node import ResultSet
+from flatsurvey.cache.result_set import ResultSet
 from flatsurvey.ui import Command
 from flatsurvey.pipeline import Bindings
 from flatsurvey.ui import GroupedCommand
