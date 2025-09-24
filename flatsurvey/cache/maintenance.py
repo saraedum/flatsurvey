@@ -1,10 +1,10 @@
 r"""
-Entrypoint to organize .JSON files written by surveys.
+Entrypoint to organize .json files written by surveys.
 
 TESTS::
 
     >>> from flatsurvey.test.cli import invoke
-    >>> invoke(cli) # doctest: +NORMALIZE_WHITESPACE
+    >>> invoke(cli)  # doctest: +NORMALIZE_WHITESPACE
     Usage: cli [OPTIONS] COMMAND1 [ARGS]... [COMMAND2 [ARGS]...]...
       Mangle cache files.
     Options:
@@ -12,9 +12,7 @@ TESTS::
       --help         Show this message and exit.
       -v, --verbose  Enable verbose message, repeat for debug message.
     Commands:
-      externalize-pickles
-      join
-      split
+      join  Aggregates JSON files into one file for...
 
 """
 # *********************************************************************
@@ -66,10 +64,6 @@ for command in flatsurvey.cache.maintenance_commands:
     cli.add_command(command)
 
 
-from flatsurvey.reporting import GenericLog
-cli.add_command(GenericLog.click)
-
-
 @cli.result_callback()
 def process(commands, debug, verbose):
     r"""
@@ -77,7 +71,14 @@ def process(commands, debug, verbose):
 
     EXAMPLES:
 
-    TODO
+        >>> from flatsurvey.test.cli import invoke
+        >>> invoke(cli, "join", "--help")  # doctest: +NORMALIZE_WHITESPACE
+        Usage: cli join [OPTIONS] [JSONS]...
+          Aggregates JSON files into one file for each type of result.
+        Options:
+          --outdir PATH  a directory to write the output files to  [required]
+          --help         Show this message and exit.
+
     """
     if debug:
         import pdb
@@ -95,9 +96,6 @@ def process(commands, debug, verbose):
 
     bindings = Bindings()
 
-    from flatsurvey.reporting import GenericLog, Report
-    bindings.append("reporters", GenericLog)
-
     for command in commands:
         command(bindings)
 
@@ -105,8 +103,9 @@ def process(commands, debug, verbose):
         import asyncio
 
         from flatsurvey.worker import Worker
-        asyncio.run(Worker.work(pipeline=bindings, limits=[]))
+        asyncio.run(Worker.work(bindings=bindings, limits=[]))
     except Exception:
         if debug:
+            import pdb
             pdb.post_mortem()
         raise
