@@ -52,8 +52,8 @@ from flatsurvey.pipeline import Bindings
 from flatsurvey.ui import GroupedCommand
 
 
-Source = Literal["CACHE", "DEFAULTS", "PICKLE"]
 CacheEntry = dict[str, Any]
+Source = Literal["CACHE", "DEFAULTS", "PICKLE"]
 
 
 class Cache(Command):
@@ -299,7 +299,7 @@ class Cache(Command):
             >>> cache.get("A").type
             Traceback (most recent call last):
             ...
-            AttributeError: cached result has no type
+            AttributeError: cached result has no 'type'
 
             >>> with cache.defaults({"type": "B"}):
             ...     cache.get("A").type
@@ -361,7 +361,7 @@ class Cache(Command):
         We can filter the results further::
 
             >>> len(cache.get(OrbitClosure).filter(lambda entry: entry.dense is not True))
-            3
+            2
 
         Or, if we only want results for a specific surface (the ``cache=cache``
         parameter is optional but speeds up searches a lot)::
@@ -386,7 +386,7 @@ class Cache(Command):
         We can also only look at results for surfaces with certain properties::
 
             >>> cache.get(OrbitClosure).filter(lambda entry: entry.dense is not True)
-            3 cached results
+            2 cached results
 
         Note that the above operation could be expensive because it needs to
         restore the pickle of the orbit closure where "dense" was not included
