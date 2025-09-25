@@ -80,6 +80,7 @@ import flatsurvey.surfaces
 from flatsurvey.pipeline import Bindings
 from flatsurvey.ui.group import CommandWithGroups
 from flatsurvey.reporting.report import Report
+from flatsurvey.restart import Restart
 
 
 @click.group(
@@ -160,12 +161,12 @@ def process(commands, debug, mem_limit, time_limit, verbose):
 
     limits = []
     if mem_limit is not None:
-        from flatsurvey.limits import MemoryLimit
+        from flatsurvey.dask.limits import MemoryLimit
 
         limits.append(MemoryLimit(MemoryLimit.parse_limit(mem_limit)))
 
     if time_limit is not None:
-        from flatsurvey.limits import TimeLimit
+        from flatsurvey.dask.limits import TimeLimit
 
         limits.append(TimeLimit(TimeLimit.parse_limit(time_limit)))
 
@@ -226,7 +227,7 @@ class Worker:
 
                 goal._resolved = Goal.COMPLETED
 
-        from flatsurvey.limits import LimitChecker
+        from flatsurvey.dask.limits import LimitChecker
 
         checks = [LimitChecker(limit, callback) for limit in limits]
 

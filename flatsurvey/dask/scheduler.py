@@ -269,9 +269,8 @@ class Scheduler:
             # documentation there.
             preload="flatsurvey.worker.dask",
             # We would like to spawn isolated processes but this parameter
-            # seems to be ignored as of mid 2025. We do get n_workers worker
-            # but they all live in the
-            # same thread actually.
+            # seems to be ignored as of mid 2025. We do get n_workers workers
+            # but they all live in the same process actually.
             processes=True,
             # Disable the dask nanny, see module documentation of worker/dask.py
             worker_class=dask.distributed.Worker,

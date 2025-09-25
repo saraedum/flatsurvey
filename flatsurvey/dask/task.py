@@ -3,21 +3,23 @@ Implementation of a job that runs on a dask client.
 
 When our main driver communicates with the dask scheduler, there are some
 limitations what kind of objects we can safely and efficiently put on the queue
-of jobs to process. A :class:`DaskTask` encodes such a job which is executed by
-the :class:`DaskRunner`.
+of jobs to process. A :class:`Task` encodes such a job which is executed by
+the :class:`flatsurvey.dask.Runner`.
 
 We load this module into the actual dask workers with ``--preload
-flatsurvey.worker.dask``.
+flatsurvey.dask.worker``.
 
 EXAMPLES:
 
-This is a support module for the :mod:`flatsurvey.scheduler` it is not meant to
-be used in isolation. Nevertheless, for the sake of testing, we can spin up a
-dask client and have it run a task from this module::
+This is a support module for the :mod:`flatsurvey.dask.scheduler` it is not
+meant to be used in isolation. Nevertheless, for the sake of testing, we can
+spin up a dask client and have it run a task from this module::
 
     >>> from dask.distributed import Client
+    >>> from flatsurvey.dask import SchedulerCancellationToken
 
-    >>> client = Client(processes=False, nthreads=1, preload="flatsurvey.worker.dask")
+    >>> client = Client(processes=False, nthreads=1, preload="flatsurvey.dask.worker")
+    >>> token = SchedulerCancellationToken(client)
 
     >>> from flatsurvey.surfaces import Ngon, Surface
     >>> from flatsurvey.jobs import OrbitClosure
@@ -32,11 +34,11 @@ dask client and have it run a task from this module::
     >>> bindings2 = survey.clone()
     >>> bindings2.define(Surface, Ngon(angles=[1, 1, 2], length="e-antic"))
 
-    >>> tasks = [DaskTask(bindings=bindings1), DaskTask(bindings=bindings2)]
+    >>> tasks = [Task(bindings=bindings1), Task(bindings=bindings2)]
     >>> tasks
-    [DaskTask(…), DaskTask(…)]
+    [Task(…), Task(…)]
 
-    >>> futures = [client.submit(task) for task in tasks]
+    >>> futures = [client.submit(task, token.id) for task in tasks]
     >>> results = [future.result() for future in futures]
 
 Note that the futures have no actual result, the result is usually written to
@@ -98,6 +100,9 @@ some log file by a reporter instead::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
+from flatsurvey.pipeline import Bindings
+
+
 class Task:
     r"""
     A task to execute on a dask worker.
@@ -111,13 +116,14 @@ class Task:
     triggers the loading of SageMath. Also, even without the nanny, these
     objects tend to cause memory leaks (due to UniqueRepresentation for
     example.) Therefore, we only unpickle objects in a fresh process that then
-    does the actual processing, so we start with a clean SageMath session every
-    time.
+    does the actual processing, so we start with a clean SageMath session for
+    every task.
 
     INPUT:
 
-    The arguments are passed on to :class:`worker.Worker.work`. All arguments
-    must be serializable.
+    - ``bindings`` -- the bindings from which we restore the goals that this task needs to resolve
+
+    - ``repr`` -- a custom representation of this task to help debugging
 
     EXAMPLES:
 
@@ -131,21 +137,31 @@ class Task:
         >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
         >>> bindings.append("goals", OrbitClosure)
 
-        >>> task = DaskTask(bindings=bindings)
+        >>> task = Task(bindings=bindings)
         >>> task
-        DaskTask(…)
+        Task(…)
 
     Normally, the task is going to be serialized, sent to a worker,
-    deserialized, and then gets called on the worker::
+    deserialized, and then gets called on the worker. Here we call it directly
+    for demonstration purposes (the ``client`` here is essentially unused
+    therefore but required by the underlying machinery)::
 
-        >>> task()
+        >>> from dask.distributed import Client
+        >>> from flatsurvey.dask import SchedulerCancellationToken
+
+        >>> client = Client(processes=False, nthreads=1, preload="flatsurvey.dask.worker")
+        >>> token = SchedulerCancellationToken(client)
+
+        >>> task(token.id)
 
     Calling a task like this makes sure that the necessary machinery is set up
-    on the worker, i.e., a :class:`DaskRunner` gets created which forks off
+    on the worker, i.e., a :class:`Runner` gets created which forks off
     the actual execution process, sets up message queues, …; eventually, the
     task's :meth:`run` is executed and the result of that call is reported
-    back (in our setup, only an exception is reported; otherwise the returned
-    value is ``None``.)
+    back (in this case, only an exception would be reported; since this
+    particular task returns ``None``.)
+
+        >>> client.shutdown()
 
     """
 
@@ -153,23 +169,30 @@ class Task:
     # below.
     LIMITS = []
 
-    # TODO: We should probably force that the parameter here is "bindings" since that's the only thing the worker understands. Unless we allow configuration of the Worker.
-    def __init__(self, bindings, token: SchedulerCancellationToken, repr="DaskTask(…)"):
+    def __init__(self, bindings: Bindings, repr="Task(…)"):
         from pickle import dumps
 
         self._repr = repr
         self._bindings = dumps(bindings)
-        self._token = token.id
 
-    def __call__(self):
+    def __call__(self, token: str):
         r"""
         Execute this task in the current worker and return the result.
 
         This is the callable that is submitted via ``client.submit`` by the scheduler.
 
-        TODO: Add an example that shows how exceptions are handled.
+        INPUT:
+
+        - ``token`` -- the ``id`` of the :class:`SchedulerCancellationToken` of
+          the running dask scheduler
 
         EXAMPLES::
+
+            >>> from dask.distributed import Client
+            >>> from flatsurvey.dask import SchedulerCancellationToken
+
+            >>> client = Client(processes=False, nthreads=1, preload="flatsurvey.dask.worker")
+            >>> token = SchedulerCancellationToken(client)
 
             >>> from flatsurvey.surfaces import Ngon, Surface
             >>> from flatsurvey.jobs import OrbitClosure
@@ -179,11 +202,34 @@ class Task:
             >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
             >>> bindings.append("goals", OrbitClosure)
 
-            >>> task = DaskTask(bindings=bindings)
-            >>> task()
+            >>> task = Task(bindings=bindings)
+
+        Normally, this task would be submitted to a remote worker via
+        ``client.submit``  which then calls it; for demonstration purposes we
+        call it directly (the ``client`` here is essentially unused therefore
+        but required by the underlying machinery)::
+
+            >>> task(token.id)
+
+        Any exceptions that occur during the computation (here we forgot to set
+        a required parameter) are rethrown as generic ``RunnerException``::
+
+            >>> bindings = Bindings()
+            >>> bindings.append("goals", OrbitClosure)
+            >>> task = Task(bindings=bindings)
+
+            >>> task(token.id)  # doctest: +ELLIPSIS
+            Traceback (most recent call last):
+            ...
+            flatsurvey.dask.runner.RunnerException: exception occurred in runner...
+
+            >>> client.shutdown()
 
         """
-        return DaskRunner(self, DaskRunnerCancellationToken(self._token)).run()
+        from flatsurvey.dask.worker_cancellation_token import WorkerCancellationToken
+        from flatsurvey.dask.runner import Runner
+
+        return Runner(self, WorkerCancellationToken(token)).run()
 
     def __repr__(self):
         r"""
@@ -193,8 +239,13 @@ class Task:
         not want to unpickle any of the ``_dump`` to determine the repr of this
         object when printing status messages.
 
-        >>> DaskTask(repr="DaskTask(1337)")
-        DaskTask(1337)
+        EXAMPLES::
+
+            >>> from flatsurvey.pipeline import Bindings
+
+            >>> bindings = Bindings()
+            >>> Task(bindings=bindings, repr="Task(1337)")
+            Task(1337)
 
         """
         return self._repr
@@ -205,7 +256,7 @@ class Task:
         return the result.
 
         This method is meant to be invoked in a remote worker by
-        :class:`TaskRunner`.
+        :class:`Runner`.
 
         EXAMPLES::
 
@@ -217,8 +268,15 @@ class Task:
             >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
             >>> bindings.append("goals", OrbitClosure)
 
-            >>> task = DaskTask(bindings=bindings)
+            >>> task = Task(bindings=bindings)
+
+        Here the ``bindings`` are configured to print some status messages to
+        the console. Normally, one would set things up to write results to
+        output files::
+
             >>> task.run()
+            [Ngon([1, 1, 1])] [SaddleConnections] connections: 0/?
+            [Ngon([1, 1, 1])] [FlowDecompositions] ¯\_(ツ)_/¯ ... (cylinders: 1) (minimal: 0) (undetermined: 0)
             [Ngon([1, 1, 1])] [OrbitClosure] dimension: 2/2
             [Ngon([1, 1, 1])] [OrbitClosure] GL(2,R)-orbit closure of dimension at least 2 in H_1(0) (ambient dimension 2) (dimension: 2) (directions: 1) (directions_with_cylinders: 1) (dense: True)
 
@@ -235,4 +293,4 @@ class Task:
 
         from flatsurvey.worker import Worker
 
-        return asyncio.run(Worker.work(bindings, limits=DaskTask.LIMITS))
+        return asyncio.run(Worker.work(bindings, limits=Task.LIMITS))

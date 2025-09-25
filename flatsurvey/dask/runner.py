@@ -17,17 +17,23 @@
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
+from flatsurvey.dask.worker import forkserver
+
+from flatsurvey.dask.task import Task
+from flatsurvey.dask.worker_cancellation_token import WorkerCancellationToken
+
+
 class Runner:
     r"""
-    Executes a :class:`DaskTask` in this worker.
+    Executes a :class:`Task` in this worker.
 
     This works around limitations that arise when combining dask and SageMath,
     see module documentation.
 
-    Instances of this are created by :meth:`DaskTask.__call__`. There should be
+    Instances of this are created by :meth:`Task.__call__`. There should be
     no use case to instantiate this otherwise.
     """
-    def __init__(self, task: DaskTask, token: WorkerCancellationToken):
+    def __init__(self, task: Task, token: WorkerCancellationToken):
         self._task = task
         self._token = token
 
@@ -54,7 +60,7 @@ class Runner:
         # For most workloads this does not seem to be necessary, and we might
         # want to change that at some point.
         # TODO: What happens when _run raises an Exception? Add a test.
-        process = forkserver.Process(target=DaskRunner._run, args=(self,), daemon=False, name=repr(self._task))
+        process = forkserver.Process(target=Runner._run, args=(self,), daemon=False, name=repr(self._task))
 
         import dask.distributed
         if self._token.is_cancelled(dask.distributed.get_client()):
@@ -94,7 +100,7 @@ class Runner:
     @staticmethod
     def _run(self):  # pyright: ignore
         r"""
-        Run a :class:`DaskTask`.
+        Run a :class:`Task`.
 
         This method is meant to run in a separate clean process that
         :meth:`run` spawns.
@@ -103,14 +109,14 @@ class Runner:
         self._result_receiver.close()
 
         from threading import Thread
-        Thread(target=DaskRunner._wait_for_shutdown, args=(self,))
+        Thread(target=Runner._wait_for_shutdown, args=(self,))
 
         try:
             try:
                 result = self._task.run()
             except Exception:
                 import traceback
-                result = DaskRunnerException(traceback.format_exc())
+                result = RunnerException(f"exception occurred in runner\n{traceback.format_exc()}")
 
             self._result_sender.send("DONE")
 
@@ -135,7 +141,7 @@ class Runner:
             sys.exit()
 
 
-class DaskRunnerException(Exception):
+class RunnerException(Exception):
     pass
 
 

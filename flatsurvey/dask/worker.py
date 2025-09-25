@@ -59,9 +59,9 @@ def dask_setup(worker, mem_limit, time_limit):
     if mem_limit is not None:
         from flatsurvey.dask import MemoryLimit
 
-        DaskTask.LIMITS.append(MemoryLimit(MemoryLimit.parse_limit(mem_limit)))
+        Task.LIMITS.append(MemoryLimit(MemoryLimit.parse_limit(mem_limit)))
 
     if time_limit is not None:
         from flatsurvey.dask import TimeLimit
 
-        DaskTask.LIMITS.append(TimeLimit(TimeLimit.parse_limit(time_limit)))
+        Task.LIMITS.append(TimeLimit(TimeLimit.parse_limit(time_limit)))

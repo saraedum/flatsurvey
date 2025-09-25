@@ -146,7 +146,7 @@ class Consumer(ABC):
     async def _consume(self, product, cost):
         r"""
         Process the ``product`` by one of the producers we are attached to and
-        return whether we are willing to consumer further data or whether we
+        return whether we are willing to consume further data or whether we
         have been completely resolved.
 
         Actual consumers must implement this method.

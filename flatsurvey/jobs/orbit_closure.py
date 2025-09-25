@@ -359,7 +359,8 @@ class OrbitClosure(ConsumerGoal, Command):
 
         if self.dimension == self._surface.orbit_closure_dimension_upper_bound:
             await self.report()
-            return Goal.COMPLETED
+            # Stop consuming further cylinder decompositions.
+            return False
 
         if self._cylinders_without_increase >= self._stale_limit:
             if self._expansions_performed < self._expansions_limit:
