@@ -28,10 +28,43 @@ class Runner:
     Executes a :class:`Task` in this worker.
 
     This works around limitations that arise when combining dask and SageMath,
-    see module documentation.
+    namely, that we cannot use SageMath in a normal nanny-observer threaded
+    dask worker. See :mod:`flatsurvey.dask.task` for details.
 
     Instances of this are created by :meth:`Task.__call__`. There should be
     no use case to instantiate this otherwise.
+
+    EXAMPLES:
+
+    We create a task that can be executed on a runner::
+
+        >>> from dask.distributed import Client
+        >>> from flatsurvey.dask import SchedulerCancellationToken
+
+        >>> client = Client(processes=False, nthreads=1, preload="flatsurvey.dask.worker")
+        >>> token = SchedulerCancellationToken(client)
+
+        >>> from flatsurvey.surfaces import Ngon, Surface
+        >>> from flatsurvey.jobs import OrbitClosure
+        >>> from flatsurvey.pipeline import Bindings
+
+        >>> bindings = Bindings()
+        >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
+        >>> bindings.append("goals", OrbitClosure)
+
+        >>> task = Task(bindings=bindings)
+
+    Normally, one would now submit this task to the dask ``client`` which
+    executes :meth:`run`. For the sake of documentation, we create a runner
+    manually and execute the task there. (The ``client`` created earlier is not
+    used here at all, it's just needed to make the underlying machinery
+    happy.)::
+
+        >>> runner = Runner(task, WorkerCancellationToken(token.id))
+        >>> runner.run()
+
+        >>> client.shutdown()
+
     """
     def __init__(self, task: Task, token: WorkerCancellationToken):
         self._task = task
@@ -54,12 +87,58 @@ class Runner:
         self._result_queue = forkserver.Queue()
 
     def run(self):
+        r"""
+        Fork a process and run the registered task in that process.
+
+        EXAMPLES:
+
+        We create a task that can be executed on a runner::
+
+            >>> from dask.distributed import Client
+            >>> from flatsurvey.dask import SchedulerCancellationToken
+
+            >>> client = Client(processes=False, nthreads=1, preload="flatsurvey.dask.worker")
+            >>> token = SchedulerCancellationToken(client)
+
+            >>> from flatsurvey.surfaces import Ngon, Surface
+            >>> from flatsurvey.jobs import OrbitClosure
+            >>> from flatsurvey.pipeline import Bindings
+
+            >>> bindings = Bindings()
+            >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
+            >>> bindings.append("goals", OrbitClosure)
+
+            >>> task = Task(bindings=bindings)
+
+        We execute the task::
+
+            >>> runner = Runner(task, WorkerCancellationToken(token.id))
+            >>> runner.run()
+
+        When the task throws an exception it is propagated from the forked
+        process. However, it is wrapped as a :class:`RunnerException` which
+        holds the original exception only textually since unpickling the
+        exception might not be possible::
+
+            >>> bindings = Bindings()
+            >>> bindings.append("goals", OrbitClosure)
+
+            >>> task = Task(bindings=bindings)
+
+            >>> runner = Runner(task, WorkerCancellationToken(token.id))
+            >>> runner.run()
+            Traceback (most recent call last):
+            ...
+            flatsurvey.dask.runner.RunnerException: exception occurred in runner...
+
+            >>> client.shutdown()
+
+        """
         # We do not set daemon, so that the process can have child processes.
         # The pipe setup makes sure that the child dies nevertheless when the
         # parent dies.
         # For most workloads this does not seem to be necessary, and we might
         # want to change that at some point.
-        # TODO: What happens when _run raises an Exception? Add a test.
         process = forkserver.Process(target=Runner._run, args=(self,), daemon=False, name=repr(self._task))
 
         import dask.distributed
@@ -100,7 +179,7 @@ class Runner:
     @staticmethod
     def _run(self):  # pyright: ignore
         r"""
-        Run a :class:`Task`.
+        Helper method for :meth:`run`.
 
         This method is meant to run in a separate clean process that
         :meth:`run` spawns.
@@ -142,6 +221,7 @@ class Runner:
 
 
 class RunnerException(Exception):
-    pass
-
-
+    r"""
+    Signals that an exception occurred in the forked process that actually
+    executed the :class:`Task`.
+    """
