@@ -54,6 +54,8 @@ class Json(Reporter, Command):
         >>> Json(surface)
         json
 
+        >>> TODO: Externalize pickles automatically.
+
     """
 
     # TODO: Generalize the "surface" here. We want to track any configuration for this survey, i.e., anything that is not a "result".
@@ -201,6 +203,8 @@ class Json(Reporter, Command):
 
             >>> json._serialize_to_pickle(True)
             {'type': 'bool', 'pickle': 'gASILg=='}
+
+            >>> TODO: Use the version in pickles.py instead.
 
         """
         import base64

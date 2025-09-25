@@ -202,8 +202,7 @@ class ResultSet:
                 except KeyError:
                     continue
 
-                kind = row.get("type", None)
-                instance = source.unpickle(pickle, kind)
+                instance = source.load(pickle)
 
                 try:
                     result = instance[name]
