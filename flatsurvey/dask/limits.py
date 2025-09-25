@@ -162,7 +162,7 @@ class TimeLimit(Limit):
         """
         import pandas
 
-        return pandas.Timedelta(limit).to_pytimedelta()
+        return pandas.Timedelta(limit).to_pytimedelta()  # pyright: ignore
 
     def check(self):
         r"""
@@ -229,6 +229,11 @@ class MemoryLimit(Limit):
         ram = psutil.virtual_memory().total
         cpus = psutil.cpu_count()
 
+        if cpus is None:
+            import warnings
+            warnings.warn("System failed to report the number of available CPU threads. Assuming single CPU thread.")
+            cpus = 1
+
         if limit == "conservative":
             return int(ram / cpus / 2)
 
@@ -243,11 +248,31 @@ class MemoryLimit(Limit):
         return int(DataSize(limit))
 
     @staticmethod
-    def memory():
-        import os
+    def memory(pid: int | None=None):
+        r"""
+        Return the total memory (Rss + Swap) used by the process with ``pid``.
 
-        # TODO: Use child pid.
-        pid = os.getpid()
+        If no ``pid`` is given, then return the total memory used by this
+        process and its child processes.
+        """
+        import os
+        if pid is None:
+            pid = os.getpid()
+
+            import psutil
+            parent = psutil.Process(pid)
+
+            from collections import defaultdict
+            memory = defaultdict(lambda: 0)
+
+            children = [child.pid for child in parent.children(recursive=True)]
+            children.append(pid)
+
+            for child in children:
+                for kind, value in MemoryLimit.memory(child).items():
+                    memory[kind] += value
+
+            return memory
 
         smap = f"/proc/{pid}/smaps"
 
