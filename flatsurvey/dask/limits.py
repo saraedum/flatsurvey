@@ -1,4 +1,3 @@
-# TODO: Probably move this out of dask. There's nothing dask about this, is there?
 r"""
 Utilities to watch resource consumption on Linux machines.
 
