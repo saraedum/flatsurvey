@@ -195,7 +195,8 @@ class Runner:
                 result = self._task.run()
             except Exception:
                 import traceback
-                result = RunnerException(f"exception occurred in runner\n{traceback.format_exc()}")
+                result = RunnerException(f"exception occurred in runner")
+                result.add_note("\nThe above exception was caused by the following exception in the runner:\n\n"+traceback.format_exc())
 
             self._result_sender.send("DONE")
 
