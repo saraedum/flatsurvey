@@ -57,17 +57,14 @@ from flatsurvey.dask import SchedulerCancellationToken
 
 class Scheduler:
     r"""
-    A scheduler that splits a survey into commands that are sent out to workers
+    A scheduler that splits a survey into tasks that are sent out to workers
     via the dask protocol.
 
     INPUT::
 
-    - ``survey_bindings`` -- a :class:`Bindings` that specifies which
-      computations should be performed by this survey.
-      This bindings must have a ``"survey"`` entry which names the keys over
-      which we should be iterating, e..g., ``"survey"`` could specify
-      ``Surface`` and then we'll round-robin iterate over all the surfaces that
-      are stored in the ``Surface`` entries.
+    - ``survey_bindings`` -- an iterator of :class:`Bindings` that lists which
+      computations should be performed by this survey, usually created with
+      :meth:`Bindings.survey_bindings`.
 
     - ``scheduler`` -- a dask scheduler file to connect to; if not given (the
       default) then a dedicated dask scheduler is launched
@@ -287,12 +284,12 @@ class Scheduler:
 
     async def _submit_job(self, pool: dask.distributed.Client, progress: SurveyProgress, token: SchedulerCancellationToken) -> dask.distributed.Future | None:
         r"""
-        Enqueue another surface for computation on a worker.
+        Enqueue another task for computation on a worker.
 
         Return a future that resolves when the job completes or ``None`` if all
-        surfaces have been scheduled already.
+        tasks have been scheduled already.
 
-        This will skip over surfaces that can be resolved from cached data.
+        This will skip over tasks that can be resolved from cached data.
 
         This is a helper method for :meth:`_seed_jobs` and :meth:`submit_jobs`.
 
@@ -311,30 +308,24 @@ class Scheduler:
 
             cached = await self._resolve_from_cache(bindings)
 
-            # TODO: Maybe the bindings could have some logic for this one builtin so we don't have to call across all domains here.
-            # Sanity check that caching does not cause memory leaks if this is a surface survey
-            surface = bindings.get(Surface, None)
-            if surface is not None:
-                assert surface._surface.cache is None, "to prevent memory leaks, surface must not be created to resolve caches"  # pyright: ignore[reportFunctionMemberAccess]
+            assert not bindings.potential_memory_leaks, "to prevent memory leaks, leaking SageMath objects such as surfaces must not be created to resolve caches"
 
             if cached:
-                # Everything could be answered from cached data. Proceed to next surface.
+                # Everything could be answered from cached data. Proceed to next task.
                 continue
 
-            bindings = bindings.clone()
+            # Forget about the precise values that were created to answer from
+            # the cache.
+            bindings = bindings.clone(repr(bindings))
 
-            # The workers do not need a copy of the cache.
+            # Make sure that the workers do not access the cache (it won't
+            # speed things up there.)
             from flatsurvey.cache import Cache
             bindings.forget(Cache)
 
             from flatsurvey.dask.task import Task
 
-            # TODO: Maybe bindings themselves could print a bit better so we don't have to hard-code surface here.
-            from flatsurvey.pipeline import Goal
-            task = Task(
-                bindings,
-                repr=f"DaskTask(surface={surface!r}, goals={bindings.describe(Goal)})",
-            )
+            task = Task(bindings)
 
             if token.cancelled:
                 return None

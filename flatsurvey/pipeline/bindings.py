@@ -330,11 +330,12 @@ class Bindings:
         ('surface1', ['some goal'])
 
     """
-    def __init__(self):
+    def __init__(self, repr=None):
         self._values = {}
         self._bindings = {}
         self._scopes = {}
         self._survey = {}
+        self._repr: str | None = repr
 
     @staticmethod
     def click(wrapped):
@@ -387,11 +388,16 @@ class Bindings:
 
         for values in product(*sources.values()):
             keys = sources.keys()
-            bindings = self.clone()
+            bindings = self.clone(repr=f"Bindings(survey {','.join(f'{key}={value}' for key, value in zip(keys, values))})")
             for key, value in zip(keys, values):
                 bindings.define(key, value)
 
             yield bindings
+
+    @property
+    def potential_memory_leaks(self):
+        # TODO: Try to find pyflatsurf objects and such somehow.
+        return None
 
     @overload
     def define(self, key: Key, value: object): ...
@@ -480,9 +486,9 @@ class Bindings:
         return "?"
 
     def __repr__(self):
-        return f"Bindings with bindings {self._bindings} and values {self._values}"
+        return self._repr or super().__repr__()
 
-    def clone(self):
+    def clone(self, repr=None):
         r"""
         Return a copy of the bindings.
 
@@ -507,9 +513,11 @@ class Bindings:
             False
 
         """
-        clone = Bindings()
+        clone = Bindings(repr=repr)
         clone._bindings = {key: binding.clone() for key, binding in self._bindings.items()}
         clone._scopes = {scope: child.clone() for scope, child in self._scopes.items()}
+        if clone._survey:
+            raise NotImplementedError("cannot clone a survey binding")
         return clone
 
     def forget(self, key: Key):
