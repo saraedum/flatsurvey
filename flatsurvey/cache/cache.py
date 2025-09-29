@@ -170,6 +170,26 @@ class Cache(Command):
 
     @staticmethod
     def load(jsons: list[Path]) -> dict:
+        r"""
+        Load previous results from ``jsons`` and return them as a dict of
+        results by subject.
+
+        Note that configuration of the runs, i.e., anything that is not a list
+        is copied into each result.
+
+        EXAMPLES::
+
+            >>> from pathlib import Path
+            >>> from tempfile import TemporaryDirectory
+
+            >>> with TemporaryDirectory() as tmpdir:
+            ...     tmpdir = Path(tmpdir)
+            ...     with open(tmpdir / "a.json", "w") as json: _ = json.write('{"subject": [{"result": true}], "surface": "111"}')
+            ...     with open(tmpdir / "b.json", "w") as json: _ = json.write('{"subject": [{"result": false}], "surface": "3413"}')
+            ...     Cache.load([tmpdir / "a.json", tmpdir / "b.json"])
+            {'subject': [{'surface': '111', 'result': True}, {'surface': '3413', 'result': False}]}
+
+        """
         from collections import defaultdict
 
         subjects = defaultdict(lambda: [])
@@ -178,7 +198,7 @@ class Cache(Command):
             for subject, values in Cache._load_create_subjects(parsed).items():
                 subjects[subject].extend(values)
 
-        return subjects
+        return dict(subjects)
 
     @staticmethod
     def _load_parse(jsons: list[Path]):
