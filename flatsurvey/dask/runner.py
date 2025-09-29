@@ -46,11 +46,11 @@ class Runner:
 
         >>> from flatsurvey.surfaces import Ngon, Surface
         >>> from flatsurvey.jobs import OrbitClosure
-        >>> from flatsurvey.pipeline import Bindings
+        >>> from flatsurvey.pipeline import Bindings, Goal
 
         >>> bindings = Bindings()
         >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
-        >>> bindings.append("goals", OrbitClosure)
+        >>> bindings.append(Goal, OrbitClosure)
 
         >>> task = Task(bindings=bindings)
 
@@ -102,11 +102,11 @@ class Runner:
 
             >>> from flatsurvey.surfaces import Ngon, Surface
             >>> from flatsurvey.jobs import OrbitClosure
-            >>> from flatsurvey.pipeline import Bindings
+            >>> from flatsurvey.pipeline import Bindings, Goal
 
             >>> bindings = Bindings()
             >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
-            >>> bindings.append("goals", OrbitClosure)
+            >>> bindings.append(Goal, OrbitClosure)
 
             >>> task = Task(bindings=bindings)
 
@@ -121,7 +121,7 @@ class Runner:
         exception might not be possible::
 
             >>> bindings = Bindings()
-            >>> bindings.append("goals", OrbitClosure)
+            >>> bindings.append(Goal, OrbitClosure)
 
             >>> task = Task(bindings=bindings)
 

@@ -7,20 +7,20 @@ EXAMPLES:
 
 We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
     
-    >>> from flatsurvey.pipeline import Bindings
+    >>> from flatsurvey.pipeline import Bindings, Goal
     >>> survey = Bindings()
 
-    >>> from flatsurvey.surfaces import Ngons
+    >>> from flatsurvey.surfaces import Surface, Ngons
     >>> ngons = Ngons(vertices=3, length="e-antic", min=0, limit=None, count=2, literature='include', family=None, filter=None)
-    >>> survey.append("surfaces", ngons)
+    >>> survey.survey(Surface, ngons)
 
     >>> from flatsurvey.jobs import OrbitClosure
-    >>> survey.append("goals", OrbitClosure)
+    >>> survey.append(Goal, OrbitClosure)
 
-    >>> scheduler = Scheduler(survey_bindings=survey)
+    >>> scheduler = Scheduler(survey_bindings=survey.survey_bindings)
 
     >>> import asyncio
-    >>> asyncio.run(scheduler.start())  # random progress output
+    >>> asyncio.run(scheduler.start())
     on ...: all jobs have been scheduled
     waiting for jobs to finish ...
 
@@ -44,7 +44,7 @@ We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from contextlib import asynccontextmanager
+from contextlib import contextmanager
 from typing import Iterator, List
 
 import dask.distributed
@@ -63,8 +63,11 @@ class Scheduler:
     INPUT::
 
     - ``survey_bindings`` -- a :class:`Bindings` that specifies which
-      computations should be performed by this survey. This bindings must have
-      a ``"surfaces"`` entry for all the surfaces that should be surveyed.
+      computations should be performed by this survey.
+      This bindings must have a ``"survey"`` entry which names the keys over
+      which we should be iterating, e..g., ``"survey"`` could specify
+      ``Surface`` and then we'll round-robin iterate over all the surfaces that
+      are stored in the ``Surface`` entries.
 
     - ``scheduler`` -- a dask scheduler file to connect to; if not given (the
       default) then a dedicated dask scheduler is launched
@@ -75,35 +78,31 @@ class Scheduler:
 
     ALGORITHM:
 
-    We'll have lots of jobs (surfaces) that we want to run with one scheduler
-    usually. Often even an infinite family. So we cannot submit all the jobs
-    into the dask job queue and wait for them to complete.
+    We'll have lots of jobs, (e.g., surfaces,) that we want to run with one
+    scheduler usually. Often even an infinite family. So we cannot submit all
+    the jobs into the dask job queue and wait for them to complete.
 
     Instead, we try to keep a good amount of a "backlog" in the queue so that
     our workers never run out of things to do. Whenever a worker finishes a
     job, we try to keep the queue equally full by finding a new job to submit
     into the queue (this might take a while since we might be able to obtain
-    the results for a lot of surfaces from our caches and won't submit them
-    into the queue therefore.)
+    the results for a lot of configurations from our caches and won't submit
+    them into the queue therefore.)
 
     EXAMPLES::
 
-        >>> from flatsurvey.pipeline import Bindings
-        >>> bindings = Bindings()
-        >>> bindings.append("surfaces", [])
-
-        >>> Scheduler(survey_bindings=bindings)
+        >>> Scheduler(survey_bindings=[])
         Scheduler(…)
 
     """
 
     def __init__(
         self,
-        survey_bindings: Bindings,
+        survey_bindings: Iterator[Bindings],
         scheduler_json=None,
         queue_limit=None,
     ):
-        self._survey_bindings = survey_bindings
+        self._survey_bindings = iter(survey_bindings)
         self._scheduler_json = scheduler_json
         self._queue_limit = queue_limit
 
@@ -118,10 +117,7 @@ class Scheduler:
         EXAMPLES::
 
             >>> import asyncio
-            >>> from flatsurvey.pipeline import Bindings
-            >>> bindings = Bindings()
-            >>> bindings.append("surfaces", [])
-            >>> scheduler = Scheduler(survey_bindings=bindings)
+            >>> scheduler = Scheduler(survey_bindings=[])
             >>> asyncio.run(scheduler.start())  # random progress output
             on ...: no jobs were required to complete this survey
             ...
@@ -129,27 +125,28 @@ class Scheduler:
         """
         pool = await self._create_pool()
 
-        async with self._create_sigint_handler(pool) as token:
+        with self._create_sigint_handler(pool) as token:
             try:
-                surfaces = self._create_surfaces()
-
                 with SurveyProgress(activity="...") as progress:
-                    jobs = await self._seed_jobs(pool, progress, token, surfaces)
+                    jobs = await self._seed_jobs(pool, progress, token)
 
                     if not jobs:
                         print("no jobs were required to complete this survey")
                         return
 
-                    await self._submit_jobs(pool, progress, token, jobs, surfaces)
+                    await self._submit_jobs(pool, progress, token, jobs)
                     await self._await_pending_jobs(progress, jobs)
             finally:
                 # Terminate all workers immediately if we crash out of this code
                 # block. (If we terminated normally, then there's nothing we have
                 # to wait for.
                 await pool.close(0)  # pyright: ignore[reportGeneralTypeIssues]
+                if self._scheduler_json is None:
+                    # Shut down the scheduler & workers that we started.
+                    await pool.shutdown()
 
-    @asynccontextmanager
-    async def _create_sigint_handler(self, pool: dask.distributed.Client):
+    @contextmanager
+    def _create_sigint_handler(self, pool: dask.distributed.Client):
         r"""
         Replace the handler for the SIGINT signal while this context is active
         so that pressing Ctrl-C aborts the survey.
@@ -175,11 +172,7 @@ class Scheduler:
 
         EXAMPLES::
 
-            >>> from flatsurvey.pipeline import Bindings
-            >>> bindings = Bindings()
-            >>> bindings.append("surfaces", [])
-
-            >>> scheduler = Scheduler(survey_bindings=bindings)
+            >>> scheduler = Scheduler(survey_bindings=[])
 
             >>> import os, signal
 
@@ -196,9 +189,7 @@ class Scheduler:
             >>> import asyncio
             >>> asyncio.run(test())
             False
-            requested cancellation
             True
-            forcing scheduler to shut down
             True
 
         """
@@ -224,9 +215,7 @@ class Scheduler:
 
         EXAMPLES::
 
-            >>> from flatsurvey.pipeline import Bindings
-
-            >>> scheduler = Scheduler(survey_bindings=Bindings())
+            >>> scheduler = Scheduler(survey_bindings=[])
 
             >>> async def create_pool():
             ...     pool = await scheduler._create_pool()
@@ -263,11 +252,10 @@ class Scheduler:
             # Start a worker for each execution thread on the CPU.
             n_workers=cpu_count(),
             # We run each worker single-threaded, see worker/dask.py.
-            # nthreads=1,
             threads_per_worker=1,
             # We preload worker/dask.py unless scheduler_file is set, see
             # documentation there.
-            preload="flatsurvey.worker.dask",
+            preload="flatsurvey.dask.worker",
             # We would like to spawn isolated processes but this parameter
             # seems to be ignored as of mid 2025. We do get n_workers workers
             # but they all live in the same process actually.
@@ -276,36 +264,7 @@ class Scheduler:
             worker_class=dask.distributed.Worker,
         )
 
-    def _create_surfaces(self):
-        r"""
-        Return a surface iterator with a fresh copy of all surfaces to be
-        surveyed.
-
-        This is a helper method for :meth:`start`.
-
-        EXAMPLES::
-
-            >>> from flatsurvey.pipeline import Bindings
-            >>> bindings = Bindings()
-
-            >>> from flatsurvey.surfaces import Ngons
-            >>> ngons = Ngons(vertices=3, length="e-antic", min=0, limit=None, count=2, literature='include', family=None, filter=None)
-            >>> bindings.append("surfaces", ngons)
-
-            >>> scheduler = Scheduler(survey_bindings=bindings)
-
-            >>> surfaces = scheduler._create_surfaces()
-            >>> list(surfaces)
-            [Ngon([1, 1, 1]), Ngon([1, 1, 2])]
-
-            >>> list(surfaces)
-            []
-
-        """
-        from more_itertools import roundrobin
-        return roundrobin(*self._survey_bindings.get("surfaces"))
-
-    async def _seed_jobs(self, pool: dask.distributed.Client, progress: SurveyProgress, token: SchedulerCancellationToken, surfaces: Iterator[Surface]) -> List[dask.distributed.Future]:
+    async def _seed_jobs(self, pool: dask.distributed.Client, progress: SurveyProgress, token: SchedulerCancellationToken) -> List[dask.distributed.Future]:
         r"""
         Initialize the job queue with some things to work on without actually
         consuming results from the workers that might arrive in the meantime.
@@ -319,14 +278,14 @@ class Scheduler:
 
         # Fill the job queue with a base line of queue_limit many jobs.
         for _ in range(self._queue_limit or 3 * sum((await pool.nthreads()).values())):
-            job = await self._submit_job(pool, progress, token, surfaces)
+            job = await self._submit_job(pool, progress, token)
             if job is None:
                 break
             jobs.append(job)
 
         return jobs
 
-    async def _submit_job(self, pool: dask.distributed.Client, progress: SurveyProgress, token: SchedulerCancellationToken, surfaces: Iterator[Surface]) -> dask.distributed.Future | None:
+    async def _submit_job(self, pool: dask.distributed.Client, progress: SurveyProgress, token: SchedulerCancellationToken) -> dask.distributed.Future | None:
         r"""
         Enqueue another surface for computation on a worker.
 
@@ -342,21 +301,21 @@ class Scheduler:
             if token.cancelled:
                 return None
 
-            surface = next(surfaces, None)
+            bindings = next(self._survey_bindings, None)
 
-            if surface is None:
+            if bindings is None:
                 return None
-
-            bindings = self._survey_bindings.clone()
-            bindings.forget("surfaces")
-            bindings.define(Surface, surface)
 
             if token.cancelled:
                 return None
 
             cached = await self._resolve_from_cache(bindings)
 
-            assert surface._surface.cache is None, "to prevent memory leaks, surface must not be created to resolve caches"  # pyright: ignore[reportFunctionMemberAccess]
+            # TODO: Maybe the bindings could have some logic for this one builtin so we don't have to call across all domains here.
+            # Sanity check that caching does not cause memory leaks if this is a surface survey
+            surface = bindings.get(Surface, None)
+            if surface is not None:
+                assert surface._surface.cache is None, "to prevent memory leaks, surface must not be created to resolve caches"  # pyright: ignore[reportFunctionMemberAccess]
 
             if cached:
                 # Everything could be answered from cached data. Proceed to next surface.
@@ -366,15 +325,15 @@ class Scheduler:
 
             # The workers do not need a copy of the cache.
             from flatsurvey.cache import Cache
-            bindings.forget(scope=Cache)
             bindings.forget(Cache)
 
-            from flatsurvey.dask import DaskTask
+            from flatsurvey.dask.task import Task
 
-            task = DaskTask(
+            # TODO: Maybe bindings themselves could print a bit better so we don't have to hard-code surface here.
+            from flatsurvey.pipeline import Goal
+            task = Task(
                 bindings,
-                repr=f"DaskTask(surface={surface!r}, goals={bindings.describe("goals")})",
-                token=token,
+                repr=f"DaskTask(surface={surface!r}, goals={bindings.describe(Goal)})",
             )
 
             if token.cancelled:
@@ -382,7 +341,7 @@ class Scheduler:
 
             progress.queued()
 
-            return pool.submit(task)
+            return pool.submit(task, token.id)
 
     @staticmethod
     async def _resolve_from_cache(bindings: Bindings):
@@ -394,9 +353,9 @@ class Scheduler:
 
         EXAMPLES::
 
-            >>> from flatsurvey.pipeline import Bindings
+            >>> from flatsurvey.pipeline import Bindings, Goal
             >>> bindings = Bindings()
-            >>> bindings.define("goals", [])
+            >>> bindings.define(Goal, [])
 
             >>> import asyncio
             >>> asyncio.run(Scheduler._resolve_from_cache(bindings))
@@ -407,7 +366,7 @@ class Scheduler:
             >>> from flatsurvey.jobs import OrbitClosure
             >>> from flatsurvey.surfaces import Ngon, Surface
             >>> bindings = Bindings()
-            >>> bindings.append("goals", OrbitClosure)
+            >>> bindings.append(Goal, OrbitClosure)
             >>> bindings.define(Surface, Ngon((1, 1, 1)))
 
             >>> import asyncio
@@ -415,7 +374,8 @@ class Scheduler:
             False
 
         """
-        goals = bindings.get("goals")
+        from flatsurvey.pipeline import Goal
+        goals = bindings.get(Goal)
 
         for goal in goals:
             await goal.consume_cache()
@@ -424,7 +384,7 @@ class Scheduler:
 
         return not pending_goals
 
-    async def _submit_jobs(self, pool: dask.distributed.Client, progress: SurveyProgress, token: SchedulerCancellationToken, jobs: List[dask.distributed.Future], surfaces: Iterator[Surface]) -> None:
+    async def _submit_jobs(self, pool: dask.distributed.Client, progress: SurveyProgress, token: SchedulerCancellationToken, jobs: List[dask.distributed.Future]) -> None:
         r"""
         Submit jobs for all ``surfaces`` to run in the ``pool`` of workers.
 
@@ -444,7 +404,7 @@ class Scheduler:
             assert completed, "await_pending_job must only return when a job terminated"
 
             for _ in range(completed):
-                job = await self._submit_job(pool, progress, token, surfaces)
+                job = await self._submit_job(pool, progress, token)
                 if job is None:
                     if token.cancelled:
                         print("stopped scheduling of new jobs as requested")

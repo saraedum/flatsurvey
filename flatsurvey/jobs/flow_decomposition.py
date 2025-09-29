@@ -77,9 +77,9 @@ class FlowDecompositions(Processor, Command):
     def create(bindings: Bindings):
         with bindings.scope(FlowDecompositions) as scoped:
             return FlowDecompositions(
-                surface=scoped.get(Surface),
-                saddle_connection_orientations=scoped.get(SaddleConnectionOrientations),
-                report=scoped.get(Report),
+                surface=bindings.get(Surface),
+                saddle_connection_orientations=bindings.get(SaddleConnectionOrientations),
+                report=bindings.get(Report),
                 limit=scoped.get("limit", default=lambda: FlowDecompositions.DEFAULT_LIMIT)
             )
 

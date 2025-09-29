@@ -63,8 +63,8 @@ class SaddleConnections(Producer, Command):
     def create(bindings):
         with bindings.scope(SaddleConnections) as scoped:
             return SaddleConnections(
-                surface=scoped.get(Surface),
-                report=scoped.get(Report),
+                surface=bindings.get(Surface),
+                report=bindings.get(Report),
                 limit=scoped.get("limit", default=lambda: SaddleConnections.DEFAULT_LIMIT),
                 bound=scoped.get("bound", default=lambda: SaddleConnections.DEFAULT_BOUND),
             )

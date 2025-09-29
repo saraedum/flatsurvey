@@ -85,7 +85,8 @@ class Join(Goal, Command):
 
         """
         bindings.append("goals", Join)
-        bindings.define(scope=Join, jsons=jsons, outdir=outdir)
+        with bindings.scope(Join) as scoped:
+            scoped.define(jsons=jsons, outdir=outdir)
 
     @staticmethod
     def create(bindings: Bindings):

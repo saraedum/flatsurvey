@@ -32,7 +32,7 @@ The easiest rules are just constants::
 
     >>> bindings.define(Surface, Surface())
 
-Whenever somebody needs a string, we answer with this constant::
+Whenever somebody needs a Surface, we answer with this constant::
 
     >>> bindings.get(Surface)
     surface
@@ -131,7 +131,7 @@ say the goals of a survey::
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from contextlib import contextmanager
-from typing import overload, Type, override, Protocol, cast
+from typing import overload, Type, override, Protocol, cast, Iterator
 
 Key = str | Type
 
@@ -192,6 +192,10 @@ class Binding[T](ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def clone(self) -> "Binding[T]":
+        pass
+
 
 class ConstantBinding[T](Binding[T]):
     r"""
@@ -217,6 +221,9 @@ class ConstantBinding[T](Binding[T]):
 
     def __repr__(self):
         return f"ConstantBinding({self._value})"
+
+    def clone(self):
+        return ConstantBinding(self._value)
 
 
 class TypeBinding[T : HasCreate](Binding[T]):
@@ -244,10 +251,16 @@ class TypeBinding[T : HasCreate](Binding[T]):
 
     @override
     def resolve(self, bindings) -> T:
-        return bindings._values.get(self._type, self._type.create(bindings))
+        try:
+            return self._type.create(bindings)
+        except Exception as e:
+            raise BindingException(f"Cannot create instance of '{self._type.__name__}' from bindings") from e
 
     def __repr__(self):
         return f"TypeBinding({self._type.__name__})"
+
+    def clone(self):
+        return TypeBinding(self._type)
 
 
 class ListBinding[T](Binding[list[T]]):
@@ -281,6 +294,11 @@ class ListBinding[T](Binding[list[T]]):
     def __repr__(self):
         return f"ListBinding({self._value})"
 
+    def clone(self):
+        clone = ListBinding()
+        clone._value = self._value[:]
+        return clone
+
 
 class Bindings:
     r"""
@@ -312,11 +330,11 @@ class Bindings:
         ('surface1', ['some goal'])
 
     """
-    def __init__(self, parent: "Bindings | None" = None):
-        self._parent = parent
+    def __init__(self):
         self._values = {}
         self._bindings = {}
         self._scopes = {}
+        self._survey = {}
 
     @staticmethod
     def click(wrapped):
@@ -338,18 +356,42 @@ class Bindings:
         Return the scoped bindings for ``scope``.
         """
         if scope not in self._scopes:
-            self._scopes[scope] = Bindings(self)
+            self._scopes[scope] = Bindings()
 
-        yield self._scopes[scope]
+        try:
+            yield self._scopes[scope]
+        except Exception as e:
+            raise Exception(f"Error while in binding scope '{scope}'") from e
 
     def append(self, key: Key, value):
         r"""
         Append ``value`` to the list binding for ``key``.
+
+        TODO: Register under list[key].
         """
         if key not in self._bindings:
             self._bindings[key] = ListBinding()
 
         self._bindings[key].append(Binding.create(value))
+
+    def survey(self, key: Key, values: list[object]):
+        if key not in self._survey:
+            self._survey[key] = []
+        self._survey[key].append(values)
+
+    @property
+    def survey_bindings(self) -> Iterator["Bindings"]:
+        from more_itertools import roundrobin
+        sources = {key: roundrobin(*values) for key, values in self._survey.items()}
+        from itertools import product
+
+        for values in product(*sources.values()):
+            keys = sources.keys()
+            bindings = self.clone()
+            for key, value in zip(keys, values):
+                bindings.define(key, value)
+
+            yield bindings
 
     @overload
     def define(self, key: Key, value: object): ...
@@ -402,29 +444,40 @@ class Bindings:
         r"""
         Resolve the ``key`` in this bindings.
 
-        If no ``key`` has been register in this scope or a parent scope, return
-        ``default`` if set.
+        If no ``key`` has been registered in this scope or a parent scope,
+        return ``default`` if set.
+
+        TODO: This is not true. It's more complicated. (And it does not make too much sense.)
         """
-        if key not in self._values:
-            if key not in self._bindings:
-                if self._parent:
-                    return self._parent.get(key, default)
+        try:
+            if key not in self._values:
+                if key not in self._bindings:
+                    if isinstance(key, type):
+                        self.define(key=key, value=key)
+                    else:
+                        if default is None:
+                            raise Exception(f"cannot resolve {key} in this bindings and no default given")
 
-                if isinstance(key, type):
-                    self.define(key=key, value=key)
-                else:
-                    if default is None:
-                        raise Exception(f"cannot resolve {key} in this bindings and no default given")
+                        if callable(default):
+                            return cast(T, default())
 
-                    if callable(default):
-                        return cast(T, default())
+                        return default
 
-                    return default
+                value = self._bindings[key].resolve(self)
+                self.set(key, value)
 
-            value = self._bindings[key].resolve(self)
-            self.set(key, value)
+            return self._values[key]
+        except Exception as e:
+            raise BindingException(f"Cannot resolve '{key}' from bindings") from e
 
-        return self._values[key]
+    def describe(self, key: Key):
+        if key in self._values:
+            return repr(self._values[key])
+
+        if key in self._bindings:
+            return self._bindings[key]
+
+        return "?"
 
     def __repr__(self):
         return f"Bindings with bindings {self._bindings} and values {self._values}"
@@ -455,18 +508,22 @@ class Bindings:
 
         """
         clone = Bindings()
-        clone._bindings = dict(self._bindings)
-        clone._scopes = {scope: child.clone() for (scope, child) in self._scopes.items()}
+        clone._bindings = {key: binding.clone() for key, binding in self._bindings.items()}
+        clone._scopes = {scope: child.clone() for scope, child in self._scopes.items()}
         return clone
 
-    def forget(self, key: Key | None=None):
-        if key is None:
-            self._values = {}
-            self._bindings = {}
-            self._scopes = {}
-
+    def forget(self, key: Key):
+        # TODO: Forget recursively in scopes. Should we?
         if key in self._bindings:
             del self._bindings[key]
 
         if key in self._values:
             del self._values[key]
+
+        # TODO: Should we really forget scopes here?
+        if key in self._scopes:
+            del self._scopes[key]
+
+
+class BindingException(Exception):
+    pass

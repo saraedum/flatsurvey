@@ -128,11 +128,11 @@ class OrbitClosure(ConsumerGoal, Command):
     def create(bindings):
         with bindings.scope(OrbitClosure) as scoped:
             return OrbitClosure(
-                surface=scoped.get(Surface),
-                report=scoped.get(Report),
-                flow_decompositions=scoped.get(FlowDecompositions),
-                saddle_connections=scoped.get(SaddleConnections),
-                cache=scoped.get(Cache),
+                surface=bindings.get(Surface),
+                report=bindings.get(Report),
+                flow_decompositions=bindings.get(FlowDecompositions),
+                saddle_connections=bindings.get(SaddleConnections),
+                cache=bindings.get(Cache),
                 stale_limit=scoped.get("stale_limit", lambda: OrbitClosure.DEFAULT_STALE_LIMIT),
                 expansions_limit=scoped.get("expansions_limit", lambda: OrbitClosure.DEFAULT_EXPANSIONS_LIMIT),
                 deform=scoped.get("deform", lambda: OrbitClosure.DEFAULT_DEFORM),
