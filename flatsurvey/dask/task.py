@@ -23,10 +23,10 @@ spin up a dask client and have it run a task from this module::
 
     >>> from flatsurvey.surfaces import Ngon, Surface
     >>> from flatsurvey.jobs import OrbitClosure
-    >>> from flatsurvey.pipeline import Bindings
+    >>> from flatsurvey.pipeline import Bindings, Goal
 
     >>> survey = Bindings()
-    >>> survey.append("goals", OrbitClosure)
+    >>> survey.append(Goal, OrbitClosure)
 
     >>> bindings1 = survey.clone()
     >>> bindings1.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
@@ -131,11 +131,11 @@ class Task:
 
         >>> from flatsurvey.surfaces import Ngon, Surface
         >>> from flatsurvey.jobs import OrbitClosure
-        >>> from flatsurvey.pipeline import Bindings
+        >>> from flatsurvey.pipeline import Bindings, Goal
 
         >>> bindings = Bindings()
         >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
-        >>> bindings.append("goals", OrbitClosure)
+        >>> bindings.append(Goal, OrbitClosure)
 
         >>> task = Task(bindings=bindings)
         >>> task
@@ -196,11 +196,11 @@ class Task:
 
             >>> from flatsurvey.surfaces import Ngon, Surface
             >>> from flatsurvey.jobs import OrbitClosure
-            >>> from flatsurvey.pipeline import Bindings
+            >>> from flatsurvey.pipeline import Bindings, Goal
 
             >>> bindings = Bindings()
             >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
-            >>> bindings.append("goals", OrbitClosure)
+            >>> bindings.append(Goal, OrbitClosure)
 
             >>> task = Task(bindings=bindings)
 
@@ -215,7 +215,7 @@ class Task:
         a required parameter) are rethrown as generic ``RunnerException``::
 
             >>> bindings = Bindings()
-            >>> bindings.append("goals", OrbitClosure)
+            >>> bindings.append(Goal, OrbitClosure)
             >>> task = Task(bindings=bindings)
 
             >>> task(token.id)  # doctest: +ELLIPSIS
@@ -262,11 +262,11 @@ class Task:
 
             >>> from flatsurvey.surfaces import Ngon, Surface
             >>> from flatsurvey.jobs import OrbitClosure
-            >>> from flatsurvey.pipeline import Bindings
+            >>> from flatsurvey.pipeline import Bindings, Goal
 
             >>> bindings = Bindings()
             >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
-            >>> bindings.append("goals", OrbitClosure)
+            >>> bindings.append(Goal, OrbitClosure)
 
             >>> task = Task(bindings=bindings)
 
