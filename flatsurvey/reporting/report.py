@@ -66,10 +66,15 @@ class Report(Command):
         >>> report.log(report, "invisible message because no reporter has been registered")
 
     """
+    DEFAULT_IGNORE = ["flow-decompositions", "saddle-connections"]
+
     def __init__(self, reporters: List[Reporter], ignore=None):
+        if ignore is None:
+            ignore = Report.DEFAULT_IGNORE
+
         self._reporters = reporters
         self._reported = set()
-        self._ignore = ignore or []
+        self._ignore = ignore
 
     @staticmethod
     @click.command(
@@ -78,7 +83,7 @@ class Report(Command):
         group="Reports",
         help=__doc__.split("EXAMPLES:")[0],  # type: ignore
     )
-    @click.option("--ignore", type=str, multiple=True, default=["flow-decompositions", "saddle-connections"], show_default=True)
+    @click.option("--ignore", type=str, multiple=True, default=DEFAULT_IGNORE, show_default=True)
     @Bindings.click
     def click(bindings: Bindings, ignore):
         r"""
@@ -116,8 +121,8 @@ class Report(Command):
             from flatsurvey.surfaces.surface import Surface
             from flatsurvey.reporting.log import Log
 
-            reporters = scoped.get("reporters", default=lambda: [Log(surface=bindings.get(Surface))])
-            ignore = scoped.get("ignore", default=lambda: ())
+            reporters = bindings.get("reporters", default=lambda: [Log(surface=bindings.get(Surface))])
+            ignore = scoped.get("ignore", default=lambda: Report.DEFAULT_IGNORE)
 
             return Report(reporters=reporters, ignore=ignore)
 

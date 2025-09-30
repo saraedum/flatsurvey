@@ -24,11 +24,28 @@ from typing import Any
 
 from alive_progress import alive_bar
 
+class SurveyProgress(ContextDecorator):
+    def queued(self):
+        pass
+
+    def completed(self):
+        pass
+
+    def set_activity(self, activity):
+        del activity
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        del exc
+
+
 r"""
 A simple text based progress indicator that is visible while its context is
 active.
 """
-class SurveyProgress(ContextDecorator):
+class StdoutSurveyProgress(SurveyProgress):
     def __init__(self, activity: str):
         self._bar = alive_bar(title=activity)
         self._context: Any = None
@@ -78,3 +95,7 @@ class SurveyProgress(ContextDecorator):
         """
         self._context = None
         self._bar.__exit__(*exc)
+
+
+class HiddenSurveyProgress(SurveyProgress):
+    pass

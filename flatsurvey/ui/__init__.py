@@ -19,4 +19,4 @@
 
 from flatsurvey.ui.command import Command
 from flatsurvey.ui.group import GroupedCommand, CommandWithGroups
-from flatsurvey.ui.progress import SurveyProgress
+from flatsurvey.ui.progress import SurveyProgress, HiddenSurveyProgress

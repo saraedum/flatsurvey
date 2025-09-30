@@ -205,7 +205,7 @@ class Worker:
     @staticmethod
     def create(bindings):
         from flatsurvey.pipeline import Goal
-        return Worker(goals=bindings.get(Goal), report=bindings.get(Report))
+        return Worker(goals=bindings.get(Goal, []), report=bindings.get(Report))
 
     @classmethod
     async def work(cls, /, bindings: Bindings, limits=[]):

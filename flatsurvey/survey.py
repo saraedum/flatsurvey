@@ -106,24 +106,32 @@ from flatsurvey.ui.group import CommandWithGroups
     help="Enable verbose message, repeat for debug message.",
 )
 @click.option(
+    "--quiet",
+    "-q",
+    is_flag=True,
+    help="Silence all terminal output",
+)
+@click.option(
     "--scheduler",
     default=None,
     type=str,
     help="Path to a dask scheduler file",
 )
-def survey(debug, queue, verbose, scheduler):
+def survey(debug, queue, verbose, quiet, scheduler):
     r"""
     Main command, runs a survey; specific survey objects and goals are
     registered automatically as subcommands.
     """
     # For technical reasons, debug needs to be a parameter here. It is consumed by process() below.
-    _ = debug
+    del debug
     # For technical reasons, queue needs to be a parameter here. It is consumed by process() below.
-    _ = queue
+    del queue
     # For technical reasons, verbose needs to be a parameter here. It is consumed by process() below.
-    _ = verbose
+    del verbose
+    # For technical reasons, quiet needs to be a parameter here. It is consumed by process() below.
+    del quiet
     # For technical reasons, scheduler needs to be a parameter here. It is consumed by process() below.
-    _ = scheduler
+    del scheduler
 
 
 # Register objects and goals as subcommans of "survey".
@@ -139,7 +147,7 @@ for commands in [
 
 @survey.result_callback()
 def process(
-    subcommands, debug=False, queue=128, verbose=0, scheduler=None
+    subcommands, debug=False, queue=128, verbose=0, quiet=False, scheduler=None
 ):
     r"""
     Run the specified subcommands of ``survey``.
@@ -166,6 +174,12 @@ def process(
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG if verbose > 1 else logging.INFO)
 
+    if quiet:
+        import logging
+
+        logger = logging.getLogger()
+        logger.setLevel(logging.FATAL)
+
     try:
         from flatsurvey.pipeline import Bindings
 
@@ -177,17 +191,21 @@ def process(
         import asyncio
         import sys
 
-        from flatsurvey.scheduler import Scheduler
+        from flatsurvey.dask import Scheduler
 
-        sys.exit(
-            asyncio.new_event_loop().run_until_complete(
-                Scheduler(
-                    survey_bindings=bindings,
-                    queue_limit=queue,
-                    scheduler_json=scheduler,
-                ).start()
+        from flatsurvey.ui.progress import StdoutSurveyProgress, HiddenSurveyProgress
+
+        with HiddenSurveyProgress() if quiet else StdoutSurveyProgress(activity="...") as progress:
+            sys.exit(
+                asyncio.new_event_loop().run_until_complete(
+                    Scheduler(
+                        survey_bindings=bindings.survey_bindings,
+                        queue_limit=queue,
+                        scheduler_json=scheduler,
+                        progress=progress,
+                    ).start()
+                )
             )
-        )
     except Exception:
         if debug:
             pdb.post_mortem()

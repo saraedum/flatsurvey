@@ -21,8 +21,6 @@ We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
 
     >>> import asyncio
     >>> asyncio.run(scheduler.start())
-    on ...: all jobs have been scheduled
-    waiting for jobs to finish ...
 
 """
 # *********************************************************************
@@ -46,12 +44,16 @@ We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
 
 from contextlib import contextmanager
 from typing import Iterator, List
+import logging
 
 import dask.distributed
 
 from flatsurvey.pipeline import Bindings
-from flatsurvey.ui import SurveyProgress
+from flatsurvey.ui import SurveyProgress, HiddenSurveyProgress
 from flatsurvey.dask.tokens import SchedulerCancellationToken
+
+
+logger = logging.getLogger()
 
 
 class Scheduler:
@@ -95,10 +97,12 @@ class Scheduler:
     def __init__(
         self,
         survey_bindings: Iterator[Bindings],
+        progress: SurveyProgress | None=None,
         scheduler_json=None,
         queue_limit=None,
     ):
         self._survey_bindings = iter(survey_bindings)
+        self._progress = progress or HiddenSurveyProgress()
         self._scheduler_json = scheduler_json
         self._queue_limit = queue_limit
 
@@ -115,23 +119,20 @@ class Scheduler:
             >>> import asyncio
             >>> scheduler = Scheduler(survey_bindings=[])
             >>> asyncio.run(scheduler.start())  # random progress output
-            on ...: no jobs were required to complete this survey
-            ...
 
         """
         pool = await self._create_pool()
 
         with self._create_sigint_handler(pool) as token:
             try:
-                with SurveyProgress(activity="...") as progress:
-                    jobs = await self._seed_jobs(pool, progress, token)
+                jobs = await self._seed_jobs(pool, self._progress, token)
 
-                    if not jobs:
-                        print("no jobs were required to complete this survey")
-                        return
+                if not jobs:
+                    logging.info("no jobs were required to complete this survey")
+                    return
 
-                    await self._submit_jobs(pool, progress, token, jobs)
-                    await self._await_pending_jobs(progress, jobs)
+                await self._submit_jobs(pool, self._progress, token, jobs)
+                await self._await_pending_jobs(self._progress, jobs)
             finally:
                 # Terminate all workers immediately if we crash out of this code
                 # block. (If we terminated normally, then there's nothing we have
@@ -385,7 +386,7 @@ class Scheduler:
         # Wait for a result. For each result, schedule a new task.
         while True:
             if token.cancelled:
-                print("stopped scheduling of new jobs as requested")
+                logging.info("stopped scheduling of new jobs as requested")
                 return
 
             assert jobs, "_submit_jobs needs jobs to wait for to keep the job queue filled"
@@ -397,10 +398,10 @@ class Scheduler:
                 job = await self._submit_job(pool, progress, token)
                 if job is None:
                     if token.cancelled:
-                        print("stopped scheduling of new jobs as requested")
+                        logging.info("stopped scheduling of new jobs as requested")
                         return
 
-                    print("all jobs have been scheduled")
+                    logging.info("all jobs have been scheduled")
                     return
 
                 jobs.append(job)
@@ -443,6 +444,6 @@ class Scheduler:
                 result = await job
                 assert not isinstance(result, Exception)
             except Exception as e:
-                print(f"Task crashed with {e}. Skipping.")
+                logging.error(f"Task crashed with {e}. Skipping.")
 
         return len(completed)
