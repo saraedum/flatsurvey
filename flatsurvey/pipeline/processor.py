@@ -44,7 +44,7 @@ class Processor(Producer, Consumer):
     A processor is simply a producer and a consumer at the same time.
 
     Implementing classes only have to implement ``_consume`` which must set
-    `_current` to the newly produced object.
+    `_current` to the newly produced object and call ``_notify_consumers`.
 
     EXAMPLES::
 

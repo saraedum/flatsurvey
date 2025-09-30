@@ -4,10 +4,6 @@ Steps along the pipeline to resolve the targets of a survey.
 These steps are automatically registered as commands to the survey and worker
 entrypoints as subcommands.
 """
-from flatsurvey.jobs.completely_cylinder_periodic import CompletelyCylinderPeriodic
-from flatsurvey.jobs.cylinder_periodic_direction import CylinderPeriodicDirection
-from flatsurvey.jobs.flow_decomposition import FlowDecompositions
-
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -26,6 +22,10 @@ from flatsurvey.jobs.flow_decomposition import FlowDecompositions
 #  You should have received a copy of the GNU General Public License
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
+
+from flatsurvey.jobs.completely_cylinder_periodic import CompletelyCylinderPeriodic
+from flatsurvey.jobs.cylinder_periodic_direction import CylinderPeriodicDirection
+from flatsurvey.jobs.flow_decompositions import FlowDecompositions
 from flatsurvey.jobs.orbit_closure import OrbitClosure
 from flatsurvey.jobs.saddle_connection_orientations import SaddleConnectionOrientations
 from flatsurvey.jobs.saddle_connections import SaddleConnections

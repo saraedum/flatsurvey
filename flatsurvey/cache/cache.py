@@ -115,7 +115,6 @@ class Cache(Command):
 
             >>> from flatsurvey.pipeline import Bindings
             >>> from flatsurvey.test.cli import invoke_subcommand
-            >>> from flatsurvey.cache import Cache
             >>> bindings = Bindings()
             >>> invoke_subcommand(Cache.click, bindings=bindings)
             >>> Cache.create(bindings)
