@@ -72,7 +72,7 @@ from pyflatsurf import flatsurf  # type: ignore
 from flatsurvey.ui import Command
 from flatsurvey.pipeline import ConsumerGoal, Bindings
 from flatsurvey.ui.group import GroupedCommand
-from flatsurvey.jobs.flow_decomposition import FlowDecompositions
+from flatsurvey.jobs.flow_decompositions import FlowDecompositions
 from flatsurvey.reporting import Report
 from flatsurvey.cache import Cache
 

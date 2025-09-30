@@ -61,7 +61,7 @@ from flatsurvey.ui.group import GroupedCommand
 from flatsurvey.cache import Cache
 from flatsurvey.surfaces import Surface
 from flatsurvey.reporting import Report
-from flatsurvey.jobs.flow_decomposition import FlowDecompositions
+from flatsurvey.jobs.flow_decompositions import FlowDecompositions
 from flatsurvey.jobs.saddle_connections import SaddleConnections
 
 

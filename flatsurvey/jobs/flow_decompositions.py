@@ -10,7 +10,7 @@ However, you can still change some of the behaviour of this module through the
 number of Zorich induction steps:
 
     >>> from flatsurvey.test.cli import invoke
-    >>> from flatsurvey.worker.worker import worker
+    >>> from flatsurvey.worker import worker
     >>> invoke(worker, "flow-decompositions", "--help") # doctest: +NORMALIZE_WHITESPACE
     Usage: worker flow-decompositions [OPTIONS]
       Turns directions coming from saddle connections into flow decompositions.
@@ -75,20 +75,35 @@ class FlowDecompositions(Processor, Command):
 
     @staticmethod
     def create(bindings: Bindings):
+        r"""
+        Return a ``FlowDecompositions`` instance from the configuration registered in ``bindings``.
+
+        TESTS::
+
+            >>> from flatsurvey.pipeline import Bindings
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> from flatsurvey.surfaces.ngons import Ngon
+            >>> bindings = Bindings()
+            >>> invoke_subcommand(Ngon.click, "-a", "1", "-a", "1", "-a", "1", bindings=bindings)
+            >>> invoke_subcommand(FlowDecompositions.click, bindings=bindings)
+            >>> FlowDecompositions.create(bindings)
+            flow-decompositions
+
+        """
         with bindings.scope(FlowDecompositions) as scoped:
             return FlowDecompositions(
                 surface=bindings.get(Surface),
                 saddle_connection_orientations=bindings.get(SaddleConnectionOrientations),
                 report=bindings.get(Report),
-                limit=scoped.get("limit", default=lambda: FlowDecompositions.DEFAULT_LIMIT)
+                limit=scoped.get("limit", default=FlowDecompositions.DEFAULT_LIMIT)
             )
 
-    @classmethod
+    @staticmethod
     @click.command(
         name="flow-decompositions",
         cls=GroupedCommand,
         group="Intermediates",
-        help=__doc__.split("EXAMPLES:")[0],
+        help=__doc__.split("EXAMPLES:")[0],  # type: ignore
     )
     @click.option(
         "--limit",
@@ -97,11 +112,19 @@ class FlowDecompositions(Processor, Command):
         show_default=True,
         help="Zorich induction steps to perform before giving up",
     )
-    def click(limit):
-        raise NotImplementedError
-        return {
-            "bindings": [PartialBindingSpec(FlowDecompositions)(limit=limit)],
-        }
+    @Bindings.click
+    def click(bindings: Bindings, limit):
+        r"""
+        Parse command line options into ``bindings``.
+
+        TESTS::
+
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> invoke_subcommand(FlowDecompositions.click)
+
+        """
+        with bindings.scope(FlowDecompositions) as scoped:
+            scoped.define(limit=limit)
 
     async def _consume(self, product, cost):
         r"""
@@ -117,8 +140,7 @@ class FlowDecompositions(Processor, Command):
             >>> decompositions = FlowDecompositions(surface=surface, report=Report([Log(surface)]), saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface, report=None), report=None))
             >>> produce = decompositions.produce() # indirect doctest
             >>> asyncio.run(produce)  # doctest: +ELLIPSIS
-            [Ngon([1, 1, 1])] [FlowDecompositions] ¯\_(ツ)_/¯ (orientation: (0, ...)) (cylinders: 1) (minimal: 0) (undetermined: 0)
-            True
+            'NOT_EXHAUSTED'
             >>> decompositions._current
             FlowDecomposition with 1 cylinders, 0 minimal components and 0 undetermined components
 
@@ -128,11 +150,11 @@ class FlowDecompositions(Processor, Command):
 
             >>> from flatsurvey.reporting import Json
 
-            >>> report = Report([Json(surface)])
+            >>> report = Report([Json(surface)], ignore=["saddle-connections"])
             >>> decompositions = FlowDecompositions(surface=surface, report=report, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface, report=None), report=None))
 
             >>> asyncio.run(decompositions.produce())
-            True
+            'NOT_EXHAUSTED'
 
             >>> report.flush()  # doctest: +ELLIPSIS
             {"surface": {"angles": [1, 1, 1], "type": "Ngon", "pickle": "..."}, "flow-decompositions": [{"timestamp": ..., "orientation": {"type": "Vector<eantic::renf_elem_class>", "pickle": "..."}, "cylinders": 1, "minimal": 0, "undetermined": 0, "value": null}]}

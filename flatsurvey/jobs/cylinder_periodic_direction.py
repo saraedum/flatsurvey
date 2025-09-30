@@ -67,7 +67,7 @@ Validate the results of the "survey"::
 import click
 
 from flatsurvey.cache import Cache
-from flatsurvey.jobs.flow_decomposition import FlowDecompositions
+from flatsurvey.jobs.flow_decompositions import FlowDecompositions
 from flatsurvey.pipeline import ConsumerGoal, Bindings
 from flatsurvey.ui import Command
 from flatsurvey.ui.group import GroupedCommand
