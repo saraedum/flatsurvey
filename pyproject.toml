@@ -48,4 +48,4 @@ flatsurvey = { path = ".", editable = true }
 cancel-token = "*"
 
 [tool.pixi.tasks.test]
-cmd = "pytest -n $(nproc) --doctest-modules flatsurvey"
+cmd = "pytest --forked -n $(nproc) --doctest-modules flatsurvey"
