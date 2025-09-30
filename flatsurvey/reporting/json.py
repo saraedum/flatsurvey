@@ -131,7 +131,7 @@ class Json(Reporter, Command):
 
         """
         with bindings.scope(Json) as scoped:
-            surface = scoped.get(Surface)
+            surface = bindings.get(Surface)
             output = scoped.get("output")
             prefix = scoped.get("prefix")
             pickles = scoped.get("pickles")

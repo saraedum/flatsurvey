@@ -108,7 +108,7 @@ class GenericLog(Reporter, Command):
 
         """
         with bindings.scope(GenericLog) as scoped:
-            scoped.define(output=output)
+            scoped.define(output=output.name)
 
     @staticmethod
     def create(bindings: Bindings):
@@ -367,7 +367,7 @@ class Log(GenericLog):
         """
         with bindings.scope(Log) as scoped:
             return Log(
-                surface=scoped.get(Surface),
+                surface=bindings.get(Surface),
                 stream=scoped.get("stream", lambda: None),
                 output=scoped.get("output", lambda: None),
                 prefix=scoped.get("prefix", lambda: None))
