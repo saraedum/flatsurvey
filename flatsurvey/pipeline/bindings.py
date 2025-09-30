@@ -131,7 +131,7 @@ say the goals of a survey::
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from contextlib import contextmanager
-from typing import overload, Type, override, Protocol, cast, Iterator
+from typing import overload, Type, override, Protocol, cast, Iterator, Iterable
 
 Key = str | Type
 
@@ -375,7 +375,7 @@ class Bindings:
 
         self._bindings[key].append(Binding.create(value))
 
-    def survey(self, key: Key, values: list[object]):
+    def survey(self, key: Key, values: Iterable[object]):
         if key not in self._survey:
             self._survey[key] = []
         self._survey[key].append(values)
@@ -458,14 +458,14 @@ class Bindings:
         try:
             if key not in self._values:
                 if key not in self._bindings:
-                    if isinstance(key, type):
-                        self.define(key=key, value=key)
-                    else:
-                        if default is None:
+                    if default is None:
+                        if isinstance(key, type):
+                            self.define(key=key, value=key)
+                        else:
                             raise Exception(f"cannot resolve {key} in this bindings and no default given")
-
+                    else:
                         if callable(default):
-                            return cast(T, default())
+                            default = cast(T, default())
 
                         return default
 
