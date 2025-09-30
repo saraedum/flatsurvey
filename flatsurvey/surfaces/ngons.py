@@ -865,7 +865,7 @@ class Ngons:
             >>> invoke_subcommand(Ngons.click, "--vertices", "3")
 
         """
-        bindings.append("surfaces", Ngons(vertices=vertices, length=length, min=min, limit=limit, count=count, literature=literature, family=family, filter=filter))
+        bindings.survey(Surface, Ngons(vertices=vertices, length=length, min=min, limit=limit, count=count, literature=literature, family=family, filter=filter))
 
 
 def rotations(partition):
