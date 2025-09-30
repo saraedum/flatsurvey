@@ -101,3 +101,6 @@ class Processor(Producer, Consumer):
                 return "EXHAUSTED"
 
         return "NOT_EXHAUSTED"
+
+    def _produce(self) -> Literal["EXHAUSTED"] | Literal["NOT_EXHAUSTED"]:
+        raise NotImplementedError("a Processor does not implement _produce but _consume")
