@@ -11,7 +11,7 @@ dependencies = ["datasize", "click", "dask", "humanfriendly", "more-itertools", 
 
 [project.scripts]
 flatsurvey = "flatsurvey.survey:survey"
-flatsurvey-worker = "flatsurvey.worker.worker:worker"
+flatsurvey-worker = "flatsurvey.worker:worker"
 flatsurvey-maintenance = "flatsurvey.cache.maintenance:cli"
 
 [tool.setuptools.packages.find]
