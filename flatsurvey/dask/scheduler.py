@@ -366,7 +366,7 @@ class Scheduler:
 
         """
         from flatsurvey.pipeline import Goal
-        goals = bindings.get(Goal)
+        goals = bindings.get(Goal, [])
 
         for goal in goals:
             await goal.consume_cache()
