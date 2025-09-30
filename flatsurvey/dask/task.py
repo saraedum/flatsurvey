@@ -38,7 +38,7 @@ spin up a dask client and have it run a task from this module::
     >>> tasks
     [Task(…), Task(…)]
 
-    >>> futures = [client.submit(task, token.id) for task in tasks]
+    >>> futures = [client.submit(task, token.worker_token) for task in tasks]
     >>> results = [future.result() for future in futures]
 
 Note that the futures have no actual result, the result is usually written to
@@ -101,6 +101,7 @@ some log file by a reporter instead::
 # *********************************************************************
 
 from flatsurvey.pipeline import Bindings
+from flatsurvey.dask.tokens import WorkerCancellationToken
 
 
 class Task:
@@ -152,7 +153,7 @@ class Task:
         >>> client = Client(processes=False, nthreads=1, preload="flatsurvey.dask.worker")
         >>> token = SchedulerCancellationToken(client)
 
-        >>> task(token.id)
+        >>> task(token.worker_token)
 
     Calling a task like this makes sure that the necessary machinery is set up
     on the worker, i.e., a :class:`Runner` gets created which forks off
@@ -175,7 +176,7 @@ class Task:
         self._repr = repr
         self._bindings = dumps(bindings)
 
-    def __call__(self, token: str):
+    def __call__(self, token: WorkerCancellationToken):
         r"""
         Execute this task in the current worker and return the result.
 
@@ -209,7 +210,7 @@ class Task:
         call it directly (the ``client`` here is essentially unused therefore
         but required by the underlying machinery)::
 
-            >>> task(token.id)
+            >>> task(token.worker_token)
 
         Any exceptions that occur during the computation (here we forgot to set
         a required parameter) are rethrown as generic ``RunnerException``::
@@ -218,7 +219,7 @@ class Task:
             >>> bindings.append(Goal, OrbitClosure)
             >>> task = Task(bindings=bindings)
 
-            >>> task(token.id)  # doctest: +ELLIPSIS
+            >>> task(token.worker_token)  # doctest: +ELLIPSIS
             Traceback (most recent call last):
             ...
             flatsurvey.dask.runner.RunnerException: exception occurred in runner...
@@ -226,10 +227,9 @@ class Task:
             >>> client.shutdown()
 
         """
-        from flatsurvey.dask.worker_cancellation_token import WorkerCancellationToken
         from flatsurvey.dask.runner import Runner
 
-        return Runner(self, WorkerCancellationToken(token)).run()
+        return Runner(self, token).run()
 
     def __repr__(self):
         r"""

@@ -50,9 +50,8 @@ from typing import Iterator, List
 import dask.distributed
 
 from flatsurvey.pipeline import Bindings
-from flatsurvey.surfaces import Surface
 from flatsurvey.ui import SurveyProgress
-from flatsurvey.dask import SchedulerCancellationToken
+from flatsurvey.dask.tokens import SchedulerCancellationToken
 
 
 class Scheduler:
@@ -332,7 +331,7 @@ class Scheduler:
 
             progress.queued()
 
-            return pool.submit(task, token.id)
+            return pool.submit(task, token.worker_token)
 
     @staticmethod
     async def _resolve_from_cache(bindings: Bindings):

@@ -18,5 +18,5 @@
 # *********************************************************************
 
 from flatsurvey.dask.limits import TimeLimit, MemoryLimit
-from flatsurvey.dask.scheduler_cancellation_token import SchedulerCancellationToken
 from flatsurvey.dask.scheduler import Scheduler
+from flatsurvey.dask.tokens import SchedulerCancellationToken, WorkerCancellationToken

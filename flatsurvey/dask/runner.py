@@ -20,7 +20,7 @@
 from flatsurvey.dask.worker import forkserver
 
 from flatsurvey.dask.task import Task
-from flatsurvey.dask.worker_cancellation_token import WorkerCancellationToken
+from flatsurvey.dask.tokens import WorkerCancellationToken
 
 
 class Runner:
@@ -60,7 +60,7 @@ class Runner:
     used here at all, it's just needed to make the underlying machinery
     happy.)::
 
-        >>> runner = Runner(task, WorkerCancellationToken(token.id))
+        >>> runner = Runner(task, token.worker_token)
         >>> runner.run()
 
         >>> client.shutdown()
@@ -112,7 +112,7 @@ class Runner:
 
         We execute the task::
 
-            >>> runner = Runner(task, WorkerCancellationToken(token.id))
+            >>> runner = Runner(task, token.worker_token)
             >>> runner.run()
 
         When the task throws an exception it is propagated from the forked
@@ -125,7 +125,7 @@ class Runner:
 
             >>> task = Task(bindings=bindings)
 
-            >>> runner = Runner(task, WorkerCancellationToken(token.id))
+            >>> runner = Runner(task, token.worker_token)
             >>> runner.run()
             Traceback (most recent call last):
             ...
@@ -142,7 +142,8 @@ class Runner:
         process = forkserver.Process(target=Runner._run, args=(self,), daemon=False, name=repr(self._task))
 
         import dask.distributed
-        if self._token.is_cancelled(dask.distributed.get_client()):
+        client = dask.distributed.get_client()
+        if self._token.is_cancelled(client):
             return
 
         import threading
@@ -157,7 +158,7 @@ class Runner:
 
         process.start()
         try:
-            with self._token.on_abort(kill):
+            with self._token.on_abort(client, kill):
                 self._result_sender.close()
                 self._shutdown_receiver.close()
 
