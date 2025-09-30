@@ -33,7 +33,7 @@ Verify that this goal works in a tiny survey run::
 
     >>> with TemporaryDirectory() as tmpdir:
     ...     tmpdir = Path(tmpdir)
-    ...     invoke(survey, "--debug", "--quiet", "ngons", "--count", "2", "--vertices", "3", "cylinder-periodic-direction", "json", "--prefix", tmpdir)  # random output
+    ...     invoke(survey, "--debug", "--quiet", "ngons", "--count", "2", "--vertices", "3", "cylinder-periodic-direction", "json", "--prefix", tmpdir)
     ...     cache = Cache(Cache.load([tmpdir / "ngon-1-2-4.json", tmpdir / "ngon-2-2-3.json"]))
 
 Validate the results of the "survey"::
@@ -142,13 +142,13 @@ class CylinderPeriodicDirection(ConsumerGoal, Command):
             ...             "type": "Ngon",
             ...             "angles": [1, 1, 1],
             ...         },
-            ...         "result": None,
+            ...         "value": None,
             ...     }, {
             ...         "surface": {
             ...             "type": "Ngon",
             ...             "angles": [1, 1, 1],
             ...         },
-            ...         "result": True,
+            ...         "value": True,
             ...     }]
             ... })
             >>> goal = CylinderPeriodicDirection(report=None, flow_decompositions=flow_decompositions, cache=cache)
@@ -172,15 +172,16 @@ class CylinderPeriodicDirection(ConsumerGoal, Command):
             {"surface": {"angles": [1, 1, 1], "type": "Ngon", "pickle": "..."}, "cylinder-periodic-direction": [{"timestamp": ..., "cached": true, "value": true}]}
 
         """
-        results = self._cache.get(CylinderPeriodicDirection).filter(
-            self._flow_decompositions._surface.cache_predicate(
-                False, cache=self._cache
-            ),
-        )
+        with self._cache.defaults({"value": None}):
+            results = self._cache.get(CylinderPeriodicDirection).filter(
+                self._flow_decompositions._surface.cache_predicate(
+                    False, cache=self._cache
+                ),
+            )
 
-        verdict = None
-        if results.any(lambda result: result.result == True):
-            verdict = True
+            verdict = None
+            if results.any(lambda result: result.value == True):
+                verdict = True
 
         if verdict is not None or self._cache_only:
             await self._report.result(self, verdict, cached=True)

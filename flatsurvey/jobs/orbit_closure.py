@@ -8,7 +8,7 @@ investigated that would lead us to the full space.
 EXAMPLES::
 
     >>> from flatsurvey.test.cli import invoke
-    >>> from flatsurvey.worker.worker import worker
+    >>> from flatsurvey.worker import worker
     >>> invoke(worker, "orbit-closure", "--help") # doctest: +NORMALIZE_WHITESPACE
     Usage: worker orbit-closure [OPTIONS]
       Determines the GL₂(R) orbit closure of ``surface``.
@@ -30,6 +30,33 @@ EXAMPLES::
       --cache-only                Do not perform any computation. Only query the
                                   cache.
       --help                      Show this message and exit.
+
+Verify that this goal works in a non-survey run::
+
+    >>> invoke(worker, "ngon", "-a", "1", "-a", "2", "-a", "4", "orbit-closure")  # doctest: +ELLIPSIS
+    [Ngon([1, 2, 4])] ... [OrbitClosure] GL(2,R)-orbit closure of dimension at least 7 in H_3(3, 1) (ambient dimension 7) (dimension: 7) (directions: 8) (directions_with_cylinders: 8) (dense: True)
+
+TESTS:
+
+Verify that this goal works in a tiny survey run::
+
+    >>> from pathlib import Path
+    >>> from flatsurvey.survey import survey
+    >>> from flatsurvey.reporting import Json
+    >>> from tempfile import TemporaryDirectory
+
+    >>> with TemporaryDirectory() as tmpdir:
+    ...     tmpdir = Path(tmpdir)
+    ...     invoke(survey, "--debug", "--quiet", "ngons", "--count", "2", "--vertices", "3", "orbit-closure", "json", "--prefix", tmpdir)
+    ...     cache = Cache(Cache.load([tmpdir / "ngon-1-2-4.json", tmpdir / "ngon-2-2-3.json"]))
+
+Validate the results of the "survey"::
+
+    >>> cached = cache.get("orbit-closure")
+    >>> len(cached)
+    2
+    >>> cached.dense
+    True
 
 """
 # *********************************************************************
@@ -56,7 +83,7 @@ import click
 from sage.misc.cachefunc import cached_method
 
 from flatsurvey.ui import Command
-from flatsurvey.pipeline import ConsumerGoal, Bindings
+from flatsurvey.pipeline import ConsumerGoal, Bindings, Goal
 from flatsurvey.ui.group import GroupedCommand
 from flatsurvey.cache import Cache
 from flatsurvey.surfaces import Surface
@@ -120,24 +147,10 @@ class OrbitClosure(ConsumerGoal, Command):
         self._expansions_performed = 0
 
         import pyflatsurf
+        del pyflatsurf
 
         self._lower_bound = 0
         self._upper_bound = 0
-
-    @staticmethod
-    def create(bindings):
-        with bindings.scope(OrbitClosure) as scoped:
-            return OrbitClosure(
-                surface=bindings.get(Surface),
-                report=bindings.get(Report),
-                flow_decompositions=bindings.get(FlowDecompositions),
-                saddle_connections=bindings.get(SaddleConnections),
-                cache=bindings.get(Cache),
-                stale_limit=scoped.get("stale_limit", lambda: OrbitClosure.DEFAULT_STALE_LIMIT),
-                expansions_limit=scoped.get("expansions_limit", lambda: OrbitClosure.DEFAULT_EXPANSIONS_LIMIT),
-                deform=scoped.get("deform", lambda: OrbitClosure.DEFAULT_DEFORM),
-                cache_only=scoped.get("cache_only", lambda: ConsumerGoal.DEFAULT_CACHE_ONLY),
-            )
 
     async def consume_cache(self):
         r"""
@@ -165,20 +178,20 @@ class OrbitClosure(ConsumerGoal, Command):
         artificial cache::
 
             >>> from io import StringIO
-            >>> cache = Cache(jsons=[StringIO(
-            ... '''{"orbit-closure": [{
-            ...   "surface": {
-            ...     "type": "Ngon",
-            ...     "angles": [1, 1, 1]
-            ...   },
-            ...   "dense": null
-            ... }, {
-            ...   "surface": {
-            ...     "type": "Ngon",
-            ...     "angles": [1, 1, 1]
-            ...   },
-            ...   "dense": true
-            ... }]}''')], pickles=None, report=None)
+            >>> cache = Cache({
+            ...     "orbit-closure": [{
+            ...         "surface": {
+            ...             "type": "Ngon",
+            ...             "angles": [1, 1, 1],
+            ...         },
+            ...         "dense": None,
+            ...     }, {
+            ...         "surface": {
+            ...             "type": "Ngon",
+            ...             "angles": [1, 1, 1],
+            ...         },
+            ...         "dense": True,
+            ... }]})
 
             >>> goal = OrbitClosure(surface=surface, report=None, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=cache)
             >>> asyncio.run(goal.consume_cache())
@@ -202,15 +215,48 @@ class OrbitClosure(ConsumerGoal, Command):
 
         """
         with self._cache.defaults({"dense": None}):
-            results = self._cache.get(
-                self, self._surface.cache_predicate(False, cache=self._cache)
+            results = self._cache.get(OrbitClosure).filter(
+                self._surface.cache_predicate(False, cache=self._cache)
             )
 
-            verdict = self.reduce(results)
+            verdict = None
+            if results.any(lambda result: result.dense == True):
+                verdict = True
 
         if verdict is not None or self._cache_only:
             await self._report.result(self, result=None, dense=verdict, cached=True)
             self._resolved = True
+
+    @staticmethod
+    def create(bindings: Bindings):
+        r"""
+        Return an ``OrbitClosure`` instance from the configuration
+        registered in ``bindings``.
+
+        TESTS::
+
+            >>> from flatsurvey.pipeline import Bindings
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> from flatsurvey.surfaces.ngons import Ngon
+            >>> bindings = Bindings()
+            >>> invoke_subcommand(OrbitClosure.click, bindings=bindings)
+            >>> invoke_subcommand(Ngon.click, "-a", "1", "-a", "1", "-a", "1", bindings=bindings)
+            >>> OrbitClosure.create(bindings)
+            orbit-closure
+
+        """
+        with bindings.scope(OrbitClosure) as scoped:
+            return OrbitClosure(
+                surface=bindings.get(Surface),
+                report=bindings.get(Report),
+                flow_decompositions=bindings.get(FlowDecompositions),
+                saddle_connections=bindings.get(SaddleConnections),
+                cache=bindings.get(Cache),
+                stale_limit=scoped.get("stale_limit", lambda: OrbitClosure.DEFAULT_STALE_LIMIT),
+                expansions_limit=scoped.get("expansions_limit", lambda: OrbitClosure.DEFAULT_EXPANSIONS_LIMIT),
+                deform=scoped.get("deform", lambda: OrbitClosure.DEFAULT_DEFORM),
+                cache_only=scoped.get("cache_only", lambda: ConsumerGoal.DEFAULT_CACHE_ONLY),
+            )
 
     @staticmethod
     @click.command(
@@ -241,7 +287,16 @@ class OrbitClosure(ConsumerGoal, Command):
     @ConsumerGoal._cache_only_option
     @Bindings.click
     def click(bindings: Bindings, stale_limit, expansions_limit, deform, cache_only):
-        bindings.append("goals", OrbitClosure)
+        r"""
+        Parse command line options into ``bindings``.
+
+        TESTS::
+
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> invoke_subcommand(OrbitClosure.click)
+
+        """
+        bindings.append(Goal, OrbitClosure)
         bindings.define(
             scope=OrbitClosure,
             stale_limit=stale_limit,
@@ -252,6 +307,23 @@ class OrbitClosure(ConsumerGoal, Command):
 
     @property
     def dimension(self):
+        r"""
+        Return the currently determined lower bound for the dimension of the orbit closure.
+
+        EXAMPLES::
+
+            >>> from flatsurvey.pipeline import Bindings
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> from flatsurvey.surfaces.ngons import Ngon
+            >>> bindings = Bindings()
+            >>> invoke_subcommand(OrbitClosure.click, bindings=bindings)
+            >>> invoke_subcommand(Ngon.click, "-a", "1", "-a", "1", "-a", "1", bindings=bindings)
+            >>> oc = OrbitClosure.create(bindings)
+
+            >>> oc.dimension
+            2
+
+        """
         return self._orbit_closure().dimension()
 
     @cached_method
@@ -261,8 +333,15 @@ class OrbitClosure(ConsumerGoal, Command):
 
         EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
-            >>> Ngon((1, 1, 1)).orbit_closure()
+            >>> from flatsurvey.pipeline import Bindings
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> from flatsurvey.surfaces.ngons import Ngon
+            >>> bindings = Bindings()
+            >>> invoke_subcommand(OrbitClosure.click, bindings=bindings)
+            >>> invoke_subcommand(Ngon.click, "-a", "1", "-a", "1", "-a", "1", bindings=bindings)
+            >>> oc = OrbitClosure.create(bindings)
+
+            >>> oc._orbit_closure()
             GL(2,R)-orbit closure of dimension at least 2 in H_1(0) (ambient dimension 2)
 
         """
@@ -272,6 +351,25 @@ class OrbitClosure(ConsumerGoal, Command):
 
     @property
     def dense(self):
+        r"""
+        Return whether the orbit closure has already been determined to be dense.
+
+        Returns ``None`` when there is no verdict yet.
+
+        EXAMPLES::
+
+            >>> from flatsurvey.pipeline import Bindings
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> from flatsurvey.surfaces.ngons import Ngon
+            >>> bindings = Bindings()
+            >>> invoke_subcommand(OrbitClosure.click, bindings=bindings)
+            >>> invoke_subcommand(Ngon.click, "-a", "1", "-a", "1", "-a", "1", bindings=bindings)
+            >>> oc = OrbitClosure.create(bindings)
+
+            >>> oc.dense
+            True
+
+        """
         if self.dimension == self._surface.orbit_closure_dimension_upper_bound:
             return True
 
@@ -279,7 +377,7 @@ class OrbitClosure(ConsumerGoal, Command):
 
     async def _consume(self, product, cost):
         r"""
-        Enlarge the orbit closure from the cylinders in ``decomposition``.
+        Enlarge the orbit closure from the cylinders in the decomposition ``product``.
 
         EXAMPLES::
 
@@ -296,7 +394,7 @@ class OrbitClosure(ConsumerGoal, Command):
 
             >>> import asyncio
             >>> resolve = oc.resolve()
-            >>> assert asyncio.run(resolve) == "COMPLETED"
+            >>> assert asyncio.run(resolve)
             [Ngon([1, 3, 5])] [OrbitClosure] dimension: 4/6
             [Ngon([1, 3, 5])] [OrbitClosure] dimension: 6/6
             [Ngon([1, 3, 5])] [OrbitClosure] GL(2,R)-orbit closure of dimension at least 6 in H_3(4) (ambient dimension 6) (dimension: 6) (directions: 2) (directions_with_cylinders: 2) (dense: True)
@@ -312,15 +410,16 @@ class OrbitClosure(ConsumerGoal, Command):
             >>> oc = OrbitClosure(surface=surface, report=report, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=None)
 
             >>> import asyncio
-            >>> produce = flow_decompositions.produce()
-            >>> asyncio.run(produce)
-            True
+            >>> resolve = oc.resolve()
+            >>> assert asyncio.run(resolve)
 
             >>> asyncio.run(oc.report())
             >>> report.flush()  # doctest: +ELLIPSIS
-            {"surface": {"angles": [1, 3, 5], "type": "Ngon", "pickle": "..."}, "orbit-closure": [{"timestamp": ..., "dimension": 6, "directions": 1, "directions_with_cylinders": 1, "dense": true, "value": {"type": "GL2ROrbitClosure", "pickle": "..."}}]}
+            {"surface": {"angles": [1, 3, 5], "type": "Ngon", "pickle": "..."}, "orbit-closure": [{"timestamp": ..., "dimension": 6, "directions": ..., "directions_with_cylinders": ..., "dense": true, "value": {...}}]}
 
         """
+        del cost
+
         self._directions += 1
 
         import pyflatsurf
@@ -337,7 +436,7 @@ class OrbitClosure(ConsumerGoal, Command):
         orbit_closure = self._orbit_closure()
         dimension = self.dimension
 
-        # TODO: If this is a billiard, use symmetries.
+        # TODO: If this is a billiard, we should use symmetries, see https://github.com/flatsurf/sage-flatsurf/issues/35.
         orbit_closure.update_tangent_space_from_flow_decomposition(product)
 
         self._report.progress(
@@ -471,7 +570,7 @@ class OrbitClosure(ConsumerGoal, Command):
                 scale += 1
 
                 if not eligibles:
-                    self._progress.progress(message="failed to deform surface")
+                    self._report.progress(source=self, message="failed to deform surface")
 
                     import logging
 
@@ -482,41 +581,28 @@ class OrbitClosure(ConsumerGoal, Command):
 
         return "NOT_COMPLETED"
 
-    @classmethod
-    def reduce(cls, results):
+    async def report(self, **kwargs):
         r"""
-        Given a list of historic results, return a final verdict.
+        Report our final verdict about this orbit closure.
 
         EXAMPLES::
 
-            >>> from flatsurvey.cache import Cache
-            >>> from io import StringIO
-            >>> cache = Cache(jsons=[StringIO(
-            ... '''{"orbit-closure": [{
-            ...   "dense": null
-            ... }, {
-            ...   "dense": null
-            ... }]}''')], pickles=None, report=None)
-            >>> OrbitClosure.reduce(cache.get("orbit-closure")) is None
-            True
+            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.reporting import Report, Json
+            >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections
+            >>> surface = Ngon((1, 3, 5))
+            >>> connections = SaddleConnections(surface, report=None)
+            >>> report = Report([Json(surface)])
+            >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(connections, report=None))
+            >>> oc = OrbitClosure(surface=surface, report=report, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=None)
 
-        ::
+            >>> import asyncio
+            >>> asyncio.run(oc.report())
 
-            >>> cache = Cache(jsons=[StringIO(
-            ... '''{"orbit-closure": [{
-            ...   "dense": null
-            ... }, {
-            ...   "dense": true
-            ... }]}''')], pickles=None, report=None)
-            >>> OrbitClosure.reduce(cache.get("orbit-closure")) is True
-            True
+            >>> report.flush()
+            {"surface": {...}, "orbit-closure": [{"timestamp": "...", "dimension": 2, ..., "dense": null, ...}}]}
 
         """
-        results = [result.dense for result in results]
-        assert not any([result is False for result in results])
-        return True if any(result for result in results) else None
-
-    async def report(self):
         if not self.reported():
             await self._report.result(
                 self,
@@ -525,10 +611,12 @@ class OrbitClosure(ConsumerGoal, Command):
                 directions=self._directions,
                 directions_with_cylinders=self._directions_with_cylinders,
                 dense=self.dense,
+                **kwargs
             )
 
 
 __test__ = {
     # Work around https://trac.sagemath.org/ticket/33951
     "OrbitClosure._orbit_closure": OrbitClosure._orbit_closure.__doc__,
+    "OrbitClosure.click": OrbitClosure.click.__doc__,
 }

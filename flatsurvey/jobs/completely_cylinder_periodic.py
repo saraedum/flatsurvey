@@ -34,7 +34,7 @@ Verify that this goal works in a tiny survey run::
 
     >>> with TemporaryDirectory() as tmpdir:
     ...     tmpdir = Path(tmpdir)
-    ...     invoke(survey, "--debug", "--quiet", "ngons", "--count", "2", "--vertices", "3", "completely-cylinder-periodic", "--limit", "1", "json", "--prefix", tmpdir)  # random output
+    ...     invoke(survey, "--debug", "--quiet", "ngons", "--count", "2", "--vertices", "3", "completely-cylinder-periodic", "--limit", "1", "json", "--prefix", tmpdir)
     ...     cache = Cache(Cache.load([tmpdir / "ngon-1-2-4.json", tmpdir / "ngon-2-2-3.json"]))
 
 Validate the results of the "survey"::
@@ -211,13 +211,13 @@ class CompletelyCylinderPeriodic(ConsumerGoal, Command):
             ...             "type": "Ngon",
             ...             "angles": [1, 1, 1],
             ...         },
-            ...         "result": None,
+            ...         "value": None,
             ...     }, {
             ...         "surface": {
             ...             "type": "Ngon",
             ...             "angles": [1, 1, 1],
             ...         },
-            ...         "result": False,
+            ...         "value": False,
             ...     }]
             ... }), log)
             >>> asyncio.run(goal.consume_cache())
@@ -231,15 +231,16 @@ class CompletelyCylinderPeriodic(ConsumerGoal, Command):
             {"surface": {...}, "completely-cylinder-periodic": [{"timestamp": ..., "cached": true, "value": false}]}
 
         """
-        results = self._cache.get(CompletelyCylinderPeriodic).filter(
-            self._flow_decompositions._surface.cache_predicate(
-                False, cache=self._cache
-            ),
-        )
+        with self._cache.defaults({"value": None}):
+            results = self._cache.get(CompletelyCylinderPeriodic).filter(
+                self._flow_decompositions._surface.cache_predicate(
+                    False, cache=self._cache
+                ),
+            )
 
-        verdict = None
-        if results.any(lambda result: result.result == False):
-            verdict = False
+            verdict = None
+            if results.any(lambda result: result.value == False):
+                verdict = False
 
         if verdict is not None or self._cache_only:
             await self._report.result(self, verdict, cached=True)
