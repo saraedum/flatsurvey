@@ -104,6 +104,8 @@ class SaddleConnections(Producer, Command):
         try:
             self._current = next(self._connections)
 
+            self._count += 1
+
             self._report.progress(source=self, what="connections", count=self._count)
             return "NOT_EXHAUSTED"
         except StopIteration:
