@@ -1,8 +1,8 @@
 r"""
-The saddle connections on a translation surface.
+The saddle connection directions on a translation surface module scaling.
 
     >>> from flatsurvey.test.cli import invoke
-    >>> from flatsurvey.worker.worker import worker
+    >>> from flatsurvey.worker import worker
     >>> invoke(worker, "saddle-connection-orientations", "--help") # doctest: +NORMALIZE_WHITESPACE
     Usage: worker saddle-connection-orientations [OPTIONS]
       Orientations of saddle connections on the surface, i.e., the vectors of
@@ -33,7 +33,7 @@ The saddle connections on a translation surface.
 import click
 
 from flatsurvey.ui import Command
-from flatsurvey.pipeline import Processor
+from flatsurvey.pipeline import Processor, Bindings
 from flatsurvey.ui.group import GroupedCommand
 from flatsurvey.jobs.saddle_connections import SaddleConnections
 from flatsurvey.reporting import Report
@@ -53,13 +53,77 @@ class SaddleConnectionOrientations(Processor, Command):
         self._seen = None
 
     @staticmethod
-    def create(bindings):
+    def create(bindings: Bindings):
+        r"""
+        Return a ``SaddleConnectionOrientations`` instance from the configuration registered in ``bindings``.
+
+        TESTS::
+
+            >>> from flatsurvey.pipeline import Bindings
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> from flatsurvey.surfaces.ngons import Ngon
+            >>> bindings = Bindings()
+            >>> invoke_subcommand(Ngon.click, "-a", "1", "-a", "1", "-a", "1", bindings=bindings)
+            >>> invoke_subcommand(SaddleConnectionOrientations.click, bindings=bindings)
+            >>> SaddleConnectionOrientations.create(bindings)
+            saddle-connection-orientations
+
+        """
         return SaddleConnectionOrientations(
             saddle_connections=bindings.get(SaddleConnections),
             report=bindings.get(Report)
         )
 
+    @staticmethod
+    @click.command(
+        name="saddle-connection-orientations",
+        cls=GroupedCommand,
+        group="Intermediates",
+        help=__doc__.split("EXAMPLES")[0],  # type: ignore
+    )
+    @Bindings.click
+    def click(bindings: Bindings):
+        r"""
+        Parse command line options into ``bindings``.
+
+        TESTS::
+
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> invoke_subcommand(SaddleConnectionOrientations.click)
+
+        """
+        del bindings
+
     async def _consume(self, product, cost):
+        r"""
+        Turn a saddle connection into its orientation.
+
+        EXAMPLES::
+
+            >>> import asyncio
+            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.reporting import Log, Report
+            >>> from flatsurvey.jobs import SaddleConnections
+            >>> surface = Ngon((1, 1, 1))
+            >>> sco = SaddleConnectionOrientations(saddle_connections=SaddleConnections(surface, report=None), report=None)
+
+            >>> asyncio.run(sco.produce())  # doctest: +ELLIPSIS
+            'NOT_EXHAUSTED'
+
+        Check that the JSON output works::
+
+            >>> from flatsurvey.reporting import Json
+
+            >>> report = Report([Json(surface)], ignore=["saddle-connections"])
+            >>> sco = SaddleConnectionOrientations(saddle_connections=SaddleConnections(surface, report=None), report=report)
+
+            >>> asyncio.run(sco.produce())
+            'NOT_EXHAUSTED'
+
+            >>> report.flush()
+            {"surface": {...}, "saddle-connection-orientations": [{"timestamp": "...", "value": {"type": "Vector<eantic::renf_elem_class>", ...}}]}
+
+        """
         import cppyy
 
         vector = product.vector()
@@ -77,29 +141,13 @@ class SaddleConnectionOrientations(Processor, Command):
             except Exception:
                 pass
 
-        # TODO: What is this good for (unused)?
-        flat_triangulation = self._saddle_connections._surface.surface().pyflatsurf().codomain().flat_triangulation()
-        cppyy.gbl.flatsurf.Vertex.source(
-            product.source(), flat_triangulation.combinatorial()
-        )
-        cppyy.gbl.flatsurf.Vertex.source(
-            product.target(), flat_triangulation.combinatorial()
-        )
-
         if self._seen.find(vector) == self._seen.end():
             self._seen.insert(vector)
             self._current = product.vector()
             self._current = type(self._current)(self._current)
+
+            await self._report.result(self, self._current)
+
             await self._notify_consumers(cost)
 
         return "NOT_COMPLETED"
-
-    @classmethod
-    @click.command(
-        name="saddle-connection-orientations",
-        cls=GroupedCommand,
-        group="Intermediates",
-        help=__doc__.split("EXAMPLES")[0],
-    )
-    def click():
-        return {"bindings": SaddleConnectionOrientations}

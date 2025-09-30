@@ -66,7 +66,7 @@ class Report(Command):
         >>> report.log(report, "invisible message because no reporter has been registered")
 
     """
-    DEFAULT_IGNORE = ["flow-decompositions", "saddle-connections"]
+    DEFAULT_IGNORE = ["flow-decompositions", "saddle-connections", "saddle-connection-orientations"]
 
     def __init__(self, reporters: List[Reporter], ignore=None):
         if ignore is None:
