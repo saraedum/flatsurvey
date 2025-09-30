@@ -103,7 +103,7 @@ class FlowDecompositions(Processor, Command):
             "bindings": [PartialBindingSpec(FlowDecompositions)(limit=limit)],
         }
 
-    async def _consume(self, orientation, cost):
+    async def _consume(self, product, cost):
         r"""
         Produce the flow decomposition corresponding to ``orientation``.
 
@@ -142,7 +142,7 @@ class FlowDecompositions(Processor, Command):
 
         from flatsurf import GL2ROrbitClosure
         self._current = GL2ROrbitClosure(self._surface.surface()).decomposition(
-            orientation, self._limit
+            product, self._limit
         )
         cost += time.perf_counter() - start
 
@@ -151,7 +151,7 @@ class FlowDecompositions(Processor, Command):
             # flatsurf::FlowDecomposition cannot be serialized yet: https://github.com/flatsurf/flatsurf/issues/274
             # self._current,
             None,
-            orientation=orientation,
+            orientation=product,
             cylinders=len(self._current.cylinders()),
             minimal=len(self._current.minimalComponents()),
             undetermined=len(self._current.undeterminedComponents()),
@@ -159,4 +159,4 @@ class FlowDecompositions(Processor, Command):
 
         await self._notify_consumers(cost)
 
-        return not Processor.EXHAUSTED
+        return "NOT_COMPLETED"

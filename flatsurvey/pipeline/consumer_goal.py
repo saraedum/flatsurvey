@@ -72,7 +72,8 @@ class ConsumerGoal(Consumer, Goal):
 
             cache = Cache()
 
-        self._cache = cache
+        from flatsurvey.cache.cache import Cache
+        self._cache: Cache = cache
         self._cache_only = cache_only
 
         super().__init__(producers=producers, report=report)

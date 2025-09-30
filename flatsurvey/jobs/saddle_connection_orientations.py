@@ -59,10 +59,10 @@ class SaddleConnectionOrientations(Processor, Command):
             report=bindings.get(Report)
         )
 
-    async def _consume(self, connection, cost):
+    async def _consume(self, product, cost):
         import cppyy
 
-        vector = connection.vector()
+        vector = product.vector()
         if self._seen == None:
             self._seen = cppyy.gbl.std.set[type(vector), type(vector).CompareSlope]()
 
@@ -77,20 +77,22 @@ class SaddleConnectionOrientations(Processor, Command):
             except Exception:
                 pass
 
+        # TODO: What is this good for (unused)?
         flat_triangulation = self._saddle_connections._surface.surface().pyflatsurf().codomain().flat_triangulation()
-        source = cppyy.gbl.flatsurf.Vertex.source(
-            connection.source(), flat_triangulation.combinatorial()
+        cppyy.gbl.flatsurf.Vertex.source(
+            product.source(), flat_triangulation.combinatorial()
         )
-        target = cppyy.gbl.flatsurf.Vertex.source(
-            connection.target(), flat_triangulation.combinatorial()
+        cppyy.gbl.flatsurf.Vertex.source(
+            product.target(), flat_triangulation.combinatorial()
         )
+
         if self._seen.find(vector) == self._seen.end():
             self._seen.insert(vector)
-            self._current = connection.vector()
+            self._current = product.vector()
             self._current = type(self._current)(self._current)
             await self._notify_consumers(cost)
 
-        return not Processor.COMPLETED
+        return "NOT_COMPLETED"
 
     @classmethod
     @click.command(

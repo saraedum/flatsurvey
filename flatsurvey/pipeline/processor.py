@@ -32,6 +32,9 @@ decompositions::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
+from typing import Literal
+
+
 from flatsurvey.pipeline.consumer import Consumer
 from flatsurvey.pipeline.producer import Producer
 
@@ -63,7 +66,7 @@ class Processor(Producer, Consumer):
 
         self._produced = False
 
-    async def produce(self):
+    async def produce(self) -> Literal["EXHAUSTED"] | Literal["NOT_EXHAUSTED"]:
         r"""
         Ask our producers to produce until our own ``consume`` gets called so
         we actually produce. Return whether all our producers have been
@@ -92,9 +95,9 @@ class Processor(Producer, Consumer):
         # have, we might need a better strategy here.
         while self._current is None:
             for source in self._producers:
-                if await source.produce() != Producer.EXHAUSTED:
+                if await source.produce() != "EXHAUSTED":
                     break
             else:
-                return Producer.EXHAUSTED
+                return "EXHAUSTED"
 
-        return not Producer.EXHAUSTED
+        return "NOT_EXHAUSTED"

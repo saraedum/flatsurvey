@@ -28,6 +28,7 @@ EXAMPLES::
 # *********************************************************************
 
 from abc import abstractmethod
+from typing import Literal
 
 
 class Producer:
@@ -46,8 +47,6 @@ class Producer:
         True
 
     """
-    EXHAUSTED = False
-
     def __init__(self, report=None):
         self._consumers = set()
         self._current = None
@@ -60,7 +59,7 @@ class Producer:
 
         self._report = report
 
-    async def produce(self):
+    async def produce(self) -> Literal["EXHAUSTED"] | Literal["NOT_EXHAUSTED"]:
         r"""
         Produce new data and notify all attached consumers of it. Return
         whether nothing more can be produced because this producer is
@@ -75,7 +74,7 @@ class Producer:
 
             >>> import asyncio
             >>> produce = connections.produce()
-            >>> asyncio.run(produce) != Producer.EXHAUSTED
+            >>> asyncio.run(produce) != "EXHAUSTED"
             True
 
             >>> connections._current
@@ -85,14 +84,14 @@ class Producer:
         import time
 
         start = time.perf_counter()
-        if self._produce() == Producer.EXHAUSTED:
+        if self._produce() == "EXHAUSTED":
             self._exhausted = True
-            return Producer.EXHAUSTED
+            return "EXHAUSTED"
         cost = time.perf_counter() - start
 
         await self._notify_consumers(cost)
 
-        return not Producer.EXHAUSTED
+        return "NOT_EXHAUSTED"
 
     @property
     def exhausted(self):
@@ -125,9 +124,7 @@ class Producer:
         Notify all attached consumers that something new has been produced.
         """
         for consumer in list(self._consumers):
-            from flatsurvey.pipeline.consumer import Consumer
-
-            if await consumer.consume(self._current, cost) == Consumer.COMPLETED:
+            if await consumer.consume(self._current, cost) == "COMPLETED":
                 self._consumers.remove(consumer)
 
     def register_consumer(self, consumer):
@@ -153,7 +150,7 @@ class Producer:
         self._consumers.add(consumer)
 
     @abstractmethod
-    def _produce(self):
+    def _produce(self) -> Literal["EXHAUSTED"] | Literal["NOT_EXHAUSTED"]:
         r"""
         Produce something and return whether nothing new can be produced
         because we have been exhausted.

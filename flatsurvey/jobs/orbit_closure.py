@@ -210,14 +210,14 @@ class OrbitClosure(ConsumerGoal, Command):
 
         if verdict is not None or self._cache_only:
             await self._report.result(self, result=None, dense=verdict, cached=True)
-            self._resolved = ConsumerGoal.COMPLETED
+            self._resolved = True
 
     @staticmethod
     @click.command(
         name="orbit-closure",
         cls=GroupedCommand,
         group="Goals",
-        help=__doc__.split("EXAMPLES")[0],
+        help=__doc__.split("EXAMPLES")[0],  # type: ignore
     )
     @click.option(
         "--stale-limit",
@@ -277,7 +277,7 @@ class OrbitClosure(ConsumerGoal, Command):
 
         return None
 
-    async def _consume(self, decomposition, cost):
+    async def _consume(self, product, cost):
         r"""
         Enlarge the orbit closure from the cylinders in ``decomposition``.
 
@@ -296,7 +296,7 @@ class OrbitClosure(ConsumerGoal, Command):
 
             >>> import asyncio
             >>> resolve = oc.resolve()
-            >>> assert asyncio.run(resolve) == Goal.COMPLETED
+            >>> assert asyncio.run(resolve) == "COMPLETED"
             [Ngon([1, 3, 5])] [OrbitClosure] dimension: 4/6
             [Ngon([1, 3, 5])] [OrbitClosure] dimension: 6/6
             [Ngon([1, 3, 5])] [OrbitClosure] GL(2,R)-orbit closure of dimension at least 6 in H_3(4) (ambient dimension 6) (dimension: 6) (directions: 2) (directions_with_cylinders: 2) (dense: True)
@@ -330,7 +330,7 @@ class OrbitClosure(ConsumerGoal, Command):
             self._upper_bound,
         )
 
-        if decomposition.cylinders() and not decomposition.undeterminedComponents():
+        if product.cylinders() and not product.undeterminedComponents():
             self._cylinders_without_increase += 1
             self._directions_with_cylinders += 1
 
@@ -338,7 +338,7 @@ class OrbitClosure(ConsumerGoal, Command):
         dimension = self.dimension
 
         # TODO: If this is a billiard, use symmetries.
-        orbit_closure.update_tangent_space_from_flow_decomposition(decomposition)
+        orbit_closure.update_tangent_space_from_flow_decomposition(product)
 
         self._report.progress(
             source=self,
@@ -360,7 +360,7 @@ class OrbitClosure(ConsumerGoal, Command):
         if self.dimension == self._surface.orbit_closure_dimension_upper_bound:
             await self.report()
             # Stop consuming further cylinder decompositions.
-            return False
+            return "COMPLETED"
 
         if self._cylinders_without_increase >= self._stale_limit:
             if self._expansions_performed < self._expansions_limit:
@@ -385,9 +385,9 @@ class OrbitClosure(ConsumerGoal, Command):
                         f"Now considering directions coming from saddle connections of length more than {self._lower_bound}",
                     )
                 self._cylinders_without_increase = 0
-                return not Goal.COMPLETED
+                return "NOT_COMPLETED"
 
-            return Goal.COMPLETED
+            return "COMPLETED"
 
         if (
             self._deform
@@ -480,7 +480,7 @@ class OrbitClosure(ConsumerGoal, Command):
                     )
                     break
 
-        return not Goal.COMPLETED
+        return "NOT_COMPLETED"
 
     @classmethod
     def reduce(cls, results):

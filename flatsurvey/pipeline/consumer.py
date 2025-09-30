@@ -30,6 +30,7 @@ Any goal of a computation implements the Consumer interface::
 # *********************************************************************
 
 from abc import abstractmethod, ABC
+from typing import Literal
 
 
 class Consumer(ABC):
@@ -60,17 +61,14 @@ class Consumer(ABC):
         [saddle-connections]
 
     """
-    COMPLETED = False
-
     def __init__(self, producers, report=None):
         super().__init__()
 
         self._producers = producers
 
         # Some consumers can be resolved, e.g., when we are sure that we
-        # determined the correct orbit closure, we'd set its _resolved to
-        # COMPLETED.
-        self._resolved = not Consumer.COMPLETED
+        # determined the correct orbit closure, we'd set this to True.
+        self._resolved = False
 
         # Register ourselves with each produces so we get notified of any
         # objects they generate.
@@ -103,9 +101,9 @@ class Consumer(ABC):
             False
 
         """
-        return self._resolved is Consumer.COMPLETED
+        return self._resolved
 
-    async def consume(self, product, cost):
+    async def consume(self, product, cost) -> Literal["COMPLETED"] | Literal["NOT_COMPLETED"]:
         r"""
         Process the ``product`` by one of the producers we are attached to and
         return whether we are willing to consumer further data or whether we
@@ -136,14 +134,14 @@ class Consumer(ABC):
             True
 
         """
-        assert self._resolved != Consumer.COMPLETED
+        assert not self._resolved
 
-        self._resolved = await self._consume(product, cost)
+        self._resolved = await self._consume(product, cost) == "COMPLETED"
 
-        return self._resolved
+        return "COMPLETED" if self._resolved else "NOT_COMPLETED"
 
     @abstractmethod
-    async def _consume(self, product, cost):
+    async def _consume(self, product, cost) -> Literal["COMPLETED"] | Literal["NOT_COMPLETED"]:
         r"""
         Process the ``product`` by one of the producers we are attached to and
         return whether we are willing to consume further data or whether we
@@ -152,7 +150,7 @@ class Consumer(ABC):
         Actual consumers must implement this method.
         """
 
-    async def resolve(self):
+    async def resolve(self) -> bool:
         r"""
         Make our producers generate objects until this consumer marks itself as
         resolved. Return whether we could resolve or our producers were exhausted.
@@ -169,22 +167,24 @@ class Consumer(ABC):
 
             >>> import asyncio
             >>> resolve = oc.resolve()
-            >>> asyncio.run(resolve) == Consumer.COMPLETED
+            >>> asyncio.run(resolve)
             True
 
         """
-        while self._resolved != Consumer.COMPLETED:
+        while not self._resolved:
             for producer in self._producers:
                 from flatsurvey.pipeline.producer import Producer
 
-                if await producer.produce() != Producer.EXHAUSTED:
+                if await producer.produce() != "EXHAUSTED":
                     break
             else:
-                return
+                return False
 
             import asyncio
 
             await asyncio.sleep(0)
+
+        return True
 
     def reported(self):
         r"""

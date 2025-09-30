@@ -105,16 +105,18 @@ class SaddleConnections(Producer, Command):
             self._current = next(self._connections)
 
             self._report.progress(source=self, what="connections", count=self._count)
-            return not Producer.EXHAUSTED
+            return "NOT_EXHAUSTED"
         except StopIteration:
-            return Producer.EXHAUSTED
+            pass
+
+        return "EXHAUSTED"
 
     @classmethod
     @click.command(
         name="saddle-connections",
         cls=GroupedCommand,
         group="Intermediates",
-        help=__doc__.split("EXAMPLES")[0],
+        help=__doc__.split("EXAMPLES")[0],  # type: ignore
     )
     @click.option(
         "--bound",

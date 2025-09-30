@@ -321,6 +321,36 @@ class ResultSet:
         rows = [result._rows[0] for result in self if predicate(result)]
         return ResultSet(rows, sources=self._sources, quorum=self._quorum)
 
+    def any(self, predicate) -> bool:
+        r"""
+        Return whether any row satisfies the ``predicate``.
+
+        This is just a shorthand for the very command ``bool(filter())``.
+
+        EXAMPLES::
+
+            >>> results = ResultSet(rows=[{"dense": True}, {"dense": None}], sources=["CACHE"])
+            >>> results.any(lambda result: result.dense)
+            True
+
+        """
+        return bool(self.filter(predicate))
+
+    def all(self, predicate) -> bool:
+        r"""
+        Return whether any row satisfies the ``predicate``.
+
+        This is just a shorthand for the very command ``bool(filter(not))``.
+
+        EXAMPLES::
+
+            >>> results = ResultSet(rows=[{"dense": True}, {"dense": None}], sources=["CACHE"])
+            >>> results.all(lambda result: result.dense)
+            False
+
+        """
+        return not self.any(lambda *args, **kwargs: not predicate(*args, **kwargs))
+
     def __iter__(self):
         r"""
         Return an iterator over the results in this set.

@@ -34,6 +34,6 @@ from abc import ABC, abstractmethod
 
 class Goal(ABC):
     @abstractmethod
-    async def resolve(self):
+    async def resolve(self) -> bool:
         pass
 

@@ -87,6 +87,9 @@ class Ngon(Surface):
     def __init__(self, angles, length="e-antic", polygon=None):
         super().__init__()
 
+        if len(angles) < 3:
+            raise ValueError("n-gon must be at least a triangle")
+
         self.angles = list(angles)
 
         self.length = length

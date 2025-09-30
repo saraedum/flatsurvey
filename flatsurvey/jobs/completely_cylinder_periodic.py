@@ -6,7 +6,7 @@ there is some direction with a minimal component but we can never say "yes",
 _all_ directions are cylinder periodic.
 
     >>> from flatsurvey.test.cli import invoke
-    >>> from flatsurvey.worker.worker import worker
+    >>> from flatsurvey.worker import worker
     >>> invoke(worker, "completely-cylinder-periodic", "--help") # doctest: +NORMALIZE_WHITESPACE
     Usage: worker completely-cylinder-periodic [OPTIONS]
       Determines whether for all directions given by saddle connections, the
@@ -40,9 +40,14 @@ _all_ directions are cylinder periodic.
 
 import click
 
+from pyflatsurf import flatsurf  # type: ignore
+
 from flatsurvey.ui import Command
-from flatsurvey.pipeline import ConsumerGoal
+from flatsurvey.pipeline import ConsumerGoal, Bindings
 from flatsurvey.ui.group import GroupedCommand
+from flatsurvey.jobs.flow_decomposition import FlowDecompositions
+from flatsurvey.reporting import Report
+from flatsurvey.cache import Cache
 
 
 class CompletelyCylinderPeriodic(ConsumerGoal, Command):
@@ -65,11 +70,11 @@ class CompletelyCylinderPeriodic(ConsumerGoal, Command):
 
     def __init__(
         self,
-        report,
-        flow_decompositions,
-        cache,
-        cache_only=ConsumerGoal.DEFAULT_CACHE_ONLY,
-        limit=DEFAULT_LIMIT,
+        report: Report,
+        flow_decompositions: FlowDecompositions,
+        cache: Cache,
+        cache_only: bool=ConsumerGoal.DEFAULT_CACHE_ONLY,
+        limit: int | None=DEFAULT_LIMIT,
     ):
         self._flow_decompositions = flow_decompositions
         self._limit = limit
@@ -84,12 +89,39 @@ class CompletelyCylinderPeriodic(ConsumerGoal, Command):
             cache_only=cache_only,
         )
 
-    @classmethod
+    @staticmethod
+    def create(bindings: Bindings):
+        r"""
+        Return a ``CompletelyCylinderPeriodic`` instance from the configuration
+        registered in ``bindings``.
+
+        TESTS::
+
+            >>> from flatsurvey.pipeline import Bindings
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> from flatsurvey.surfaces.ngons import Ngon
+            >>> bindings = Bindings()
+            >>> invoke_subcommand(CompletelyCylinderPeriodic.click, bindings=bindings)
+            >>> invoke_subcommand(Ngon.click, "-a", "1", "-a", "1", "-a", "1", bindings=bindings)
+            >>> CompletelyCylinderPeriodic.create(bindings)
+            completely-cylinder-periodic
+
+        """
+        with bindings.scope(CompletelyCylinderPeriodic) as scoped:
+            return CompletelyCylinderPeriodic(
+                report=bindings.get(Report),
+                flow_decompositions=bindings.get(FlowDecompositions),
+                cache=bindings.get(Cache),
+                cache_only=scoped.get("cache_only", lambda: ConsumerGoal.DEFAULT_CACHE_ONLY),
+                limit=scoped.get("limit", lambda: CompletelyCylinderPeriodic.DEFAULT_LIMIT),
+            )
+
+    @staticmethod
     @click.command(
         name="completely-cylinder-periodic",
         cls=GroupedCommand,
         group="Goals",
-        help=__doc__.split("EXAMPLES")[0],
+        help=__doc__.split("EXAMPLES")[0],  # type: ignore
     )
     @click.option(
         "--limit",
@@ -98,16 +130,23 @@ class CompletelyCylinderPeriodic(ConsumerGoal, Command):
         help="stop search after having looked at that many flow decompositions  [default: no limit]",
     )
     @ConsumerGoal._cache_only_option
-    def click(limit, cache_only):
-        raise NotImplementedError
-        return {
-            "bindings": [
-                PartialBindingSpec(CompletelyCylinderPeriodic)(
-                    limit=limit, cache_only=cache_only
-                )
-            ],
-            "goals": [CompletelyCylinderPeriodic],
-        }
+    @Bindings.click
+    def click(bindings: Bindings, limit, cache_only):
+        r"""
+        Parse command line options into ``bindings``.
+
+        TESTS::
+
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> invoke_subcommand(CompletelyCylinderPeriodic.click)
+
+        """
+        from flatsurvey.pipeline import Goal
+        bindings.append(Goal, CompletelyCylinderPeriodic)
+
+        with bindings.scope(CompletelyCylinderPeriodic) as scoped:
+            scoped.define(limit=limit)
+            scoped.define(cache_only=cache_only)
 
     async def consume_cache(self):
         r"""
@@ -139,20 +178,21 @@ class CompletelyCylinderPeriodic(ConsumerGoal, Command):
             >>> log = Report([Json(surface)])
 
             >>> from io import StringIO
-            >>> goal = make_goal(Cache(jsons=[StringIO(
-            ... '''{"completely-cylinder-periodic": [{
-            ...   "surface": {
-            ...     "type": "Ngon",
-            ...     "angles": [1, 1, 1]
-            ...   },
-            ...   "result": null
-            ... }, {
-            ...   "surface": {
-            ...     "type": "Ngon",
-            ...     "angles": [1, 1, 1]
-            ...   },
-            ...   "result": false
-            ... }]}''')], pickles=None, report=None), log)
+            >>> goal = make_goal(Cache({
+            ...     "completely-cylinder-periodic": [{
+            ...         "surface": {
+            ...             "type": "Ngon",
+            ...             "angles": [1, 1, 1],
+            ...         },
+            ...         "result": None,
+            ...     }, {
+            ...         "surface": {
+            ...             "type": "Ngon",
+            ...             "angles": [1, 1, 1],
+            ...         },
+            ...         "result": False,
+            ...     }]
+            ... }), log)
             >>> asyncio.run(goal.consume_cache())
 
             >>> goal.resolved
@@ -164,41 +204,23 @@ class CompletelyCylinderPeriodic(ConsumerGoal, Command):
             {"surface": {...}, "completely-cylinder-periodic": [{"timestamp": ..., "cached": true, "value": false}]}
 
         """
-        results = self._cache.get(
-            self,
+        results = self._cache.get(CompletelyCylinderPeriodic).filter(
             self._flow_decompositions._surface.cache_predicate(
                 False, cache=self._cache
             ),
         )
 
-        verdict = self.reduce(results)
+        verdict = None
+        if results.any(lambda result: result.result == False):
+            verdict = False
 
         if verdict is not None or self._cache_only:
             await self._report.result(self, verdict, cached=True)
-            self._resolved = Goal.COMPLETED
+            self._resolved = True
 
-    @classmethod
-    def reduce(self, results):
+    async def _consume(self, product: flatsurf.FlowDecomposition, cost):
         r"""
-        Given a list of historic results, return a final verdict.
-
-        EXAMPLES::
-
-            >>> from collections import namedtuple
-            >>> Result = namedtuple("Result", "result")
-            >>> CompletelyCylinderPeriodic.reduce([Result(None), Result(None)])
-            >>> CompletelyCylinderPeriodic.reduce([Result(None), Result(False)])
-            False
-
-        """
-        results = [result.result for result in results]
-
-        assert not any(results)
-        return False if any(result is False for result in results) else None
-
-    async def _consume(self, decomposition, cost):
-        r"""
-        Determine wheter ``decomposition`` is cylinder periodic.
+        Determine wheter ``product`` is cylinder periodic.
 
         EXAMPLES::
 
@@ -215,7 +237,7 @@ class CompletelyCylinderPeriodic(ConsumerGoal, Command):
             >>> import asyncio
             >>> produce = flow_decompositions.produce()
             >>> asyncio.run(produce)
-            True
+            'NOT_EXHAUSTED'
 
         Since we have not found any direction that is not cylinder periodic
         (since there are none), we cannot tell whether the surface is
@@ -226,23 +248,25 @@ class CompletelyCylinderPeriodic(ConsumerGoal, Command):
             [Ngon([1, 1, 1])] [CompletelyCylinderPeriodic] ¯\_(ツ)_/¯ (cylinder_periodic_directions: 1) (undetermined_directions: 0)
 
         """
-        if decomposition.minimalComponents():
-            await self.report(False, decomposition=decomposition)
-            return Goal.COMPLETED
+        del cost  # unused
 
-        if all([component.cylinder() for component in decomposition.components()]):
+        if product.minimalComponents():
+            await self.report(False, decomposition=product)
+            return "COMPLETED"
+
+        if all([component.cylinder() for component in product.components()]):
             self._cylinder_periodic_directions += 1
             if (
                 self._limit is not None
                 and self._cylinder_periodic_directions >= self._limit
             ):
-                self.report()
-                return Goal.COMPLETED
+                await self.report()
+                return "COMPLETED"
 
-        if decomposition.undeterminedComponents():
+        if product.undeterminedComponents():
             self._undetermined_directions += 1
 
-        return not Goal.COMPLETED
+        return "NOT_COMPLETED"
 
     async def report(self, result=None, **kwargs):
         r"""
@@ -275,3 +299,9 @@ class CompletelyCylinderPeriodic(ConsumerGoal, Command):
                 undetermined_directions=self._undetermined_directions,
                 **kwargs,
             )
+
+
+__test__ = {
+    # doctests of CompletelyCylinderPeriodic.click do not run unless explicitly mentioned here due to the click decorator.
+    "CompletelyCylinderPeriodic.click": CompletelyCylinderPeriodic.click.__doc__,
+}

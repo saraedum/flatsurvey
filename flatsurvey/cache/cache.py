@@ -163,10 +163,10 @@ class Cache(Command):
         """
         jsons = [Path(fname) for fname in json]
 
-        bindings.define(
-            scope=Cache,
-            cache=Cache.load(jsons),
-            pickles=pickles)
+        with bindings.scope(Cache) as scoped:
+            scoped.define(
+                cache=Cache.load(jsons),
+                pickles=pickles)
 
     @staticmethod
     def load(jsons: list[Path]) -> dict:

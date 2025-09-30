@@ -224,9 +224,7 @@ class Worker:
 
         def callback():
             for goal in self._goals:
-                from flatsurvey.pipeline.goal import Goal
-
-                goal._resolved = Goal.COMPLETED
+                goal._resolved = True
 
         from flatsurvey.dask.limits import LimitChecker
 

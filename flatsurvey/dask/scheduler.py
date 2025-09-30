@@ -370,7 +370,7 @@ class Scheduler:
         for goal in goals:
             await goal.consume_cache()
 
-        pending_goals = [goal for goal in goals if goal._resolved != goal.COMPLETED]
+        pending_goals = [goal for goal in goals if not goal.resolved]
 
         return not pending_goals
 
