@@ -22,6 +22,28 @@ Verify that this goal works in a non-survey run::
     >>> invoke(worker, "ngon", "-a", "1", "-a", "3", "-a", "11", "cylinder-periodic-direction")  # doctest: +ELLIPSIS
     [Ngon([1, 3, 11])] [CylinderPeriodicDirection] True ...
 
+TESTS:
+
+Verify that this goal works in a tiny survey run::
+
+    >>> from pathlib import Path
+    >>> from flatsurvey.survey import survey
+    >>> from flatsurvey.reporting import Json
+    >>> from tempfile import TemporaryDirectory
+
+    >>> with TemporaryDirectory() as tmpdir:
+    ...     tmpdir = Path(tmpdir)
+    ...     invoke(survey, "--debug", "--quiet", "ngons", "--count", "2", "--vertices", "3", "cylinder-periodic-direction", "json", "--prefix", tmpdir)  # random output
+    ...     cache = Cache(Cache.load([tmpdir / "ngon-1-2-4.json", tmpdir / "ngon-2-2-3.json"]))
+
+Validate the results of the "survey"::
+
+    >>> cached = cache.get("cylinder-periodic-direction")
+    >>> len(cached)
+    2
+    >>> cached.value
+    True
+
 """
 # *********************************************************************
 #  This file is part of flatsurvey.
