@@ -94,7 +94,6 @@ from flatsurvey.ui.group import CommandWithGroups
 @click.option("--debug", is_flag=True)
 @click.option(
     "--queue",
-    "-q",
     type=int,
     default=1024,
     help="Jobs to prepare in the background for scheduling.",
@@ -107,7 +106,6 @@ from flatsurvey.ui.group import CommandWithGroups
 )
 @click.option(
     "--quiet",
-    "-q",
     is_flag=True,
     help="Silence all terminal output",
 )
