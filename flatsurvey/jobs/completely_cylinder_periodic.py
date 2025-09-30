@@ -34,7 +34,7 @@ Verify that this goal works in a tiny survey run::
 
     >>> with TemporaryDirectory() as tmpdir:
     ...     tmpdir = Path(tmpdir)
-    ...     invoke(survey, "--quiet", "ngons", "--count", "2", "--vertices", "3", "completely-cylinder-periodic", "--limit", "1", "json", "--prefix", tmpdir)  # random output
+    ...     invoke(survey, "--debug", "--quiet", "ngons", "--count", "2", "--vertices", "3", "completely-cylinder-periodic", "--limit", "1", "json", "--prefix", tmpdir)  # random output
     ...     cache = Cache(Cache.load([tmpdir / "ngon-1-2-4.json", tmpdir / "ngon-2-2-3.json"]))
 
 Validate the results of the "survey"::
