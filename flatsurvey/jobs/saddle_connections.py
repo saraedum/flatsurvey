@@ -2,7 +2,7 @@ r"""
 The saddle connections on a translation surface.
 
     >>> from flatsurvey.test.cli import invoke
-    >>> from flatsurvey.worker.worker import worker
+    >>> from flatsurvey.worker import worker
     >>> invoke(worker, "saddle-connections", "--help") # doctest: +NORMALIZE_WHITESPACE
     Usage: worker saddle-connections [OPTIONS]
       Saddle connections on the surface.
@@ -36,7 +36,7 @@ The saddle connections on a translation surface.
 import click
 
 from flatsurvey.ui import Command
-from flatsurvey.pipeline import Producer
+from flatsurvey.pipeline import Producer, Bindings
 from flatsurvey.ui.group import GroupedCommand
 from flatsurvey.surfaces import Surface
 from flatsurvey.reporting import Report
@@ -56,11 +56,31 @@ class SaddleConnections(Producer, Command):
         self._limit = limit
         self._bound = bound
 
-        self._connections = None
         self._count = 0
 
+        # We initialize the connections lazily so we do not instantiate the
+        # surface until it is requested. This helps against memory leaks when
+        # resolving results from the cache.
+        self.__connections = None
+        self.__connections_iterator = None
+
     @staticmethod
-    def create(bindings):
+    def create(bindings: Bindings):
+        r"""
+        Return a ``SaddleConnections`` instance from the configuration registered in ``bindings``.
+
+        TESTS::
+
+            >>> from flatsurvey.pipeline import Bindings
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> from flatsurvey.surfaces.ngons import Ngon
+            >>> bindings = Bindings()
+            >>> invoke_subcommand(Ngon.click, "-a", "1", "-a", "1", "-a", "1", bindings=bindings)
+            >>> invoke_subcommand(SaddleConnections.click, bindings=bindings)
+            >>> SaddleConnections.create(bindings)
+            saddle-connections
+
+        """
         with bindings.scope(SaddleConnections) as scoped:
             return SaddleConnections(
                 surface=bindings.get(Surface),
@@ -69,51 +89,7 @@ class SaddleConnections(Producer, Command):
                 bound=scoped.get("bound", default=lambda: SaddleConnections.DEFAULT_BOUND),
             )
 
-    def _by_length(self):
-        self.__connections = (
-            self._surface.surface().pyflatsurf().codomain().flat_triangulation().connections().byLength()
-        )
-        if self._bound is not None:
-            self.__connections = self.__connections.bound(self._bound)
-        if self._limit is not None:
-            from itertools import islice
-
-            self.__connections = islice(self.__connections, 0, self._limit)
-        self._connections = iter(self.__connections)
-
-    def randomize(self, lower_bound):
-        self.__connections = (
-            self._surface.surface().pyflatsurf().codomain().flat_triangulation()
-            .connections()
-            .sample()
-            .lowerBound(lower_bound)
-        )
-        if self._bound is not None:
-            raise NotImplementedError(
-                "Cannot randomize saddle connections with --bound yet."
-            )
-        if self._limit is not None:
-            from itertools import islice
-
-            self.__connections = islice(self.__connections, 0, self._limit)
-        self._connections = iter(self.__connections)
-
-    def _produce(self):
-        if self._connections is None:
-            self._by_length()
-        try:
-            self._current = next(self._connections)
-
-            self._count += 1
-
-            self._report.progress(source=self, what="connections", count=self._count)
-            return "NOT_EXHAUSTED"
-        except StopIteration:
-            pass
-
-        return "EXHAUSTED"
-
-    @classmethod
+    @staticmethod
     @click.command(
         name="saddle-connections",
         cls=GroupedCommand,
@@ -132,10 +108,98 @@ class SaddleConnections(Producer, Command):
         default=DEFAULT_LIMIT,
         help="stop search after that many saddle connections have been considered  [default: no limit]",
     )
-    def click(bound, limit):
-        raise NotImplementedError
-        return {
-            "bindings": [
-                PartialBindingSpec(SaddleConnections)(bound=bound, limit=limit)
-            ]
-        }
+    @Bindings.click
+    def click(bindings: Bindings, bound, limit):
+        r"""
+        Parse command line options into ``bindings``.
+
+        TESTS::
+
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> invoke_subcommand(SaddleConnections.click)
+
+        """
+        with bindings.scope(SaddleConnections) as scoped:
+            scoped.define(bound=bound, limit=limit)
+
+    def randomize(self, lower_bound):
+        r"""
+        Take the saddle connections produced from a random sample of
+        connections of length at least ``lower_bound``. (Instead of normally
+        taking them just by length increasing.)
+
+        TESTS::
+
+            >>> from flatsurvey.pipeline import Bindings
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> from flatsurvey.surfaces.ngons import Ngon
+            >>> bindings = Bindings()
+            >>> invoke_subcommand(Ngon.click, "-a", "1", "-a", "1", "-a", "1", bindings=bindings)
+            >>> invoke_subcommand(SaddleConnections.click, bindings=bindings)
+            >>> sc = SaddleConnections.create(bindings)
+
+            >>> import asyncio
+            >>> asyncio.run(sc.produce())
+            'NOT_EXHAUSTED'
+
+            >>> sc._current > 64
+            False
+
+        ::
+
+            >>> sc.randomize(lower_bound=64)
+
+            >>> import asyncio
+            >>> asyncio.run(sc.produce())
+            'NOT_EXHAUSTED'
+
+            >>> sc._current > 64
+            True
+
+        """
+        self._reset(
+            self._surface.surface().pyflatsurf().codomain().flat_triangulation()
+            .connections()
+            .sample()
+            .lowerBound(lower_bound)
+        )
+
+    def _reset(self, connections):
+        r"""
+        Reset the internal source of saddle connections to ``connections``.
+
+        This is a helper to switch the saddle connections from being iterated
+        by length increasing or randomly.
+        """
+        if self._bound is not None:
+            connections = connections.bound(self._bound)
+
+        if self._limit is not None:
+            from itertools import islice
+            connections = islice(connections, 0, self._limit)
+
+        # We keep an explicit reference to the pyflatsurf object to avoid segfault due to too eager cleanup
+        self.__connections = connections
+        self.__connections_iterator = iter(self.__connections)
+
+    def _produce(self):
+        if self.__connections_iterator is None:
+            self._reset(self._surface.surface().pyflatsurf().codomain().flat_triangulation().connections().byLength())
+
+        assert self.__connections_iterator is not None
+
+        try:
+            self._current = next(self.__connections_iterator)
+        except StopIteration:
+            return "EXHAUSTED"
+
+        self._count += 1
+
+        self._report.progress(source=self, what="connections", count=self._count)
+        return "NOT_EXHAUSTED"
+
+
+__test__ = {
+    # doctests of click do not run unless explicitly mentioned here due to the click decorator.
+    "SaddleConnections.click": SaddleConnections.click.__doc__,
+}

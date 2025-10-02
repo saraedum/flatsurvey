@@ -1,3 +1,4 @@
+# TODO: Inline this into orbit_closure
 r"""
 Deformations of surfaces
 
@@ -154,6 +155,7 @@ class Deformation(Surface):
         """
         return lambda result: False
 
+    # TODO: Move this into a restart() method or something like that.
     class Restart(Restart):
         r"""
         An exception that can be raised anywhere in the worker to restart work

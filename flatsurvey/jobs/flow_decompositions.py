@@ -182,3 +182,9 @@ class FlowDecompositions(Processor, Command):
         await self._notify_consumers(cost)
 
         return "NOT_COMPLETED"
+
+
+__test__ = {
+    # doctests of click do not run unless explicitly mentioned here due to the click decorator.
+    "FlowDecompositions.click": FlowDecompositions.click.__doc__,
+}

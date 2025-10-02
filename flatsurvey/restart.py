@@ -17,15 +17,17 @@
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from abc import ABC, abstractmethod
-
 from flatsurvey.pipeline import Bindings
 
 
-class Restart(Exception, ABC):
+class Restart(Exception):
     r"""
     An exception that signals that the worker should restart on a modified
     bindings.
+
+    INPUT:
+
+    - ``bindings`` -- the :class:`Bindings` with which the worker will restart.
 
     .. NOTE::
 
@@ -34,10 +36,5 @@ class Restart(Exception, ABC):
         pattern to say the least. But it is also very convenient.
 
     """
-    @abstractmethod
-    def restart(self, bindings: Bindings) -> Bindings:
-        r"""
-        Return a modified bindings that the worker should work on instead after
-        the restart.
-        """
-        raise NotImplementedError
+    def __init__(self, bindings: Bindings):
+        self.bindings = bindings

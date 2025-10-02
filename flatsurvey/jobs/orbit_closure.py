@@ -562,6 +562,7 @@ class OrbitClosure(ConsumerGoal, Command):
 
                         from flatsurvey.surfaces import Deformation
 
+                        # TODO: Make sure that this code path is tested.
                         raise Deformation.Restart(surface, old=self._surface)
                     except cppyy.gbl.std.invalid_argument:
                         self._report.log(source=self, message=f"Failed to deform {orbit_closure._surface} with {n}")
