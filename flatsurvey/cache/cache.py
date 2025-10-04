@@ -395,12 +395,10 @@ class Cache(Command):
 
         The above returns the results for any ngon with such angles. To only
         accept results for surfaces that are exactly the same, we can use the
-        ``exact`` keyword; however this is not implemented yet::
+        ``exact`` keyword; however this is only implemented for triangles currently::
 
             >>> cache.get(OrbitClosure).filter(surface.cache_predicate(exact=True))
-            Traceback (most recent call last):
-            ...
-            NotImplementedError: exact filtering is not supported yet
+            2 cached results
 
         We can also only look at results for surfaces with certain properties::
 

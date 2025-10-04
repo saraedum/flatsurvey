@@ -558,9 +558,7 @@ class Ngon(Surface):
 
             >>> predicate = surface.cache_predicate(exact=True)
             >>> predicate(CacheRow(surface))
-            Traceback (most recent call last):
-            ...
-            NotImplementedError: exact filtering is not supported yet
+            True
 
             >>> predicate = surface.cache_predicate(exact=False)
             >>> predicate(CacheRow(surface))
@@ -575,7 +573,16 @@ class Ngon(Surface):
                 return False
 
             if exact:
-                raise NotImplementedError("exact filtering is not supported yet")
+                if len(surface.angles) == 3:
+                    # The underlying polygon() is deterministic. Therefore, we
+                    # do not need any special checks for triangles.
+                    pass
+                else:
+                    # For higher ngons, we cannot decide yet whether they are
+                    # the same without actually instantiating them which is
+                    # extremely costly and also tends to lead to memory leaks
+                    # in the scheduler.
+                    raise NotImplementedError("exact filtering is not supported yet")
 
             return True
 

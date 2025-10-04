@@ -234,7 +234,7 @@ class CompletelyCylinderPeriodic(ConsumerGoal, Command):
         with self._cache.defaults({"value": None}):
             results = self._cache.get(CompletelyCylinderPeriodic).filter(
                 self._flow_decompositions._surface.cache_predicate(
-                    False, cache=self._cache
+                    True, cache=self._cache
                 ),
             )
 

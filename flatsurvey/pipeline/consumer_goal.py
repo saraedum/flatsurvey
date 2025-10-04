@@ -32,6 +32,7 @@ EXAMPLES:
 # *********************************************************************
 
 import click
+from abc import abstractmethod
 
 from flatsurvey.pipeline.consumer import Consumer
 from flatsurvey.pipeline.goal import Goal
@@ -78,5 +79,46 @@ class ConsumerGoal(Consumer, Goal):
 
         super().__init__(producers=producers, report=report)
 
+    async def resolve(self) -> bool:
+        r"""
+        Make our producers generate objects until this consumer marks itself as
+        resolved. Return whether we could resolve or our producers were exhausted.
+
+        EXAMPLES::
+
+            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.reporting import Log, Report
+            >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections, OrbitClosure
+            >>> surface = Ngon((1, 3, 5))
+            >>> connections = SaddleConnections(surface, report=None)
+            >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(connections, report=None))
+            >>> oc = OrbitClosure(surface=surface, report=None, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=None)
+
+            >>> import asyncio
+            >>> resolve = oc.resolve()
+            >>> asyncio.run(resolve)
+            True
+
+        """
+        while not self._resolved:
+            for producer in self._producers:
+                from flatsurvey.pipeline.producer import Producer
+
+                if await producer.produce() != "EXHAUSTED":
+                    break
+            else:
+                return False
+
+            import asyncio
+
+            await asyncio.sleep(0)
+
+        return True
+
+    @abstractmethod
     async def consume_cache(self):
-        pass
+        r"""
+        Process previous cached results for this goal.
+
+        Subclasses must implement this.
+        """

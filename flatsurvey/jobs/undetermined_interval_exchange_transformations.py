@@ -176,7 +176,7 @@ class UndeterminedIntervalExchangeTransformations(ConsumerGoal, Command):
             # There's no value in just reproducing existing results.
             return
 
-        results = self._cache.get(UndeterminedIntervalExchangeTransformations).filter(self._surface.cache_predicate(False, cache=self._cache))
+        results = self._cache.get(UndeterminedIntervalExchangeTransformations).filter(self._surface.cache_predicate(True, cache=self._cache))
 
         for result in results:
             keys = result.keys()
