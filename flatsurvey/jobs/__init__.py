@@ -29,8 +29,8 @@ from flatsurvey.jobs.flow_decompositions import FlowDecompositions
 from flatsurvey.jobs.orbit_closure import OrbitClosure
 from flatsurvey.jobs.saddle_connection_orientations import SaddleConnectionOrientations
 from flatsurvey.jobs.saddle_connections import SaddleConnections
-from flatsurvey.jobs.undetermined_interval_exchange_transformation import (
-    UndeterminedIntervalExchangeTransformation,
+from flatsurvey.jobs.undetermined_interval_exchange_transformations import (
+    UndeterminedIntervalExchangeTransformations,
 )
 
 commands = [
@@ -41,5 +41,5 @@ commands = [
     CylinderPeriodicDirection.click,
     SaddleConnections.click,
     SaddleConnectionOrientations.click,
-    UndeterminedIntervalExchangeTransformation.click,
+    UndeterminedIntervalExchangeTransformations.click,
 ]

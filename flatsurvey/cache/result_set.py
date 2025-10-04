@@ -368,3 +368,31 @@ class ResultSet:
         for row in self._rows:
             yield ResultSet([row], sources=self._sources, quorum="UNIQUE")
 
+    def keys(self) -> set[str]:
+        r"""
+        Return the attributes that are supported by this result set.
+
+        EXAMPLES::
+
+            >>> results = ResultSet(rows=[
+            ...     {"a": True, "b": True, "c": True},
+            ...     {"a": True, "b": False}
+            ... ], sources=["CACHE"])
+            >>> results.keys()
+            {'a'}
+
+            >>> results = results.latest
+            >>> results.keys()
+            {'b', 'a'}
+
+        """
+        keys = {key for row in self._rows for key in row}
+
+        def is_functional(key):
+            try:
+                getattr(self, key)
+                return True
+            except AttributeError:
+                return False
+
+        return {key for key in keys if is_functional(key)}
