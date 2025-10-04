@@ -106,7 +106,7 @@ class Consumer(ABC):
     async def consume(self, product, cost) -> Literal["COMPLETED"] | Literal["NOT_COMPLETED"]:
         r"""
         Process the ``product`` by one of the producers we are attached to and
-        return whether we are willing to consumer further data or whether we
+        return whether we are willing to consume further data or whether we
         have been completely resolved.
 
         The ``cost`` is the amount of time it took to generate that product;
@@ -124,14 +124,14 @@ class Consumer(ABC):
             >>> import asyncio
             >>> consume = orientations.consume(next(iter(surface.surface().pyflatsurf().codomain().flat_triangulation().connections())), cost=0)
             >>> asyncio.run(consume)
-            True
+            'NOT_COMPLETED'
 
         Note that you should actually never call this explicitly. It gets
         called whenever a producer produces something new::
 
             >>> produce = connections.produce()
             >>> asyncio.run(produce)
-            True
+            'NOT_EXHAUSTED'
 
         """
         assert not self._resolved
