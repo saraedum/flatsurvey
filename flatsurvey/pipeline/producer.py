@@ -50,15 +50,15 @@ class Producer:
 
     """
     def __init__(self, report: Report|None=None):
-        self._consumers = set()
-        self._current = None
-        self._exhausted = False
-
         if report is None:
             from flatsurvey.reporting import Report
             report = Report([])
 
         self._report = report
+
+        self._consumers = set()
+        self._current = None
+        self._exhausted = False
 
     async def produce(self) -> Literal["EXHAUSTED"] | Literal["NOT_EXHAUSTED"]:
         r"""
@@ -75,8 +75,8 @@ class Producer:
 
             >>> import asyncio
             >>> produce = connections.produce()
-            >>> asyncio.run(produce) != "EXHAUSTED"
-            True
+            >>> asyncio.run(produce)
+            'NOT_EXHAUSTED'
 
             >>> connections._current
             1
@@ -112,7 +112,7 @@ class Producer:
 
             >>> import asyncio
             >>> asyncio.run(connections.produce())
-            False
+            'EXHAUSTED'
 
             >>> connections.exhausted
             True
@@ -157,5 +157,4 @@ class Producer:
         because we have been exhausted.
 
         Actual producers must implement this method.
-
         """
