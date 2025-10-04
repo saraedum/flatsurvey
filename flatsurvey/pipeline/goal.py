@@ -60,5 +60,27 @@ class Goal(ABC):
 
     @abstractmethod
     async def resolve(self) -> bool:
-        pass
+        r"""
+        Perform the steps necessary to satisfy this goal.
+
+        Return whether the goal is actually resolved or it remained inconclusive.
+
+        Concrete subclasses must implement this method.
+
+        EXAMPLES::
+
+            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.reporting import Log, Report
+            >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections, OrbitClosure
+            >>> surface = Ngon((1, 3, 5))
+            >>> connections = SaddleConnections(surface, report=None)
+            >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(connections, report=None))
+            >>> oc = OrbitClosure(surface=surface, report=None, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=None)
+
+            >>> import asyncio
+            >>> resolve = oc.resolve()
+            >>> asyncio.run(resolve)
+            True
+
+        """
 
