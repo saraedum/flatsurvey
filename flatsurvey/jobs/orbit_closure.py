@@ -211,7 +211,8 @@ class OrbitClosure(ConsumerGoal, Command):
             >>> import asyncio
             >>> asyncio.run(goal.consume_cache())
             >>> report.flush()  # doctest: +ELLIPSIS
-            {"surface": {"angles": [1, 1, 1], "type": "Ngon", "pickle": "..."}, "orbit-closure": [{"timestamp": ..., "dense": true, "cached": true, "value": null}]}
+            {"surface": {"angles": [1, 1, 1], "type": "Ngon", "repr": "Ngon([1, 1, 1])"}, "orbit-closure": [{"timestamp": "...", "dense": true, "cached": true, "value": null}]}
+
 
         """
         with self._cache.defaults({"dense": None}):
@@ -296,7 +297,7 @@ class OrbitClosure(ConsumerGoal, Command):
             >>> invoke_subcommand(OrbitClosure.click)
 
         """
-        bindings.append(Goal, OrbitClosure)
+        bindings.append(list[Goal], OrbitClosure)
         with bindings.scope(OrbitClosure) as scoped:
             scoped.define(
                 stale_limit=stale_limit,
@@ -415,7 +416,8 @@ class OrbitClosure(ConsumerGoal, Command):
 
             >>> asyncio.run(oc.report())
             >>> report.flush()  # doctest: +ELLIPSIS
-            {"surface": {"angles": [1, 3, 5], "type": "Ngon", "pickle": "..."}, "orbit-closure": [{"timestamp": ..., "dimension": 6, "directions": ..., "directions_with_cylinders": ..., "dense": true, "value": {...}}]}
+            {"surface": {"angles": [1, 3, 5], "type": "Ngon", "repr": "Ngon([1, 3, 5])"}, "orbit-closure": [{"timestamp": "...", "dimension": 6, "directions": 2, "directions_with_cylinders": 2, "dense": true, "value": {"type": "GL2ROrbitClosure", "repr": "GL(2,R)-orbit closure of dimension at least 6 in H_3(4) (ambient dimension 6)"}}]}
+
 
         """
         del cost

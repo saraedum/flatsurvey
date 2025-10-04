@@ -26,7 +26,7 @@ spin up a dask client and have it run a task from this module::
     >>> from flatsurvey.pipeline import Bindings, Goal
 
     >>> survey = Bindings()
-    >>> survey.append(Goal, OrbitClosure)
+    >>> survey.append(list[Goal], OrbitClosure)
 
     >>> bindings1 = survey.clone()
     >>> bindings1.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
@@ -136,7 +136,7 @@ class Task:
 
         >>> bindings = Bindings()
         >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
-        >>> bindings.append(Goal, OrbitClosure)
+        >>> bindings.append(list[Goal], OrbitClosure)
 
         >>> task = Task(bindings=bindings)
         >>> task
@@ -201,7 +201,7 @@ class Task:
 
             >>> bindings = Bindings()
             >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
-            >>> bindings.append(Goal, OrbitClosure)
+            >>> bindings.append(list[Goal], OrbitClosure)
 
             >>> task = Task(bindings=bindings)
 
@@ -216,7 +216,7 @@ class Task:
         a required parameter) are rethrown as generic ``RunnerException``::
 
             >>> bindings = Bindings()
-            >>> bindings.append(Goal, OrbitClosure)
+            >>> bindings.append(list[Goal], OrbitClosure)
             >>> task = Task(bindings=bindings)
 
             >>> task(token.worker_token)  # doctest: +ELLIPSIS
@@ -266,7 +266,7 @@ class Task:
 
             >>> bindings = Bindings()
             >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
-            >>> bindings.append(Goal, OrbitClosure)
+            >>> bindings.append(list[Goal], OrbitClosure)
 
             >>> task = Task(bindings=bindings)
 

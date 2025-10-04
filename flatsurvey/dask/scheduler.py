@@ -15,7 +15,7 @@ We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
     >>> survey.survey(Surface, ngons)
 
     >>> from flatsurvey.jobs import OrbitClosure
-    >>> survey.append(Goal, OrbitClosure)
+    >>> survey.append(list[Goal], OrbitClosure)
 
     >>> scheduler = Scheduler(survey_bindings=survey.survey_bindings)
 
@@ -308,8 +308,6 @@ class Scheduler:
 
             cached = await self._resolve_from_cache(bindings)
 
-            assert not bindings.potential_memory_leaks, "to prevent memory leaks, leaking SageMath objects such as surfaces must not be created to resolve caches"
-
             if cached:
                 # Everything could be answered from cached data. Proceed to next task.
                 continue
@@ -357,7 +355,7 @@ class Scheduler:
             >>> from flatsurvey.jobs import OrbitClosure
             >>> from flatsurvey.surfaces import Ngon, Surface
             >>> bindings = Bindings()
-            >>> bindings.append(Goal, OrbitClosure)
+            >>> bindings.append(list[Goal], OrbitClosure)
             >>> bindings.define(Surface, Ngon((1, 1, 1)))
 
             >>> import asyncio
@@ -366,7 +364,7 @@ class Scheduler:
 
         """
         from flatsurvey.pipeline import Goal
-        goals = bindings.get(Goal, [])
+        goals = bindings.get(list[Goal], [])
 
         for goal in goals:
             await goal.consume_cache()

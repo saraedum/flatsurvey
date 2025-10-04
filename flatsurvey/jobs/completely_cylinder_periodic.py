@@ -169,7 +169,7 @@ class CompletelyCylinderPeriodic(ConsumerGoal, Command):
 
         """
         from flatsurvey.pipeline import Goal
-        bindings.append(Goal, CompletelyCylinderPeriodic)
+        bindings.append(list[Goal], CompletelyCylinderPeriodic)
 
         with bindings.scope(CompletelyCylinderPeriodic) as scoped:
             scoped.define(limit=limit)

@@ -239,7 +239,7 @@ class CylinderPeriodicDirection(ConsumerGoal, Command):
 
         """
         from flatsurvey.pipeline import Goal
-        bindings.append(Goal, CylinderPeriodicDirection)
+        bindings.append(list[Goal], CylinderPeriodicDirection)
 
         with bindings.scope(CylinderPeriodicDirection) as scoped:
             scoped.define(limit=limit)

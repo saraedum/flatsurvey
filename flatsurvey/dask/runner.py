@@ -50,7 +50,7 @@ class Runner:
 
         >>> bindings = Bindings()
         >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
-        >>> bindings.append(Goal, OrbitClosure)
+        >>> bindings.append(list[Goal], OrbitClosure)
 
         >>> task = Task(bindings=bindings)
 
@@ -106,7 +106,7 @@ class Runner:
 
             >>> bindings = Bindings()
             >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
-            >>> bindings.append(Goal, OrbitClosure)
+            >>> bindings.append(list[Goal], OrbitClosure)
 
             >>> task = Task(bindings=bindings)
 
@@ -121,7 +121,7 @@ class Runner:
         exception might not be possible::
 
             >>> bindings = Bindings()
-            >>> bindings.append(Goal, OrbitClosure)
+            >>> bindings.append(list[Goal], OrbitClosure)
 
             >>> task = Task(bindings=bindings)
 

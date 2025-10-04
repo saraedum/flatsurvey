@@ -240,7 +240,7 @@ class UndeterminedIntervalExchangeTransformations(ConsumerGoal, Command):
             >>> invoke_subcommand(UndeterminedIntervalExchangeTransformations.click)
 
         """
-        bindings.append(Goal, UndeterminedIntervalExchangeTransformations)
+        bindings.append(list[Goal], UndeterminedIntervalExchangeTransformations)
         with bindings.scope(UndeterminedIntervalExchangeTransformations) as scoped:
             scoped.define(
                 limit=limit,

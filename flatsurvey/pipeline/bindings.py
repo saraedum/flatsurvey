@@ -11,9 +11,8 @@ Utilities to create the graph of objects that are performing a survey.
 .. NOTE::
 
     The principal feature we want here from the dependency injection is that it
-    lets us configure aspects of the object graph (say the way we search for
-    saddle connections) or we can leave them unconfigured and just use the
-    defaults.
+    lets us optionally configure aspects of the object graph (say change the
+    way we search for saddle connections or just stick with the defaults).
 
 EXAMPLES:
 
@@ -53,7 +52,7 @@ The binding values can also be types, as long as they have a static
     surface
 
 Note that the constant is cached, you get the identical object every single
-time::
+time (in dependency injection lingo, all objects have singleton lifetime.)::
 
     >>> bindings.get("sc") is bindings.get("sc")
     True
@@ -69,9 +68,11 @@ We cannot redefine names that have been requested already::
     >>> bindings.define(SaddleConnections, SaddleConnections("..."))
     Traceback (most recent call last):
     ...
-    ValueError: cannot redefine ... in this bindings
+    ValueError: cannot redefine ...
 
-However, we can explicitly "forget" values and bindings for a key::
+However, we can explicitly "forget" values and bindings for a key (this feature
+has no correspondence in classic dependency injection and is just a hack that
+is convenient for our purposes.)::
 
     >>> bindings.forget(SaddleConnections)
     >>> bindings.define(SaddleConnections, SaddleConnections("..."))
@@ -79,7 +80,10 @@ However, we can explicitly "forget" values and bindings for a key::
     >>> bindings.get(SaddleConnections)._surface
     '...'
 
-We can also only define or override a variable in a certain scope::
+Note that this forgetting is not trying to be smart in any way. Dependent
+objects are still present and the forget does not affect them.
+
+We can also only define a variable in a certain scope::
 
     >>> class OrbitClosure:
     ...     def __init__(self, sc, ambient):
@@ -89,11 +93,11 @@ We can also only define or override a variable in a certain scope::
     ...     @staticmethod
     ...     def create(bindings):
     ...         with bindings.scope(OrbitClosure) as scoped:
-    ...             return OrbitClosure(scoped.get(SaddleConnections), scoped.get(str))
+    ...             return OrbitClosure(bindings.get(SaddleConnections), scoped.get("ambient"))
     ...     
 
     >>> with bindings.scope(OrbitClosure) as scoped:
-    ...     scoped.define(str, "H_6(5^2, 0^2)")
+    ...     scoped.define("ambient", "H_6(5^2, 0^2)")
 
     >>> bindings.get(OrbitClosure)._ambient
     'H_6(5^2, 0^2)'
@@ -101,11 +105,11 @@ We can also only define or override a variable in a certain scope::
 Oftentimes, you want to incrementally register a list of things under one key,
 say the goals of a survey::
 
-    >>> bindings.append("Goals", OrbitClosure)
-    >>> bindings.append("Goals", "something else")
+    >>> bindings.append(list["Goal"], OrbitClosure)
+    >>> bindings.append(list["Goal"], "something else")
 
-    >>> bindings.get("Goals")
-    [<flatsurvey.pipeline.bindings.OrbitClosure object at 0x...>, 'something else']
+    >>> bindings.get(list["Goal"])
+    (<flatsurvey.pipeline.bindings.OrbitClosure object at 0x...>, 'something else')
 
 """
 # *********************************************************************
@@ -131,14 +135,22 @@ say the goals of a survey::
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from contextlib import contextmanager
-from typing import overload, Type, override, Protocol, cast, Iterator, Iterable
+from typing import overload, Type, override, Protocol, cast, Iterator, Iterable, runtime_checkable
 
 Key = str | Type
 
 
+@runtime_checkable
 class HasCreate[T](Protocol):
     r"""
-    A type that can be created from the bindings in the Bindings.
+    A type that can be created from the ``bindings``.
+
+    EXAMPLES::
+
+        >>> from flatsurvey.jobs import OrbitClosure
+        >>> isinstance(OrbitClosure, HasCreate)
+        True
+
     """
     @staticmethod
     def create(bindings: "Bindings") -> T: ... 
@@ -146,7 +158,21 @@ class HasCreate[T](Protocol):
 
 class Binding[T](ABC):
     r"""
-    A binding for a value stored in a Bindings.
+    Abstract base class for possible protocols to create values that are
+    requested from a :class:`Bindings`.
+
+    EXAMPLES::
+
+        >>> bindings = Bindings()
+        >>> binding = ConstantBinding(1337)
+        >>> binding.resolve(bindings)
+        1337
+
+    ::
+
+        >>> isinstance(binding, Binding)
+        True
+
     """
     @overload
     @staticmethod
@@ -163,11 +189,10 @@ class Binding[T](ABC):
     @staticmethod
     def create(value):
         r"""
-        Create a Binding from ``value``.
+        Factory to create a concrete Binding subclass from ``value``.
 
         EXAMPLES::
 
-            >>> from flatsurvey.pipeline.bindings import Binding
             >>> Binding.create(123)
             ConstantBinding(123)
 
@@ -186,15 +211,32 @@ class Binding[T](ABC):
     @abstractmethod
     def resolve(self, bindings: "Bindings") -> T:
         r"""
-        Return the value of this binding.
+        Return the value of this binding in ``bindings``.
 
         Subclasses must implement this.
-        """
-        raise NotImplementedError
 
-    @abstractmethod
+        EXAMPLES::
+
+            >>> bindings = Bindings()
+            >>> binding = ConstantBinding(1337)
+            >>> binding.resolve(bindings)
+            1337
+
+        """
+
     def clone(self) -> "Binding[T]":
-        pass
+        r"""
+        Return an independent copy of this binding.
+
+        EXAMPLES::
+
+            >>> bindings = Bindings()
+            >>> binding = ConstantBinding(1337)
+            >>> binding.clone()
+            ConstantBinding(1337)
+
+        """
+        return self
 
 
 class ConstantBinding[T](Binding[T]):
@@ -203,7 +245,6 @@ class ConstantBinding[T](Binding[T]):
 
     EXAMPLES::
 
-        >>> from flatsurvey.pipeline.bindings import Binding, Bindings
         >>> bindings = Bindings()
 
         >>> binding = Binding.create(123)
@@ -217,13 +258,11 @@ class ConstantBinding[T](Binding[T]):
 
     @override
     def resolve(self, bindings: "Bindings") -> T:
+        del bindings  # unused
         return self._value
 
     def __repr__(self):
         return f"ConstantBinding({self._value})"
-
-    def clone(self):
-        return ConstantBinding(self._value)
 
 
 class TypeBinding[T : HasCreate](Binding[T]):
@@ -232,7 +271,6 @@ class TypeBinding[T : HasCreate](Binding[T]):
 
     EXAMPLES::
 
-        >>> from flatsurvey.pipeline.bindings import Binding, Bindings
         >>> bindings = Bindings()
 
 
@@ -259,17 +297,13 @@ class TypeBinding[T : HasCreate](Binding[T]):
     def __repr__(self):
         return f"TypeBinding({self._type.__name__})"
 
-    def clone(self):
-        return TypeBinding(self._type)
 
-
-class ListBinding[T](Binding[list[T]]):
+class ListBinding[T](Binding[tuple[T, ...]]):
     r"""
-    A value that is an (expandable) list of other bindings.
+    A value that is an (expandable but finite) sequence of other bindings.
 
     EXAMPLES::
 
-        >>> from flatsurvey.pipeline.bindings import ListBinding, Bindings, Binding
         >>> bindings = Bindings()
 
 
@@ -278,7 +312,7 @@ class ListBinding[T](Binding[list[T]]):
         >>> binding.append(Binding.create(2))
 
         >>> binding.resolve(bindings)
-        [1, 2]
+        (1, 2)
 
     """
     def __init__(self):
@@ -288,13 +322,33 @@ class ListBinding[T](Binding[list[T]]):
         self._value.append(binding)
 
     @override
-    def resolve(self, bindings: "Bindings") -> list[T]:
-        return [binding.resolve(bindings) for binding in self._value]
+    def resolve(self, bindings: "Bindings") -> tuple[T, ...]:
+        return tuple(binding.resolve(bindings) for binding in self._value)
 
     def __repr__(self):
         return f"ListBinding({self._value})"
 
     def clone(self):
+        r"""
+        Return an independent copy of this binding.
+
+        EXAMPLES::
+
+            >>> bindings = Bindings()
+
+
+            >>> binding = ListBinding()
+            >>> binding.append(Binding.create(1))
+
+            >>> clone = binding.clone()
+            >>> binding.append(Binding.create(2))
+
+            >>> binding.resolve(bindings)
+            (1, 2)
+            >>> clone.resolve(bindings)
+            (1,)
+
+        """
         clone = ListBinding()
         clone._value = self._value[:]
         return clone
@@ -302,32 +356,24 @@ class ListBinding[T](Binding[list[T]]):
 
 class Bindings:
     r"""
-    Rules to create the object graph performing a survey.
+    Rules to create an object graph.
 
     EXAMPLES:
 
     Typically, a survey creates such a bindings to describe the general setup::
 
-        >>> from flatsurvey.pipeline import Bindings
         >>> survey = Bindings()
-        >>> survey.append("goals", "some goal")
-        >>> survey.define("surfaces", ["surface0", "surface1"])
+        >>> survey.append(list["goal"], "some goal")
+        >>> survey.survey("surface", ["surface0", "surface1"])
 
     To perform the survey, the survey is iterating over the surfaces and
     sending a patched object graph to each worker::
 
-        >>> surfaces = survey.get("surfaces")
-
-        >>> work_template = survey.clone()
-        >>> work_template.forget("surfaces")
-
-        >>> for surface in surfaces:
-        ...     work = work_template.clone()
-        ...     work.define("surface", surface)
+        >>> for bindings in survey.survey_bindings:
         ...     # would send item to an actual worker process and process it there
-        ...     work.get("surface"), work.get("goals")
-        ('surface0', ['some goal'])
-        ('surface1', ['some goal'])
+        ...     bindings.get("surface"), bindings.get(list["goal"])
+        ('surface0', ('some goal',))
+        ('surface1', ('some goal',))
 
     """
     def __init__(self, repr=None):
@@ -341,6 +387,21 @@ class Bindings:
     def click(wrapped):
         r"""
         Decorator helper to add a bindings argument to a click command handler.
+
+        EXAMPLES::
+
+            >>> import click
+            >>> @click.command("demo")
+            ... @Bindings.click
+            ... def demo(bindings):
+            ...     bindings.append("goals", "demo")
+
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> invoke_subcommand(demo, "--help")  # doctest: +NORMALIZE_WHITESPACE
+            Usage: doctest demo [OPTIONS]
+            Options:
+              --help  Show this message and exit.
+
         """
         from functools import wraps
         @wraps(wrapped)
@@ -355,6 +416,26 @@ class Bindings:
     def scope(self, scope: str | Type):
         r"""
         Return the scoped bindings for ``scope``.
+
+        A scope is a completely isolated namespace for the object graph.
+        Bindings in the scoped context are not visible outside the scope and
+        vice versa.
+
+        EXAMPLES::
+
+            >>> bindings = Bindings()
+            >>> with bindings.scope("local") as scoped:
+            ...     scoped.define("variable", 1337)
+
+            >>> bindings.get("variable")
+            Traceback (most recent call last):
+            ...
+            flatsurvey.pipeline.bindings.BindingException: Cannot resolve 'variable' from bindings
+
+            >>> with bindings.scope("local") as scoped:
+            ...     scoped.get("variable")
+            1337
+
         """
         if scope not in self._scopes:
             self._scopes[scope] = Bindings()
@@ -368,20 +449,64 @@ class Bindings:
         r"""
         Append ``value`` to the list binding for ``key``.
 
-        TODO: Register under list[key].
+        EXAMPLES::
+
+            >>> bindings = Bindings()
+            >>> bindings.append(list["goal"], "OrbitClosure")
+
+            >>> bindings.get(list["goal"])
+            ('OrbitClosure',)
+
         """
+        from typing import get_origin
+        if get_origin(key) != list:
+            raise ValueError("key must be a list[?]")
+
         if key not in self._bindings:
             self._bindings[key] = ListBinding()
 
         self._bindings[key].append(Binding.create(value))
 
     def survey(self, key: Key, values: Iterable[object]):
+        r"""
+        Expand the objects to survey by the ``values``.
+
+        If ``survey`` is called for the same key with multiple values, they
+        will be iterated in :meth:`survey_bindings` in a roundrobin manner.
+
+        If ``survey`` is called with different keys, then
+        :meth:`survey_bindings` will produce their product.
+
+        EXAMPLES::
+
+            >>> bindings = Bindings()
+            >>> bindings.survey("surface", ["square torus", "golden L"])
+            >>> bindings.survey("surface", ["double pentagon", "octagon"])
+            >>> bindings.survey("coefficients", ["e-antic", "exact-real"])
+
+            >>> list(bindings.survey_bindings)  # doctest: +NORMALIZE_WHITESPACE
+            [Bindings(survey surface=square torus,coefficients=e-antic),
+             Bindings(survey surface=square torus,coefficients=exact-real),
+             Bindings(survey surface=double pentagon,coefficients=e-antic),
+             Bindings(survey surface=double pentagon,coefficients=exact-real),
+             Bindings(survey surface=golden L,coefficients=e-antic),
+             Bindings(survey surface=golden L,coefficients=exact-real),
+             Bindings(survey surface=octagon,coefficients=e-antic),
+             Bindings(survey surface=octagon,coefficients=exact-real)]
+
+        """
         if key not in self._survey:
             self._survey[key] = []
         self._survey[key].append(values)
 
     @property
     def survey_bindings(self) -> Iterator["Bindings"]:
+        r"""
+        Return a binding for each object registered to survey in
+        :meth:`survey`.
+
+        Typically, this returns an infinite iterator of bindings.
+        """
         from more_itertools import roundrobin
         sources = {key: roundrobin(*values) for key, values in self._survey.items()}
         from itertools import product
@@ -394,96 +519,120 @@ class Bindings:
 
             yield bindings
 
-    @property
-    def potential_memory_leaks(self):
-        # TODO: Try to find pyflatsurf objects and such somehow.
-        return None
+    @overload
+    def define(self, key: Key, value: object, /): ...
 
     @overload
-    def define(self, key: Key, value: object): ...
+    def define(self, /, **value): ...
 
-    @overload
-    def define(self, **value): ...
-
-    def define(self, key: Key | None=None, value=None, **values):
+    def define(self, key: Key | None=None, value=None, /, **values):
         r"""
         Set the rule to create ``key`` to ``value``.
 
         Alternatively, key/value pairs can be given as keyword arguments.
+
+        EXAMPLES::
+
+            >>> bindings = Bindings()
+            >>> bindings.define("key", "value")
+            >>> bindings.get("key")
+            'value'
+
+        ::
+
+            >>> bindings = Bindings()
+            >>> bindings.define(key="value")
+            >>> bindings.get("key")
+            'value'
+
         """
         if key is not None:
             if key in self._bindings:
-                raise ValueError(f"cannot redefine {key} in this bindings");
+                raise ValueError(f"cannot redefine {key}");
+            if key in self._values:
+                raise ValueError(f"cannot redefine {key} which already has a value");
 
             self._bindings[key] = Binding.create(value)
 
         for key, value in values.items():
-            self.define(key=key, value=value)
+            self.define(key, value)
 
     @overload
-    def set(self, key: Key, value: object): ...
+    def set(self, key: Key, value: object, /): ...
 
     @overload
-    def set(self, **value): ...
+    def set(self, /, **value): ...
 
-    def set(self, key: Key | None=None, value=None, **values):
+    def set(self, key: Key | None=None, value=None, /, **values):
         r"""
         Set the value of ``key`` to the actual ``value``.
 
         Alternatively, key/value pairs can be given as keyword arguments.
 
         For constant values, this is essentially like ``define``, however,
-        ``forget`` will forget about the values set with ``set``.
+        :meth:`forget` will forget about the values set with ``set``.
 
         The values must be actual values and not types or bindings.
+
+        EXAMPLES::
+
+            >>> bindings = Bindings()
+            >>> bindings.set("key", "value")
+            >>> bindings.get("key")
+            'value'
+
+        ::
+
+            >>> bindings = Bindings()
+            >>> bindings.set(key="value")
+            >>> bindings.get("key")
+            'value'
+
         """
         if key is not None:
             if key in self._values:
-                raise ValueError(f"cannot reset {key} in this bindings");
+                raise ValueError(f"cannot reset {key}");
 
             self._values[key] = value
 
         for key, value in values.items():
-            self.set(key=key, value=value)
+            self.set(key, value)
 
     def get[T](self, key: Key, default: T | Callable[[], T] | None = None) -> T:
         r"""
         Resolve the ``key`` in this bindings.
 
-        If no ``key`` has been registered in this scope or a parent scope,
-        return ``default`` if set.
+        If no ``key`` has been registered in this scope, return ``default`` if
+        set.
 
-        TODO: This is not true. It's more complicated. (And it does not make too much sense.)
+        EXAMPLES::
+
+            >>> bindings = Bindings()
+            >>> bindings.set(key="value")
+            >>> bindings.get("key")
+            'value'
+
         """
         try:
             if key not in self._values:
                 if key not in self._bindings:
                     if default is None:
                         if isinstance(key, type):
-                            self.define(key=key, value=key)
+                            self.define(key, key)
                         else:
-                            raise Exception(f"cannot resolve {key} in this bindings and no default given")
+                            raise Exception(f"cannot resolve {key} and no default given")
                     else:
                         if callable(default):
                             default = cast(T, default())
 
+                        self.set(key, default)
                         return default
 
-                value = self._bindings[key].resolve(self)
-                self.set(key, value)
+                self.set(key, self._bindings[key].resolve(self))
 
             return self._values[key]
         except Exception as e:
             raise BindingException(f"Cannot resolve '{key}' from bindings") from e
-
-    def describe(self, key: Key):
-        if key in self._values:
-            return repr(self._values[key])
-
-        if key in self._bindings:
-            return self._bindings[key]
-
-        return "?"
 
     def __repr__(self):
         return self._repr or super().__repr__()
@@ -521,17 +670,40 @@ class Bindings:
         return clone
 
     def forget(self, key: Key):
-        # TODO: Forget recursively in scopes. Should we?
+        r"""
+        Forget bindings and concrete values for ``key``.
+
+        EXAMPLES::
+
+            >>> bindings = Bindings()
+            >>> bindings.define(key="value")
+            >>> bindings.get("key")
+            'value'
+
+            >>> bindings.forget("key")
+            >>> bindings.set(key='other')
+            >>> bindings.get("key")
+            'other'
+
+        """
         if key in self._bindings:
             del self._bindings[key]
 
         if key in self._values:
             del self._values[key]
 
-        # TODO: Should we really forget scopes here?
-        if key in self._scopes:
-            del self._scopes[key]
-
 
 class BindingException(Exception):
+    r"""
+    Generic exception that is thrown whan a binding could not be resolved.
+
+    EXAMPLES::
+
+        >>> bindings = Bindings()
+        >>> bindings.get(list)
+        Traceback (most recent call last):
+        ...
+        flatsurvey.pipeline.bindings.BindingException: Cannot resolve ...
+
+    """
     pass

@@ -341,7 +341,7 @@ class Log(GenericLog):
             >>> invoke_subcommand(Log.click)
 
         """
-        bindings.append("reporters", Log)
+        bindings.append(list[Reporter], Log)
         bindings.define(
             scope=Log,
             output=output,

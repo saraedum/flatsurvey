@@ -109,7 +109,7 @@ class Json(Reporter, Command):
             >>> invoke_subcommand(Json.click)
 
         """
-        bindings.append("reporters", Json)
+        bindings.append(list[Reporter], Json)
         with bindings.scope(Json) as scoped:
             scoped.define(output=output, prefix=prefix, pickles=pickles)
 

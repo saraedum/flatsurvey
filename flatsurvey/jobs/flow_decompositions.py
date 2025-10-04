@@ -157,7 +157,8 @@ class FlowDecompositions(Processor, Command):
             'NOT_EXHAUSTED'
 
             >>> report.flush()  # doctest: +ELLIPSIS
-            {"surface": {"angles": [1, 1, 1], "type": "Ngon", "pickle": "..."}, "flow-decompositions": [{"timestamp": ..., "orientation": {"type": "Vector<eantic::renf_elem_class>", "pickle": "..."}, "cylinders": 1, "minimal": 0, "undetermined": 0, "value": null}]}
+            {"surface": {"angles": [1, 1, 1], "type": "Ngon", "repr": "Ngon([1, 1, 1])"}, "flow-decompositions": [{"timestamp": "...", "orientation": {"type": "Vector<eantic::renf_elem_class>", "repr": "..."}, "cylinders": 1, "minimal": 0, "undetermined": 0, "value": null}]}
+
 
         """
         start = time.perf_counter()

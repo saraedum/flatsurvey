@@ -84,7 +84,7 @@ class Join(Goal, Command):
             >>> invoke_subcommand(Join.click, "--outdir=/tmp")
 
         """
-        bindings.append("goals", Join)
+        bindings.append(list[Goal], Join)
         with bindings.scope(Join) as scoped:
             scoped.define(jsons=jsons, outdir=outdir)
 
@@ -127,6 +127,7 @@ class Join(Goal, Command):
             ...     join = Join(jsons=[tmpdir / "a.json", tmpdir / "b.json"], outdir=tmpdir)
             ...     asyncio.run(join.resolve())
             ...     with open(tmpdir / "subject.json") as json: print(json.read())
+            True
             {
               "subject": [
                 {
@@ -150,6 +151,8 @@ class Join(Goal, Command):
             with open(self._outdir / f"{subject}.json", "w") as output:
                 import json
                 json.dump({subject: values}, output, indent=2)
+
+        return True
 
 
 __test__ = {

@@ -121,7 +121,7 @@ class Report(Command):
             from flatsurvey.surfaces.surface import Surface
             from flatsurvey.reporting.log import Log
 
-            reporters = bindings.get("reporters", default=lambda: [Log(surface=bindings.get(Surface))])
+            reporters = bindings.get(list[Reporter], default=lambda: [Log(surface=bindings.get(Surface))])
             ignore = scoped.get("ignore", default=lambda: Report.DEFAULT_IGNORE)
 
             return Report(reporters=reporters, ignore=ignore)

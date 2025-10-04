@@ -637,6 +637,9 @@ class Ngon(Surface):
         """
         from flatsurf import similarity_surfaces
 
+        # TODO: Err if this is called in the survey scheduler.
+        # TODO: Same for the flow decomposition object and for the orbit closure object elsewhere.
+
         S = similarity_surfaces.billiard(self.polygon())
         S = S.minimal_cover(cover_type="translation")
         return S
