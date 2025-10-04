@@ -297,13 +297,13 @@ class OrbitClosure(ConsumerGoal, Command):
 
         """
         bindings.append(Goal, OrbitClosure)
-        bindings.define(
-            scope=OrbitClosure,
-            stale_limit=stale_limit,
-            expansions_limit=expansions_limit,
-            deform=deform,
-            cache_only=cache_only,
-        )
+        with bindings.scope(OrbitClosure) as scoped:
+            scoped.define(
+                stale_limit=stale_limit,
+                expansions_limit=expansions_limit,
+                deform=deform,
+                cache_only=cache_only,
+            )
 
     @property
     def dimension(self):
