@@ -147,10 +147,22 @@ class Reporter:
             1
 
         """
-        from sage.all import ZZ
+        from sage.all import ZZ, QQ
+        import gmpxxyy
 
         if isinstance(value, type(ZZ())):
             return int(value)
+
+        if isinstance(value, gmpxxyy.mpz):
+            return int(str(value))
+
+        if isinstance(value, type(QQ())):
+            import fractions
+            return fractions.Fraction(int(value.numerator()), int(value.denominator()))
+
+        if isinstance(value, gmpxxyy.mpq):
+            import fractions
+            return fractions.Fraction(int(str(value.get_num())), int(str(value.get_den())))
 
         if isinstance(value, (str, int, float, type(None))):
             return value

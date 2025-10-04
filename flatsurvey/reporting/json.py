@@ -216,12 +216,11 @@ class Json(Reporter, Command):
             characteristics = obj._flatsurvey_characteristics()
 
         characteristics.setdefault("type", type(obj).__name__)
+        characteristics.setdefault("repr", repr(obj))
         if self._pickles:
             characteristics.setdefault(
                 "pickle", base64.encodebytes(dumps(obj)).decode("utf-8").strip()
             )
-        else:
-            characteristics["pickle"] = "dropped"
 
         return characteristics
 
