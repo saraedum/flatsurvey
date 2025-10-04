@@ -382,8 +382,8 @@ class ResultSet:
             {'a'}
 
             >>> results = results.latest
-            >>> results.keys()
-            {'b', 'a'}
+            >>> sorted(results.keys())
+            ['a', 'b']
 
         """
         keys = {key for row in self._rows for key in row}
