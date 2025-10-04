@@ -30,7 +30,6 @@ targeted by an edge. (And Processors when they are both.)
 
 from flatsurvey.pipeline.bindings import Bindings
 from flatsurvey.pipeline.consumer import Consumer
-from flatsurvey.pipeline.consumer_goal import ConsumerGoal
 from flatsurvey.pipeline.goal import Goal
 from flatsurvey.pipeline.processor import Processor
 from flatsurvey.pipeline.producer import Producer

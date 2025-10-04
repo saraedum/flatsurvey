@@ -29,11 +29,15 @@ Any goal of a computation implements the Consumer interface::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from abc import abstractmethod, ABC
+from abc import abstractmethod
 from typing import Literal
 
+import click
 
-class Consumer(ABC):
+from flatsurvey.pipeline.goal import Goal
+
+
+class Consumer(Goal):
     r"""
     In the pipeline graph of jobs, anything that an edge points to is a
     Consumer. So consumers take in intermediate results that come out of a
@@ -60,48 +64,86 @@ class Consumer(ABC):
         >>> orientations._producers
         [saddle-connections]
 
+    .. NOTE:
+
+        While technically all consumers are a :class:`Goal` only the ones that
+        make sense as the actual "goal" of a survey register themselves as
+        goals in their ``click``.
+
     """
-    def __init__(self, producers, report=None):
+    DEFAULT_CACHE_ONLY = False
+
+    _cache_only_option = click.option(
+        "--cache-only",
+        default=DEFAULT_CACHE_ONLY,
+        is_flag=True,
+        help="Do not perform any computation. Only query the cache.",
+    )
+
+    def __init__(self, producers, cache=None, cache_only=DEFAULT_CACHE_ONLY, report=None):
         super().__init__()
 
-        self._producers = producers
+        from flatsurvey.cache import Cache
+        if cache is None:
+            cache = Cache()
 
-        # Some consumers can be resolved, e.g., when we are sure that we
-        # determined the correct orbit closure, we'd set this to True.
-        self._resolved = False
+        if report is None:
+            from flatsurvey.reporting import Report
+            report = Report([])
+
+
+        self._producers = producers
+        self._cache: Cache = cache
+        self._cache_only = cache_only
+        self._report = report
 
         # Register ourselves with each produces so we get notified of any
         # objects they generate.
         for producer in producers:
             producer.register_consumer(self)
 
-        if report is None:
-            from flatsurvey.reporting import Report
-
-            report = Report([])
-
-        self._report = report
-
-    @property
-    def resolved(self):
+    async def resolve(self) -> bool:
         r"""
-        Return whether this consumer should be considered resolved, i.e.,
-        whether it has already reached a final verdict.
+        Make our producers generate objects until this consumer marks itself as
+        resolved. Return whether we could resolve or our producers were exhausted.
 
-        EXAMPLES:
-
-        Typicall, a :class:`Transformation` do never reached the resolved status::
+        EXAMPLES::
 
             >>> from flatsurvey.surfaces import Ngon
-            >>> from flatsurvey.jobs import SaddleConnectionOrientations, SaddleConnections
-            >>> surface = Ngon((1, 1, 1))
-            >>> connections = SaddleConnections(surface=surface, report=None)
-            >>> orientations = SaddleConnectionOrientations(saddle_connections=connections, report=None)
-            >>> orientations.resolved
-            False
+            >>> from flatsurvey.reporting import Log, Report
+            >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections, OrbitClosure
+            >>> surface = Ngon((1, 3, 5))
+            >>> connections = SaddleConnections(surface, report=None)
+            >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(connections, report=None))
+            >>> oc = OrbitClosure(surface=surface, report=None, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=None)
+
+            >>> import asyncio
+            >>> resolve = oc.resolve()
+            >>> asyncio.run(resolve)
+            True
 
         """
-        return self._resolved
+        while not self._resolved:
+            for producer in self._producers:
+                if await producer.produce() != "EXHAUSTED":
+                    break
+            else:
+                return False
+
+            import asyncio
+
+            await asyncio.sleep(0)
+
+        return True
+
+    async def consume_cache(self):
+        r"""
+        Process previous cached results for this goal.
+
+        Subclasses can override this if they want to interact with cached results.
+        """
+        if self._cache_only:
+            self._resolved = True
 
     async def consume(self, product, cost) -> Literal["COMPLETED"] | Literal["NOT_COMPLETED"]:
         r"""

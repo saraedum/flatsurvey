@@ -33,6 +33,31 @@ from abc import ABC, abstractmethod
 
 
 class Goal(ABC):
+    def __init__(self):
+        self._resolved = False
+
+    @property
+    def resolved(self):
+        r"""
+        Return whether this goal should be considered resolved, i.e., whether
+        it has already reached a final verdict.
+
+        EXAMPLES:
+
+        Typicall, a :class:`Transformation` does never reach the resolved
+        status::
+
+            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.jobs import SaddleConnectionOrientations, SaddleConnections
+            >>> surface = Ngon((1, 1, 1))
+            >>> connections = SaddleConnections(surface=surface, report=None)
+            >>> orientations = SaddleConnectionOrientations(saddle_connections=connections, report=None)
+            >>> orientations.resolved
+            False
+
+        """
+        return self._resolved
+
     @abstractmethod
     async def resolve(self) -> bool:
         pass

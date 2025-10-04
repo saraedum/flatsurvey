@@ -70,14 +70,14 @@ import click
 from pyflatsurf import flatsurf  # type: ignore
 
 from flatsurvey.ui import Command
-from flatsurvey.pipeline import ConsumerGoal, Bindings
+from flatsurvey.pipeline import Consumer, Bindings
 from flatsurvey.ui.group import GroupedCommand
 from flatsurvey.jobs.flow_decompositions import FlowDecompositions
 from flatsurvey.reporting import Report
 from flatsurvey.cache import Cache
 
 
-class CompletelyCylinderPeriodic(ConsumerGoal, Command):
+class CompletelyCylinderPeriodic(Consumer, Command):
     r"""
     Determines whether for all directions given by saddle connections, the
     decomposition of the surface is completely cylinder periodic, i.e., the
@@ -100,7 +100,7 @@ class CompletelyCylinderPeriodic(ConsumerGoal, Command):
         report: Report,
         flow_decompositions: FlowDecompositions,
         cache: Cache,
-        cache_only: bool=ConsumerGoal.DEFAULT_CACHE_ONLY,
+        cache_only: bool=Consumer.DEFAULT_CACHE_ONLY,
         limit: int | None=DEFAULT_LIMIT,
     ):
         self._flow_decompositions = flow_decompositions
@@ -139,7 +139,7 @@ class CompletelyCylinderPeriodic(ConsumerGoal, Command):
                 report=bindings.get(Report),
                 flow_decompositions=bindings.get(FlowDecompositions),
                 cache=bindings.get(Cache),
-                cache_only=scoped.get("cache_only", lambda: ConsumerGoal.DEFAULT_CACHE_ONLY),
+                cache_only=scoped.get("cache_only", lambda: Consumer.DEFAULT_CACHE_ONLY),
                 limit=scoped.get("limit", lambda: CompletelyCylinderPeriodic.DEFAULT_LIMIT),
             )
 
@@ -156,7 +156,7 @@ class CompletelyCylinderPeriodic(ConsumerGoal, Command):
         default=DEFAULT_LIMIT,
         help="stop search after having looked at that many flow decompositions  [default: no limit]",
     )
-    @ConsumerGoal._cache_only_option
+    @Consumer._cache_only_option
     @Bindings.click
     def click(bindings: Bindings, limit, cache_only):
         r"""

@@ -71,14 +71,14 @@ import click
 from flatsurvey.cache import Cache
 from flatsurvey.jobs.flow_decompositions import FlowDecompositions
 from flatsurvey.jobs.saddle_connection_orientations import SaddleConnectionOrientations
-from flatsurvey.pipeline import Goal, ConsumerGoal, Bindings
+from flatsurvey.pipeline import Goal, Consumer, Bindings
 from flatsurvey.reporting import Report
 from flatsurvey.surfaces import Surface
 from flatsurvey.ui import Command
 from flatsurvey.ui.group import GroupedCommand
 
 
-class UndeterminedIntervalExchangeTransformations(ConsumerGoal, Command):
+class UndeterminedIntervalExchangeTransformations(Consumer, Command):
     r"""
     Tracks undetermined Interval Exchange Transformations.
 
@@ -106,7 +106,7 @@ class UndeterminedIntervalExchangeTransformations(ConsumerGoal, Command):
         flow_decompositions: FlowDecompositions,
         saddle_connection_orientations: SaddleConnectionOrientations,
         cache: Cache,
-        cache_only=ConsumerGoal.DEFAULT_CACHE_ONLY,
+        cache_only=Consumer.DEFAULT_CACHE_ONLY,
         limit=DEFAULT_LIMIT,
     ):
         self._surface = surface
@@ -210,7 +210,7 @@ class UndeterminedIntervalExchangeTransformations(ConsumerGoal, Command):
                 flow_decompositions=bindings.get(FlowDecompositions),
                 saddle_connection_orientations=bindings.get(SaddleConnectionOrientations),
                 cache=bindings.get(Cache),
-                cache_only=scoped.get("cache_only", ConsumerGoal.DEFAULT_CACHE_ONLY),
+                cache_only=scoped.get("cache_only", Consumer.DEFAULT_CACHE_ONLY),
                 limit=scoped.get("limit", UndeterminedIntervalExchangeTransformations.DEFAULT_LIMIT),
             )
 
@@ -228,7 +228,7 @@ class UndeterminedIntervalExchangeTransformations(ConsumerGoal, Command):
         show_default=True,
         help="Zorich induction steps to perform before giving up",
     )
-    @ConsumerGoal._cache_only_option
+    @Consumer._cache_only_option
     @Bindings.click
     def click(bindings: Bindings, limit, cache_only):
         r"""

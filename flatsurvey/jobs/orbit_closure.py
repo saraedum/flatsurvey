@@ -83,7 +83,7 @@ import click
 from sage.misc.cachefunc import cached_method
 
 from flatsurvey.ui import Command
-from flatsurvey.pipeline import ConsumerGoal, Bindings, Goal
+from flatsurvey.pipeline import Consumer, Bindings, Goal
 from flatsurvey.ui.group import GroupedCommand
 from flatsurvey.cache import Cache
 from flatsurvey.surfaces import Surface
@@ -92,7 +92,7 @@ from flatsurvey.jobs.flow_decompositions import FlowDecompositions
 from flatsurvey.jobs.saddle_connections import SaddleConnections
 
 
-class OrbitClosure(ConsumerGoal, Command):
+class OrbitClosure(Consumer, Command):
     r"""
     Determines the GL₂(R) orbit closure of ``surface``.
 
@@ -121,7 +121,7 @@ class OrbitClosure(ConsumerGoal, Command):
         stale_limit=DEFAULT_STALE_LIMIT,
         expansions_limit=DEFAULT_EXPANSIONS_LIMIT,
         deform=DEFAULT_DEFORM,
-        cache_only=ConsumerGoal.DEFAULT_CACHE_ONLY,
+        cache_only=Consumer.DEFAULT_CACHE_ONLY,
     ):
         super().__init__(
             producers=[flow_decompositions],
@@ -256,7 +256,7 @@ class OrbitClosure(ConsumerGoal, Command):
                 stale_limit=scoped.get("stale_limit", lambda: OrbitClosure.DEFAULT_STALE_LIMIT),
                 expansions_limit=scoped.get("expansions_limit", lambda: OrbitClosure.DEFAULT_EXPANSIONS_LIMIT),
                 deform=scoped.get("deform", lambda: OrbitClosure.DEFAULT_DEFORM),
-                cache_only=scoped.get("cache_only", lambda: ConsumerGoal.DEFAULT_CACHE_ONLY),
+                cache_only=scoped.get("cache_only", lambda: Consumer.DEFAULT_CACHE_ONLY),
             )
 
     @staticmethod
@@ -285,7 +285,7 @@ class OrbitClosure(ConsumerGoal, Command):
         default=DEFAULT_DEFORM,
         help="When set, we deform the input surface as soon as we found a third dimension in the tangent space and restart. This is often beneficial if the input surface has lots of symmetries and also when the Boshernitzan criterion can rarely be applied due to SAF=0.",
     )
-    @ConsumerGoal._cache_only_option
+    @Consumer._cache_only_option
     @Bindings.click
     def click(bindings: Bindings, stale_limit, expansions_limit, deform, cache_only):
         r"""

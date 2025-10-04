@@ -68,13 +68,13 @@ import click
 
 from flatsurvey.cache import Cache
 from flatsurvey.jobs.flow_decompositions import FlowDecompositions
-from flatsurvey.pipeline import ConsumerGoal, Bindings
+from flatsurvey.pipeline import Consumer, Bindings
 from flatsurvey.ui import Command
 from flatsurvey.ui.group import GroupedCommand
 from flatsurvey.reporting import Report
 
 
-class CylinderPeriodicDirection(ConsumerGoal, Command):
+class CylinderPeriodicDirection(Consumer, Command):
     r"""
     Determines whether there is a direction for which the surface decomposes
     into cylinders.
@@ -96,7 +96,7 @@ class CylinderPeriodicDirection(ConsumerGoal, Command):
         report,
         flow_decompositions: FlowDecompositions,
         cache: Cache,
-        cache_only=ConsumerGoal.DEFAULT_CACHE_ONLY,
+        cache_only=Consumer.DEFAULT_CACHE_ONLY,
         limit=DEFAULT_LIMIT,
     ):
         super().__init__(
@@ -210,7 +210,7 @@ class CylinderPeriodicDirection(ConsumerGoal, Command):
                 report=bindings.get(Report),
                 flow_decompositions=bindings.get(FlowDecompositions),
                 cache=bindings.get(Cache),
-                cache_only=scoped.get("cache_only", lambda: ConsumerGoal.DEFAULT_CACHE_ONLY),
+                cache_only=scoped.get("cache_only", lambda: Consumer.DEFAULT_CACHE_ONLY),
                 limit=scoped.get("limit", lambda: CylinderPeriodicDirection.DEFAULT_LIMIT),
             )
     @staticmethod
@@ -226,7 +226,7 @@ class CylinderPeriodicDirection(ConsumerGoal, Command):
         default=DEFAULT_LIMIT,
         help="stop search after having looked at that many flow decompositions  [default: no limit]",
     )
-    @ConsumerGoal._cache_only_option
+    @Consumer._cache_only_option
     @Bindings.click
     def click(bindings: Bindings, limit, cache_only):
         r"""
