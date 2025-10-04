@@ -602,7 +602,26 @@ class Ngon(Surface):
         else:
             raise NotImplementedError(self.length)
 
-        return E.random_element()
+        P = E.random_element()
+
+        # A random element can be very small or very big. This tricks some of
+        # the heuristics here (ideally it shouldn't matter and all heuristics
+        # should just scale with the polygon area.)
+        # Anyway, we rescale the polygon; in particular this takes the
+        # randomness out of triangles which helps with making doctests fully
+        # reproducible in this project.
+
+        assert P.vertex(0)[0] == 0 and P.vertex(0)[1] == 0 and P.vertex(1)[1] == 0
+
+        P = ~P.vertex(1)[0] * P
+
+        while P.area() > 2:
+            from sage.all import QQ
+            P = ~QQ(2) * P
+        while 2*P.area() < 1:
+            P = 2*P
+
+        return P
 
     @cached_method
     def _surface(self):
