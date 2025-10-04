@@ -206,6 +206,8 @@ class Json(Reporter, Command):
 
             >>> TODO: Use the version in pickles.py instead.
 
+            >>> TODO: Show dropped.
+
         """
         import base64
         from pickle import dumps

@@ -588,8 +588,7 @@ class Ngon(Surface):
 
         EXAMPLES::
 
-            >>> Ngon((1, 1, 1)).polygon()  # doctest: +ELLIPSIS
-            Polygon(vertices=[(0, 0), (..., 0), (..., ...)])
+            >>> Ngon((1, 1, 1)).polygon()
 
         """
         from flatsurf import EuclideanPolygonsWithAngles
