@@ -1295,7 +1295,7 @@ packages:
 - pypi: ./
   name: flatsurvey
   version: 0.1.0
-  sha256: 85c1bab0510d1c6b5195614d30792ec436bf279e5771f764448bd490da0b6ce1
+  sha256: 28de6e6fdf3fbb181e03679b915f5f22ae6e206acb3d164bf963de59a44a777f
   requires_dist:
   - datasize
   - click
