@@ -30,6 +30,8 @@ EXAMPLES::
 from abc import abstractmethod
 from typing import Literal
 
+from flatsurvey.reporting import Report
+
 
 class Producer:
     r"""
@@ -41,20 +43,19 @@ class Producer:
         >>> from flatsurvey.surfaces import Ngon
         >>> from flatsurvey.jobs import SaddleConnections
         >>> surface = Ngon((1, 1, 1))
-        >>> connections = SaddleConnections(surface=surface, report=None)
+        >>> connections = SaddleConnections(surface=surface)
 
         >>> isinstance(connections, Producer)
         True
 
     """
-    def __init__(self, report=None):
+    def __init__(self, report: Report|None=None):
         self._consumers = set()
         self._current = None
         self._exhausted = False
 
         if report is None:
             from flatsurvey.reporting import Report
-
             report = Report([])
 
         self._report = report
@@ -70,7 +71,7 @@ class Producer:
             >>> from flatsurvey.surfaces import Ngon
             >>> from flatsurvey.jobs import SaddleConnections
             >>> surface = Ngon((1, 1, 1))
-            >>> connections = SaddleConnections(surface=surface, report=None)
+            >>> connections = SaddleConnections(surface=surface)
 
             >>> import asyncio
             >>> produce = connections.produce()
@@ -103,7 +104,7 @@ class Producer:
             >>> from flatsurvey.surfaces import Ngon
             >>> from flatsurvey.jobs import SaddleConnections
             >>> surface = Ngon((1, 1, 1))
-            >>> connections = SaddleConnections(surface=surface, limit=0, report=None)
+            >>> connections = SaddleConnections(surface=surface, limit=0)
 
         For a producer to be exhausted, it has to be asked to :meth:`produce`
         at least once unsuccesfully. This is a bit unfortunate, but due to the
@@ -137,11 +138,11 @@ class Producer:
             >>> from flatsurvey.surfaces import Ngon
             >>> from flatsurvey.jobs import SaddleConnectionOrientations, SaddleConnections
             >>> surface = Ngon((1, 1, 1))
-            >>> connections = SaddleConnections(surface=surface, report=None)
+            >>> connections = SaddleConnections(surface=surface)
 
         Creating a consumer calls this method implicitly::
 
-            >>> orientations = SaddleConnectionOrientations(saddle_connections=connections, report=None)
+            >>> orientations = SaddleConnectionOrientations(saddle_connections=connections)
 
             >>> connections._consumers
             {saddle-connection-orientations}

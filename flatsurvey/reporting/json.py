@@ -40,7 +40,6 @@ from flatsurvey.ui import Command
 from flatsurvey.pipeline import Bindings
 from flatsurvey.reporting.reporter import Reporter
 from flatsurvey.ui.group import GroupedCommand
-from flatsurvey.surfaces import Surface
 
 
 class Json(Reporter, Command):
@@ -61,7 +60,7 @@ class Json(Reporter, Command):
     # TODO: Generalize the "surface" here. We want to track any configuration for this survey, i.e., anything that is not a "result".
     # The logic that "Join" uses is that anything that does not map to a list is configuration.
 
-    def __init__(self, surface: Surface, output=None, prefix=None, pickles=False):
+    def __init__(self, surface, output=None, prefix=None, pickles=False):
         super().__init__()
 
         if prefix is not None:
@@ -131,6 +130,7 @@ class Json(Reporter, Command):
 
         """
         with bindings.scope(Json) as scoped:
+            from flatsurvey.surfaces import Surface
             surface = bindings.get(Surface)
             output = scoped.get("output")
             prefix = scoped.get("prefix")

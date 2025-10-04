@@ -84,8 +84,8 @@ class CylinderPeriodicDirection(Consumer, Command):
         >>> from flatsurvey.surfaces import Ngon
         >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnections, SaddleConnectionOrientations
         >>> surface = Ngon((1, 1, 1))
-        >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface, report=None), report=None))
-        >>> CylinderPeriodicDirection(report=None, flow_decompositions=flow_decompositions, cache=None)
+        >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface)))
+        >>> CylinderPeriodicDirection(flow_decompositions=flow_decompositions, cache=None)
         cylinder-periodic-direction
 
     """
@@ -93,11 +93,11 @@ class CylinderPeriodicDirection(Consumer, Command):
 
     def __init__(
         self,
-        report,
         flow_decompositions: FlowDecompositions,
         cache: Cache,
         cache_only=Consumer.DEFAULT_CACHE_ONLY,
         limit=DEFAULT_LIMIT,
+        report: Report|None=None,
     ):
         super().__init__(
             producers=[flow_decompositions],
@@ -121,12 +121,12 @@ class CylinderPeriodicDirection(Consumer, Command):
             >>> from flatsurvey.cache import Cache
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnections, SaddleConnectionOrientations
             >>> surface = Ngon((1, 1, 1))
-            >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface, report=None), report=None))
+            >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface)))
 
         Try to resolve the goal from (no) cached results::
 
             >>> import asyncio
-            >>> goal = CylinderPeriodicDirection(report=None, flow_decompositions=flow_decompositions, cache=None)
+            >>> goal = CylinderPeriodicDirection(flow_decompositions=flow_decompositions, cache=None)
             >>> asyncio.run(goal.consume_cache())
 
             >>> goal.resolved
@@ -151,7 +151,7 @@ class CylinderPeriodicDirection(Consumer, Command):
             ...         "value": True,
             ...     }]
             ... })
-            >>> goal = CylinderPeriodicDirection(report=None, flow_decompositions=flow_decompositions, cache=cache)
+            >>> goal = CylinderPeriodicDirection(flow_decompositions=flow_decompositions, cache=cache)
             >>> asyncio.run(goal.consume_cache())
 
             >>> goal.resolved
@@ -256,7 +256,7 @@ class CylinderPeriodicDirection(Consumer, Command):
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnections, SaddleConnectionOrientations
             >>> surface = Ngon((1, 1, 1))
             >>> log = Log(surface)
-            >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface, report=None), report=None))
+            >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface)))
             >>> cpd = CylinderPeriodicDirection(report=Report([log]), flow_decompositions=flow_decompositions, cache=None)
 
         Investigate in a single direction. We find that this direction is
@@ -274,7 +274,7 @@ class CylinderPeriodicDirection(Consumer, Command):
 
             >>> from flatsurvey.reporting import Json, Report
 
-            >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface, report=None), report=None))
+            >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface)))
             >>> report = Report([Json(surface)])
             >>> cpd = CylinderPeriodicDirection(report=report, flow_decompositions=flow_decompositions, cache=None)
 
@@ -315,7 +315,7 @@ class CylinderPeriodicDirection(Consumer, Command):
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections
             >>> surface = Ngon((1, 1, 11))
             >>> report = Report([Json(surface)])
-            >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface, report=None), report=None))
+            >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface)))
             >>> cpd = CylinderPeriodicDirection(report=report, flow_decompositions=flow_decompositions, cache=None)
 
         Report that we found a direction that is cylinder periodic::

@@ -50,8 +50,8 @@ class Goal(ABC):
             >>> from flatsurvey.surfaces import Ngon
             >>> from flatsurvey.jobs import SaddleConnectionOrientations, SaddleConnections
             >>> surface = Ngon((1, 1, 1))
-            >>> connections = SaddleConnections(surface=surface, report=None)
-            >>> orientations = SaddleConnectionOrientations(saddle_connections=connections, report=None)
+            >>> connections = SaddleConnections(surface=surface)
+            >>> orientations = SaddleConnectionOrientations(saddle_connections=connections)
             >>> orientations.resolved
             False
 
@@ -73,9 +73,9 @@ class Goal(ABC):
             >>> from flatsurvey.reporting import Log, Report
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections, OrbitClosure
             >>> surface = Ngon((1, 3, 5))
-            >>> connections = SaddleConnections(surface, report=None)
-            >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(connections, report=None))
-            >>> oc = OrbitClosure(surface=surface, report=None, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=None)
+            >>> connections = SaddleConnections(surface)
+            >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(connections))
+            >>> oc = OrbitClosure(surface=surface, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=None)
 
             >>> import asyncio
             >>> resolve = oc.resolve()

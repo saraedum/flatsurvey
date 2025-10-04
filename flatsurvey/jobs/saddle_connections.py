@@ -49,7 +49,7 @@ class SaddleConnections(Producer, Command):
     DEFAULT_BOUND = None
     DEFAULT_LIMIT = None
 
-    def __init__(self, surface: Surface, report: Report, limit=DEFAULT_LIMIT, bound=DEFAULT_BOUND):
+    def __init__(self, surface: Surface, report: Report|None=None, limit=DEFAULT_LIMIT, bound=DEFAULT_BOUND):
         super().__init__(report=report)
 
         self._surface = surface

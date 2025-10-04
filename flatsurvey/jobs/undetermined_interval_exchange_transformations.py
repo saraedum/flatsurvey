@@ -90,10 +90,10 @@ class UndeterminedIntervalExchangeTransformations(Consumer, Command):
         >>> from flatsurvey.surfaces import Ngon
         >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections, SaddleConnectionOrientations
         >>> surface = Ngon((1, 1, 1))
-        >>> connections = SaddleConnections(surface, report=None)
-        >>> orientations = SaddleConnectionOrientations(connections, report=None)
-        >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=orientations)
-        >>> UndeterminedIntervalExchangeTransformations(surface=surface, report=None, flow_decompositions=flow_decompositions, saddle_connection_orientations=orientations, cache=None)
+        >>> connections = SaddleConnections(surface)
+        >>> orientations = SaddleConnectionOrientations(connections)
+        >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=orientations)
+        >>> UndeterminedIntervalExchangeTransformations(surface=surface, flow_decompositions=flow_decompositions, saddle_connection_orientations=orientations, cache=None)
         undetermined-iets
 
     """
@@ -102,12 +102,12 @@ class UndeterminedIntervalExchangeTransformations(Consumer, Command):
     def __init__(
         self,
         surface: Surface,
-        report: Report,
         flow_decompositions: FlowDecompositions,
         saddle_connection_orientations: SaddleConnectionOrientations,
         cache: Cache,
         cache_only=Consumer.DEFAULT_CACHE_ONLY,
         limit=DEFAULT_LIMIT,
+        report: Report|None = None,
     ):
         self._surface = surface
         self._saddle_connection_orientations = saddle_connection_orientations
@@ -135,8 +135,8 @@ class UndeterminedIntervalExchangeTransformations(Consumer, Command):
             >>> from flatsurvey.reporting import Report
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections
             >>> surface = Ngon((1, 1, 1))
-            >>> saddle_connection_orientations = SaddleConnectionOrientations(saddle_connections=SaddleConnections(surface=surface, report=None), report=None)
-            >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=saddle_connection_orientations)
+            >>> saddle_connection_orientations = SaddleConnectionOrientations(saddle_connections=SaddleConnections(surface=surface))
+            >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=saddle_connection_orientations)
             >>> log = Log(surface)
 
         We mock some artificial results from previous runs and consume that

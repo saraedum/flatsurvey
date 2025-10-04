@@ -101,9 +101,9 @@ class OrbitClosure(Consumer, Command):
         >>> from flatsurvey.surfaces import Ngon
         >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections
         >>> surface = Ngon((1, 1, 1))
-        >>> connections = SaddleConnections(surface, report=None)
-        >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(connections, report=None))
-        >>> OrbitClosure(surface=surface, report=None, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=None)
+        >>> connections = SaddleConnections(surface)
+        >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(connections))
+        >>> OrbitClosure(surface=surface, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=None)
         orbit-closure
 
     """
@@ -114,7 +114,6 @@ class OrbitClosure(Consumer, Command):
     def __init__(
         self,
         surface: Surface,
-        report: Report,
         flow_decompositions: FlowDecompositions,
         saddle_connections: SaddleConnections,
         cache: Cache,
@@ -122,6 +121,7 @@ class OrbitClosure(Consumer, Command):
         expansions_limit=DEFAULT_EXPANSIONS_LIMIT,
         deform=DEFAULT_DEFORM,
         cache_only=Consumer.DEFAULT_CACHE_ONLY,
+        report: Report|None=None,
     ):
         super().__init__(
             producers=[flow_decompositions],
@@ -162,13 +162,13 @@ class OrbitClosure(Consumer, Command):
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections
             >>> from flatsurvey.cache import Cache
             >>> surface = Ngon((1, 1, 1))
-            >>> connections = SaddleConnections(surface, report=None)
-            >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(connections, report=None))
+            >>> connections = SaddleConnections(surface)
+            >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(connections))
 
         Try to resolve the goal from (no) cached results::
 
             >>> import asyncio
-            >>> goal = OrbitClosure(surface=surface, report=None, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=None)
+            >>> goal = OrbitClosure(surface=surface, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=None)
             >>> asyncio.run(goal.consume_cache())
 
             >>> goal.resolved
@@ -193,7 +193,7 @@ class OrbitClosure(Consumer, Command):
             ...         "dense": True,
             ... }]})
 
-            >>> goal = OrbitClosure(surface=surface, report=None, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=cache)
+            >>> goal = OrbitClosure(surface=surface, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=cache)
             >>> asyncio.run(goal.consume_cache())
 
             >>> goal.resolved
@@ -386,9 +386,9 @@ class OrbitClosure(Consumer, Command):
             >>> from flatsurvey.reporting import Log, Report
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections
             >>> surface = Ngon((1, 3, 5))
-            >>> connections = SaddleConnections(surface, report=None)
+            >>> connections = SaddleConnections(surface)
             >>> log = Log(surface=surface)
-            >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(connections, report=None))
+            >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(connections))
             >>> oc = OrbitClosure(surface=surface, report=Report([log]), flow_decompositions=flow_decompositions, saddle_connections=connections, cache=None)
 
         Run until we find the orbit closure, i.e., investigate in two directions::
@@ -407,7 +407,7 @@ class OrbitClosure(Consumer, Command):
             >>> from flatsurvey.reporting import Json
 
             >>> report = Report([Json(surface)])
-            >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(connections, report=None))
+            >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(connections))
             >>> oc = OrbitClosure(surface=surface, report=report, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=None)
 
             >>> import asyncio
@@ -594,9 +594,9 @@ class OrbitClosure(Consumer, Command):
             >>> from flatsurvey.reporting import Report, Json
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections
             >>> surface = Ngon((1, 3, 5))
-            >>> connections = SaddleConnections(surface, report=None)
+            >>> connections = SaddleConnections(surface)
             >>> report = Report([Json(surface)])
-            >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(connections, report=None))
+            >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(connections))
             >>> oc = OrbitClosure(surface=surface, report=report, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=None)
 
             >>> import asyncio

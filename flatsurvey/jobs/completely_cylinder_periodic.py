@@ -88,8 +88,8 @@ class CompletelyCylinderPeriodic(Consumer, Command):
         >>> from flatsurvey.surfaces import Ngon
         >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections
         >>> surface = Ngon((1, 1, 1))
-        >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface, report=None), report=None))
-        >>> CompletelyCylinderPeriodic(report=None, flow_decompositions=flow_decompositions, cache=None)
+        >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface)))
+        >>> CompletelyCylinderPeriodic(flow_decompositions=flow_decompositions, cache=None)
         completely-cylinder-periodic
 
     """
@@ -97,11 +97,11 @@ class CompletelyCylinderPeriodic(Consumer, Command):
 
     def __init__(
         self,
-        report: Report,
         flow_decompositions: FlowDecompositions,
         cache: Cache,
         cache_only: bool=Consumer.DEFAULT_CACHE_ONLY,
         limit: int | None=DEFAULT_LIMIT,
+        report: Report|None=None,
     ):
         self._flow_decompositions = flow_decompositions
         self._limit = limit
@@ -139,8 +139,8 @@ class CompletelyCylinderPeriodic(Consumer, Command):
                 report=bindings.get(Report),
                 flow_decompositions=bindings.get(FlowDecompositions),
                 cache=bindings.get(Cache),
-                cache_only=scoped.get("cache_only", lambda: Consumer.DEFAULT_CACHE_ONLY),
-                limit=scoped.get("limit", lambda: CompletelyCylinderPeriodic.DEFAULT_LIMIT),
+                cache_only=scoped.get("cache_only", Consumer.DEFAULT_CACHE_ONLY),
+                limit=scoped.get("limit", CompletelyCylinderPeriodic.DEFAULT_LIMIT),
             )
 
     @staticmethod
@@ -185,7 +185,7 @@ class CompletelyCylinderPeriodic(Consumer, Command):
             >>> from flatsurvey.surfaces import Ngon
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections
             >>> surface = Ngon((1, 1, 1))
-            >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface, report=None), report=None))
+            >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface)))
 
             >>> make_goal = lambda cache, report: CompletelyCylinderPeriodic(report=report, flow_decompositions=flow_decompositions, cache=cache)
 
@@ -257,7 +257,7 @@ class CompletelyCylinderPeriodic(Consumer, Command):
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections
             >>> surface = Ngon((1, 1, 1))
             >>> log = Log(surface)
-            >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface, report=None), report=None))
+            >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface)))
             >>> ccp = CompletelyCylinderPeriodic(report=Report([log]), flow_decompositions=flow_decompositions, cache=None)
 
         Investigate in a single direction::
@@ -307,7 +307,7 @@ class CompletelyCylinderPeriodic(Consumer, Command):
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections
             >>> surface = Ngon((1, 1, 11))
             >>> report = Report([Json(surface)])
-            >>> flow_decompositions = FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface, report=None), report=None))
+            >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface)))
             >>> ccp = CompletelyCylinderPeriodic(report=report, flow_decompositions=flow_decompositions, cache=None)
 
         Report that we found a direction that is not a cylinder::

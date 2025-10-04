@@ -37,6 +37,7 @@ from typing import Literal
 
 from flatsurvey.pipeline.consumer import Consumer
 from flatsurvey.pipeline.producer import Producer
+from flatsurvey.reporting import Report
 
 
 class Processor(Producer, Consumer):
@@ -51,39 +52,38 @@ class Processor(Producer, Consumer):
         >>> from flatsurvey.surfaces import Ngon
         >>> from flatsurvey.jobs import SaddleConnectionOrientations, SaddleConnections
         >>> surface = Ngon((1, 1, 1))
-        >>> connections = SaddleConnections(surface=surface, report=None)
+        >>> connections = SaddleConnections(surface=surface)
         >>> isinstance(connections, Processor)
         False
-        >>> orientations = SaddleConnectionOrientations(saddle_connections=connections, report=None)
+        >>> orientations = SaddleConnectionOrientations(saddle_connections=connections)
         >>> isinstance(orientations, Processor)
         True
 
     """
 
-    def __init__(self, producers, report=None):
+    def __init__(self, producers, report: Report | None=None):
         Producer.__init__(self, report=report)
-        Consumer.__init__(self, producers=producers, report=report)
-
-        self._produced = False
+        Consumer.__init__(self, producers=producers, report=self._report)
 
     async def produce(self) -> Literal["EXHAUSTED"] | Literal["NOT_EXHAUSTED"]:
         r"""
         Ask our producers to produce until our own ``consume`` gets called so
-        we actually produce. Return whether all our producers have been
-        exhausted in the process.
+        we actually produce.
+
+        Returns whether all our producers have been exhausted in the process.
 
         EXAMPLES::
 
             >>> from flatsurvey.surfaces import Ngon
             >>> from flatsurvey.jobs import SaddleConnectionOrientations, SaddleConnections
             >>> surface = Ngon((1, 1, 1))
-            >>> connections = SaddleConnections(surface=surface, report=None)
-            >>> orientations = SaddleConnectionOrientations(saddle_connections=connections, report=None)
+            >>> connections = SaddleConnections(surface=surface)
+            >>> orientations = SaddleConnectionOrientations(saddle_connections=connections)
 
             >>> import asyncio
             >>> produce = orientations.produce()
-            >>> asyncio.run(produce) != Producer.EXHAUSTED
-            True
+            >>> asyncio.run(produce)
+            'NOT_EXHAUSTED'
 
             >>> orientations._current  # doctest: +ELLIPSIS
             (0, ...)
@@ -103,4 +103,4 @@ class Processor(Producer, Consumer):
         return "NOT_EXHAUSTED"
 
     def _produce(self) -> Literal["EXHAUSTED"] | Literal["NOT_EXHAUSTED"]:
-        raise NotImplementedError("a Processor does not implement _produce but _consume")
+        raise NotImplementedError("a Processor's _produce() should never be called only it's _consume()")

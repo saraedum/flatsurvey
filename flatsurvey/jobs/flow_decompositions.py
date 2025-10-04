@@ -59,14 +59,14 @@ class FlowDecompositions(Processor, Command):
         >>> from flatsurvey.surfaces import Ngon
         >>> from flatsurvey.jobs import SaddleConnectionOrientations, SaddleConnections
         >>> surface = Ngon((1, 1, 1))
-        >>> FlowDecompositions(surface=surface, report=None, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface, report=None), report=None))
+        >>> FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface)))
         flow-decompositions
 
     """
     DEFAULT_LIMIT = 256
 
     def __init__(
-        self, surface: Surface, saddle_connection_orientations: SaddleConnectionOrientations, report=None, limit=DEFAULT_LIMIT
+        self, surface: Surface, saddle_connection_orientations: SaddleConnectionOrientations, report: Report|None=None, limit=DEFAULT_LIMIT
     ):
         super().__init__(producers=[saddle_connection_orientations], report=report)
 
@@ -137,7 +137,7 @@ class FlowDecompositions(Processor, Command):
             >>> from flatsurvey.reporting import Log, Report
             >>> from flatsurvey.jobs import SaddleConnectionOrientations, SaddleConnections
             >>> surface = Ngon((1, 1, 1))
-            >>> decompositions = FlowDecompositions(surface=surface, report=Report([Log(surface)]), saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface, report=None), report=None))
+            >>> decompositions = FlowDecompositions(surface=surface, report=Report([Log(surface)]), saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface)))
             >>> produce = decompositions.produce() # indirect doctest
             >>> asyncio.run(produce)  # doctest: +ELLIPSIS
             'NOT_EXHAUSTED'
@@ -151,7 +151,7 @@ class FlowDecompositions(Processor, Command):
             >>> from flatsurvey.reporting import Json
 
             >>> report = Report([Json(surface)], ignore=["saddle-connections"])
-            >>> decompositions = FlowDecompositions(surface=surface, report=report, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface, report=None), report=None))
+            >>> decompositions = FlowDecompositions(surface=surface, report=report, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface)))
 
             >>> asyncio.run(decompositions.produce())
             'NOT_EXHAUSTED'

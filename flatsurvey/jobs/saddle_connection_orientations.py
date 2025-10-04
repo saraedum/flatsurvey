@@ -45,7 +45,7 @@ class SaddleConnectionOrientations(Processor, Command):
     saddle connections irrespective of scaling and sign.
     """
 
-    def __init__(self, saddle_connections: SaddleConnections, report: Report):
+    def __init__(self, saddle_connections: SaddleConnections, report: Report|None=None):
         super().__init__(producers=[saddle_connections], report=report)
 
         self._saddle_connections = saddle_connections
@@ -105,7 +105,7 @@ class SaddleConnectionOrientations(Processor, Command):
             >>> from flatsurvey.reporting import Log, Report
             >>> from flatsurvey.jobs import SaddleConnections
             >>> surface = Ngon((1, 1, 1))
-            >>> sco = SaddleConnectionOrientations(saddle_connections=SaddleConnections(surface, report=None), report=None)
+            >>> sco = SaddleConnectionOrientations(saddle_connections=SaddleConnections(surface))
 
             >>> asyncio.run(sco.produce())  # doctest: +ELLIPSIS
             'NOT_EXHAUSTED'
@@ -115,7 +115,7 @@ class SaddleConnectionOrientations(Processor, Command):
             >>> from flatsurvey.reporting import Json
 
             >>> report = Report([Json(surface)], ignore=["saddle-connections"])
-            >>> sco = SaddleConnectionOrientations(saddle_connections=SaddleConnections(surface, report=None), report=report)
+            >>> sco = SaddleConnectionOrientations(saddle_connections=SaddleConnections(surface), report=report)
 
             >>> asyncio.run(sco.produce())
             'NOT_EXHAUSTED'

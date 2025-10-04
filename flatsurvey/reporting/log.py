@@ -51,7 +51,6 @@ from flatsurvey.ui import Command
 from flatsurvey.pipeline import Bindings
 from flatsurvey.reporting.reporter import Reporter
 from flatsurvey.ui.group import GroupedCommand
-from flatsurvey.surfaces import Surface
 
 
 class GenericLog(Reporter, Command):
@@ -253,7 +252,7 @@ class Log(GenericLog):
 
     """
 
-    def __init__(self, surface: Surface, stream=None, output=None, prefix=None):
+    def __init__(self, surface, stream=None, output=None, prefix=None):
         self._surface = surface
 
         if prefix is not None:
@@ -366,6 +365,7 @@ class Log(GenericLog):
 
         """
         with bindings.scope(Log) as scoped:
+            from flatsurvey.surfaces import Surface
             return Log(
                 surface=bindings.get(Surface),
                 stream=scoped.get("stream", lambda: None),
