@@ -77,7 +77,7 @@ import flatsurvey.cache
 import flatsurvey.jobs
 import flatsurvey.reporting
 import flatsurvey.surfaces
-from flatsurvey.pipeline import Bindings, Goal
+from flatsurvey.pipeline import Bindings, Goal, BindingException
 from flatsurvey.ui.group import CommandWithGroups
 from flatsurvey.reporting.report import Report
 from flatsurvey.restart import Restart
@@ -205,7 +205,10 @@ class Worker:
     def create(bindings):
         from flatsurvey.reporting import Log, Reporter
         # Inject a default reporter to stdout if none is configured yet.
-        bindings.get(list[Reporter], lambda: [Log(output="-")])
+        try:
+            bindings.get(list[Reporter])
+        except BindingException:
+            bindings.append(list[Reporter], Log(output="-"))
 
         return Worker(goals=bindings.get(list[Goal], []), report=bindings.get(Report))
 
@@ -216,8 +219,11 @@ class Worker:
         try:
             await worker.start(limits=limits)
         except Restart as restart:
-            print("Performing restart")
-            await Worker.work(bindings=restart.restart(bindings), limits=limits)
+            import logging
+            logger = logging.getLogger()
+            logger.info("Performing restart")
+
+            await Worker.work(bindings=restart.create_bindings(bindings), limits=limits)
 
     async def start(self, limits=[]):
         r"""

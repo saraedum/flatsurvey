@@ -461,14 +461,17 @@ class OrbitClosure(Consumer, Command):
 
         if self.dimension == self._surface.orbit_closure_dimension_upper_bound:
             await self.report()
-            # Stop consuming further cylinder decompositions.
+            # Dense orbit closure. Stop consuming further cylinder decompositions.
             return "COMPLETED"
 
+        # TODO: This heuristics do not make a ton of sense. We should add
+        # better logging to explain that this is a sane strategy. (Here and
+        # also in the deformation below.)
         if self._cylinders_without_increase >= self._stale_limit:
             if self._expansions_performed < self._expansions_limit:
                 self._expansions_performed += 1
 
-                self._report.log(self, "Found too many cylinders without improvements.")
+                self._report.log(self, f"Found {self._cylinders_without_increase} cylinders without improvements. Let's try something else.")
 
                 if self._lower_bound == 0:
                     self._lower_bound = self._upper_bound
@@ -496,7 +499,7 @@ class OrbitClosure(Consumer, Command):
             and self.dimension > 3
             and self._directions >= self._stale_limit
         ):
-            self._report.progress(source=self, message="deforming surface")
+            self._report.log(self, f"Explored {self._directions} directions with conclusion. Deforming surface.") 
 
             tangents = [
                 orbit_closure.lift(v) for v in orbit_closure.tangent_space_basis()[2:]
@@ -563,10 +566,19 @@ class OrbitClosure(Consumer, Command):
                             "Restarting OrbitClosure search with deformed surface.",
                         )
 
-                        from flatsurvey.surfaces import Deformation
+                        def create_bindings(old: Bindings):
+                            from flatsurvey.surfaces import Deformation
+                            deformation = Deformation(surface, old=self._surface)
 
-                        # TODO: Make sure that this code path is tested.
-                        raise Deformation.Restart(surface, old=self._surface)
+                            bindings = old.clone()
+                            bindings.forget(Surface)
+                            bindings.define(Surface, deformation)
+
+                            return bindings
+
+                        from flatsurvey.restart import Restart
+                        # TODO: Explicitly test this code path in the doctests here
+                        raise Restart(create_bindings)
                     except cppyy.gbl.std.invalid_argument:
                         self._report.log(source=self, message=f"Failed to deform {orbit_closure._surface} with {n}")
                         continue

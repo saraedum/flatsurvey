@@ -17,6 +17,8 @@
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
+from typing import Callable
+
 from flatsurvey.pipeline import Bindings
 
 
@@ -27,14 +29,27 @@ class Restart(Exception):
 
     INPUT:
 
-    - ``bindings`` -- the :class:`Bindings` with which the worker will restart.
+    - ``bindings`` -- a :class:`Bindings` factory which the worker will invoke
+      to restart
 
     .. NOTE::
-
 
         Using exception like this for such high-level control flow is a dubious
         pattern to say the least. But it is also very convenient.
 
+    EXAMPLES:
+
+    We attempt an orbit-closure computation for a triangle which is known to
+    have non-dense orbit closure. This will lead to a restart throughout the
+    process as the system fails to determine whether the orbit closure is
+    dense::
+
+        >>> from flatsurvey.test.cli import invoke
+        >>> invoke(worker, "ngon", "-a", "1", "4", "11", "orbit-closure", "--deform", "--stale-limit", "1", "--expansions-limit", "1")
+        [OrbitClosure] dimension: 3/8 ...
+        [OrbitClosure] Restarting OrbitClosure search with deformed surface. ...
+        [OrbitClosure] GL(2,R)-orbit closure of dimension at least 4 in H_6(10) (ambient dimension 12) (dimension: 4) (directions: 29) (directions_with_cylinders: 4) (dense: None)
+
     """
-    def __init__(self, bindings: Bindings):
-        self.bindings = bindings
+    def __init__(self, create_bindings: Callable[[Bindings], Bindings]):
+        self.create_bindings = create_bindings
