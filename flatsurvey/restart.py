@@ -45,6 +45,8 @@ class Restart(Exception):
     dense::
 
         >>> from flatsurvey.test.cli import invoke
+        >>> from flatsurvey.worker import worker
+
         >>> invoke(worker, "ngon", "-a", "1", "4", "11", "orbit-closure", "--deform", "--stale-limit", "1", "--expansions-limit", "1")
         [OrbitClosure] dimension: 3/8...
         [OrbitClosure] Explored ... directions with conclusion. Deforming surface...
