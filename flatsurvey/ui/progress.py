@@ -19,33 +19,138 @@ Progress tracking during surveys
 #  You should have received a copy of the GNU General Public License
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
-from contextlib import ContextDecorator
+
+from contextlib import AbstractContextManager, contextmanager
 from typing import Any
+from abc import abstractmethod
 
 from alive_progress import alive_bar
 
-class SurveyProgress(ContextDecorator):
+class Progress(AbstractContextManager):
+    r"""
+    Abstract base class for progress indicators.
+
+    The indicator is active while the context is active.
+
+    EXAMPLES::
+
+        >>> with Progress.create() as progress:
+        ...     progress.set_activity("queueing tasks")
+        ...     progress.queued()
+        ...     progress.completed()
+        queueing tasks |████████████████████████████████████████| 1 in 0.0s ...
+
+    ::
+    
+        >>> isinstance(progress, Progress)
+        True
+
+    """
+    @staticmethod
+    @contextmanager
+    def create(stdout=True):
+        if stdout:
+            progress = StdoutProgress("-")
+        else:
+            progress = SilentProgress()
+
+        with progress as progress:
+            yield progress
+
+    @abstractmethod
+    def queued(self):
+        r"""
+        Register that a task was queued (it may or may not be executing
+        already.)
+
+        EXAMPLES::
+
+            >>> with Progress.create() as progress:
+            ...     progress.queued()
+            - |████████████████████████████████████████| 0 in 0.0s ...
+
+        """
+
+    @abstractmethod
+    def completed(self):
+        r"""
+        Register that a previously queued task has run to completion.
+
+        EXAMPLES::
+
+            >>> with Progress.create() as progress:
+            ...     progress.queued()
+            ...     progress.completed()
+            - |████████████████████████████████████████| 1 in 0.0s ...
+
+
+        """
+
+    @abstractmethod
+    def set_activity(self, activity: str):
+        r"""
+        Set the title of the progress indicator to ``activity``.
+
+        EXAMPLES::
+
+            >>> with Progress.create() as progress:
+            ...      progress.set_activity("hello")
+            ...      progress.set_activity("world")
+            world |████████████████████████████████████████| 0 in 0.0s ...
+
+        """
+
+
+class SilentProgress(Progress):
+    r"""
+    A progress indicator that does not display any progress. All methods are
+    just nops.
+
+    EXAMPLES::
+
+        >>> with Progress.create(stdout=False) as progress:
+        ...     progress.set_activity("activity")
+        ...     progress.queued()
+        ...     progress.completed()
+
+    ::
+
+        >>> isinstance(progress, SilentProgress)
+        True
+
+    """
     def queued(self):
         pass
 
     def completed(self):
         pass
 
-    def set_activity(self, activity):
+    def set_activity(self, activity: str):
         del activity
-
-    def __enter__(self):
-        return self
 
     def __exit__(self, *exc):
         del exc
 
 
-r"""
-A simple text based progress indicator that is visible while its context is
-active.
-"""
-class StdoutSurveyProgress(SurveyProgress):
+class StdoutProgress(Progress):
+    r"""
+    A simple text based progress indicator that is visible while its context is
+    active.
+
+    EXAMPLES::
+
+        >>> with Progress.create(stdout=True) as progress:
+        ...     progress.set_activity("activity")
+        ...     progress.queued()
+        ...     progress.completed()
+        activity |████████████████████████████████████████| 1 in 0.0s ...
+
+    ::
+
+        >>> isinstance(progress, StdoutProgress)
+        True
+
+    """
     def __init__(self, activity: str):
         self._bar = alive_bar(title=activity)
         self._context: Any = None
@@ -53,49 +158,25 @@ class StdoutSurveyProgress(SurveyProgress):
         self._scheduled = 0
 
     def _update_text(self):
-        r"""
-        Make sure that the progress bar shows the correct number of pending
-        tasks.
-        """
         self._context.text(f"{self._queued} pending")
 
     def queued(self):
-        r"""
-        Register that another task was queued (it may or may not be executing
-        already.)
-        """
         self._queued += 1
         self._update_text()
 
     def completed(self):
-        r"""
-        Register that a previously queued task has run to completion.
-        """
         self._queued -= 1
         self._update_text()
         self._context()
 
     def set_activity(self, activity):
-        r"""
-        Set the title of the progress indicator to ``activity``.
-        """
         self._context.title(activity)
 
     def __enter__(self):
-        r"""
-        Display the progress indicator while the returned context is active.
-        """
         self._context = self._bar.__enter__()
         self._update_text()
         return self
 
     def __exit__(self, *exc):
-        r"""
-        Hide the progress indicator.
-        """
         self._context = None
         self._bar.__exit__(*exc)
-
-
-class HiddenSurveyProgress(SurveyProgress):
-    pass

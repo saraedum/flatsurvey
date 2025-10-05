@@ -9,10 +9,12 @@ TESTS::
       Mangle cache files.
     Options:
       --debug
-      --help         Show this message and exit.
       -v, --verbose  Enable verbose message, repeat for debug message.
+      --help         Show this message and exit.
     Commands:
-      join  Aggregates JSON files into one file for...
+      join  Aggregates JSON files into one file for each type of result.
+    Reports:
+      log  Writes progress and results as an unstructured log file.
 
 """
 # *********************************************************************

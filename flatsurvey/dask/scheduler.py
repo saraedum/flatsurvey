@@ -49,7 +49,7 @@ import logging
 import dask.distributed
 
 from flatsurvey.pipeline import Bindings
-from flatsurvey.ui import SurveyProgress, HiddenSurveyProgress
+from flatsurvey.ui import Progress
 from flatsurvey.dask.tokens import SchedulerCancellationToken
 
 
@@ -97,12 +97,12 @@ class Scheduler:
     def __init__(
         self,
         survey_bindings: Iterator[Bindings],
-        progress: SurveyProgress | None=None,
+        progress: Progress | None=None,
         scheduler_json=None,
         queue_limit=None,
     ):
         self._survey_bindings = iter(survey_bindings)
-        self._progress = progress or HiddenSurveyProgress()
+        self._progress = progress or Progress()
         self._scheduler_json = scheduler_json
         self._queue_limit = queue_limit
 
@@ -261,7 +261,7 @@ class Scheduler:
             worker_class=dask.distributed.Worker,
         )
 
-    async def _seed_jobs(self, pool: dask.distributed.Client, progress: SurveyProgress, token: SchedulerCancellationToken) -> List[dask.distributed.Future]:
+    async def _seed_jobs(self, pool: dask.distributed.Client, progress: Progress, token: SchedulerCancellationToken) -> List[dask.distributed.Future]:
         r"""
         Initialize the job queue with some things to work on without actually
         consuming results from the workers that might arrive in the meantime.
@@ -282,7 +282,7 @@ class Scheduler:
 
         return jobs
 
-    async def _submit_job(self, pool: dask.distributed.Client, progress: SurveyProgress, token: SchedulerCancellationToken) -> dask.distributed.Future | None:
+    async def _submit_job(self, pool: dask.distributed.Client, progress: Progress, token: SchedulerCancellationToken) -> dask.distributed.Future | None:
         r"""
         Enqueue another task for computation on a worker.
 
@@ -373,7 +373,7 @@ class Scheduler:
 
         return not pending_goals
 
-    async def _submit_jobs(self, pool: dask.distributed.Client, progress: SurveyProgress, token: SchedulerCancellationToken, jobs: List[dask.distributed.Future]) -> None:
+    async def _submit_jobs(self, pool: dask.distributed.Client, progress: Progress, token: SchedulerCancellationToken, jobs: List[dask.distributed.Future]) -> None:
         r"""
         Submit jobs for all ``surfaces`` to run in the ``pool`` of workers.
 
@@ -404,7 +404,7 @@ class Scheduler:
 
                 jobs.append(job)
 
-    async def _await_pending_jobs(self, progress: SurveyProgress, jobs: List[dask.distributed.Future]):
+    async def _await_pending_jobs(self, progress: Progress, jobs: List[dask.distributed.Future]):
         r"""
         Wait for all ``jobs`` to complete.
 
@@ -414,7 +414,7 @@ class Scheduler:
         while await self._await_pending_job(progress, jobs):
             pass
 
-    async def _await_pending_job(self, progress: SurveyProgress, jobs: List[dask.distributed.Future]) -> int:
+    async def _await_pending_job(self, progress: Progress, jobs: List[dask.distributed.Future]) -> int:
         r"""
         Wait for at least one of the ``jobs`` to complete and remove completed
         job from that list.

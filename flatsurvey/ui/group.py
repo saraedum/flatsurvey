@@ -31,24 +31,15 @@ import click
 
 class CommandWithGroups(click.Group):
     r"""
-    Base class for commands that want to use the other utilities in this
-    module.
+    Base class for commands that want to display grouped subcommands.
+
+    EXAMPLES::
+
+        >>> from flatsurvey.survey import survey
+        >>> isinstance(survey, CommandWithGroups)
+        True
+
     """
-
-    def format_options(self, ctx, formatter):
-        # Write options in sorted groups
-        options = defaultdict(list)
-        for param in self.get_params(ctx):
-            if param.get_help_record(ctx):
-                group = "Options"
-                if isinstance(param, GroupedOption):
-                    group = param.group
-                options[group].append(param.get_help_record(ctx))
-        for group in sorted(options.keys()):
-            with formatter.section(group):
-                formatter.write_dl(sorted(options[group]))
-
-        self.format_commands(ctx, formatter)
 
     def format_commands(self, ctx, formatter):
         # Write commands in sorted groups
@@ -59,30 +50,38 @@ class CommandWithGroups(click.Group):
             group = "Commands"
             if hasattr(cmd, "group"):
                 group = cmd.group  # pyright: ignore
-            commands[group].append((command, cmd.get_short_help_str()))
+            commands[group].append((command, cmd))
         for group in sorted(commands.keys()):
+            # Formula copied from the base class implementation
+            limit = formatter.width - 6 - max(len(cmd[0]) for cmd in commands[group])
             with formatter.section(group):
-                formatter.write_dl(sorted(commands[group]))
+                formatter.write_dl([(command, cmd.get_short_help_str(limit=limit)) for (command, cmd) in sorted(commands[group])])
 
 
 class GroupedCommand(click.Command):
     r"""
-    Base class for subcommands to group subcommands by topic.
+    Base class for subcommands to appear in a topic in a
+    :class:`CommandWithGroups` documentation.
+
+    EXAMPLES::
+
+        >>> @click.group(cls=CommandWithGroups)
+        ... def command(): pass
+
+        >>> @click.command(name="subcommand", group="GROUP", cls=GroupedCommand)
+        ... def subcommand(): pass
+
+        >>> command.add_command(subcommand)
+
+        >>> from flatsurvey.test.cli import invoke
+        >>> invoke(command, "--help")  # doctest: +NORMALIZE_WHITESPACE
+        Usage: command [OPTIONS] COMMAND [ARGS]...
+        Options:
+          --help  Show this message and exit.
+        GROUP:
+          subcommand
+
     """
-
-    def __init__(self, *args, **kwargs):
-        self.group = kwargs.pop("group", None)
-        super().__init__(*args, **kwargs)
-
-    def get_short_help_str(self, limit=None):
-        return super().get_short_help_str(limit=1024)
-
-
-class GroupedOption(click.Option):
-    r"""
-    Base class for options to group options by topic.
-    """
-
     def __init__(self, *args, **kwargs):
         self.group = kwargs.pop("group", None)
         super().__init__(*args, **kwargs)

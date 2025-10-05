@@ -1,61 +1,48 @@
 r"""
 Entrypoint to run surveys.
 
-Typically, you invoke this providing some source(s) and some target(s), e.g.,
-to compute the orbit closure of all quadrilaterals:
+Typically, you invoke this providing some sources and some goals, e.g., to
+compute the orbit closure of all quadrilaterals:
 ```
-python -m survey ngons -n 4 orbit-closure
+flatsurvey ngons --vertices 4 orbit-closure
 ```
 
 TESTS::
 
     >>> from flatsurvey.test.cli import invoke
-    >>> invoke(survey) # doctest: +NORMALIZE_WHITESPACE
+    >>> invoke(survey)  # doctest: +NORMALIZE_WHITESPACE
     Usage: survey [OPTIONS] COMMAND1 [ARGS]... [COMMAND2 [ARGS]...]...
-    <BLANKLINE>
       Run a survey on the `objects` until all the `goals` are reached.
-    <BLANKLINE>
     Options:
       --debug
-      --help               Show this message and exit.
-      --scheduler TEXT     Path to a dask scheduler file
-      -q, --queue INTEGER  Jobs to prepare in the background for scheduling.
-      -v, --verbose        Enable verbose message, repeat for debug message.
-    <BLANKLINE>
+      --queue INTEGER   Jobs to prepare in the background for scheduling.
+      -v, --verbose     Enable verbose message, repeat for debug message.
+      --quiet           Silence all terminal output
+      --scheduler TEXT  Path to a dask scheduler file
+      --help            Show this message and exit.
     Cache:
-      local-cache  A cache of previous results stored in local JSON files.
-      pickles      Access a database of pickles storing parts of previous
-                   computations.
-    <BLANKLINE>
+      local-cache  A readonly cache of previous results, read from local JSON...
+      pickles      Provide pickle files as referenced in the caches.
     Goals:
-      completely-cylinder-periodic  Determines whether for all directions given by
-                                    saddle connections, the decomposition of the
-                                    surface is completely cylinder periodic, i.e.,
-                                    the decomposition consists only of cylinders.
-      cylinder-periodic-direction   Determines whether there is a direction for
-                                    which the surface decomposes into cylinders.
-      orbit-closure                 Determines the GL₂(R) orbit closure of
-                                    ``surface``.
-      undetermined-iet              Tracks undetermined Interval Exchange
-                                    Transformations.
-    <BLANKLINE>
+      completely-cylinder-periodic  Determines whether for all directions given...
+      cylinder-periodic-direction   Determines whether there is a direction for...
+      orbit-closure                 Determines the GL₂(R) orbit closure of...
+      undetermined-iets             Tracks undetermined Interval Exchange...
     Intermediates:
-      flow-decompositions             Turns directions coming from saddle
-                                      connections into flow decompositions.
-      saddle-connection-orientations  Orientations of saddle connections on the
-                                      surface, i.e., the vectors of saddle
-                                      connections irrespective of scaling and sign.
+      flow-decompositions             Turns directions coming from saddle...
+      saddle-connection-orientations  Orientations of saddle connections on the...
       saddle-connections              Saddle connections on the surface.
-    <BLANKLINE>
     Reports:
       json    Writes results in JSON format.
       log     Writes progress and results as an unstructured log file.
       report  Generic reporting of results.
-    <BLANKLINE>
     Surfaces:
-      ngons           The translation surfaces that come from unfolding n-gons.
-      thurston-veech  The translation surfaces obtained from Thurston-Veech
-                      construction.
+      ngons  The translation surfaces that come from unfolding n-gons.
+
+We compute orbit closures of a few triangles::
+
+    >>> invoke(survey, "orbit-closure", "ngons", "--vertices", "3", "--count", "3")
+    waiting for jobs to finish |████████████████████████████████████████| 3 in ...
 
 """
 # *********************************************************************
@@ -132,7 +119,7 @@ def survey(debug, queue, verbose, quiet, scheduler):
     del scheduler
 
 
-# Register objects and goals as subcommans of "survey".
+# Register objects and goals as subcommands of "survey".
 for commands in [
     flatsurvey.cache.commands,
     flatsurvey.surfaces.generators,
@@ -156,15 +143,15 @@ def process(
 
         >>> from flatsurvey.test.cli import invoke
         >>> invoke(survey, "ngons", "-n", "3", "--limit=3", "--literature=include", "orbit-closure")  # random progress output
-        on ...: all jobs have been scheduled
-        waiting for jobs to finish ...
+        waiting for jobs to finish |████████████████████████████████████████| 1 in ...
 
     """
+    import pdb
+
     if debug:
-        import pdb
         import signal
 
-        signal.signal(signal.SIGUSR1, lambda sig, frame: pdb.Pdb().set_trace(frame))
+        signal.signal(signal.SIGUSR1, lambda _, frame: pdb.Pdb().set_trace(frame))
 
     if verbose:
         import logging
@@ -191,9 +178,9 @@ def process(
 
         from flatsurvey.dask import Scheduler
 
-        from flatsurvey.ui.progress import StdoutSurveyProgress, HiddenSurveyProgress
+        from flatsurvey.ui.progress import Progress
 
-        with HiddenSurveyProgress() if quiet else StdoutSurveyProgress(activity="...") as progress:
+        with Progress.create(stdout=not quiet) as progress:
             sys.exit(
                 asyncio.new_event_loop().run_until_complete(
                     Scheduler(
