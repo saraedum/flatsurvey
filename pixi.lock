@@ -250,6 +250,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pthread-stubs-0.4-hb9d3cd8_1002.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/ptyprocess-0.7.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pure_eval-0.2.3-pyhd8ed1ab_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/py-1.11.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pyarrow-20.0.0-py312h7900ff3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pyarrow-core-20.0.0-py312h01725c0_0_cpu.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pycparser-2.22-pyh29332c3_1.conda
@@ -261,6 +262,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/pyparsing-3.2.3-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pysocks-1.7.1-pyha55dd90_7.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pytest-8.3.5-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/pytest-forked-1.6.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pytest-xdist-3.6.1-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/python-3.12.10-h9e4cc4f_0_cpython.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/python-dateutil-2.9.0.post0-pyhff2d567_1.conda
@@ -1268,7 +1270,7 @@ packages:
 - pypi: ./
   name: flatsurvey
   version: 0.1.0
-  sha256: 7eaa8417aa3aba2413e0e65c2f9497c33edf2d19c3577caa2c084df75cbc0fd0
+  sha256: df52b5c125079fa0beb1e2b7ba205cffc39d0e86846ce348cf26ae6bbf994523
   requires_dist:
   - datasize
   - click
@@ -3671,6 +3673,19 @@ packages:
   - pkg:pypi/pure-eval?source=hash-mapping
   size: 16668
   timestamp: 1733569518868
+- conda: https://conda.anaconda.org/conda-forge/noarch/py-1.11.0-pyhd8ed1ab_1.conda
+  sha256: f2660eb121032dcbe1f3f5d53a120625698ca6602f32a2aba131bb1023286722
+  md5: 9eb1496f8aa577322f293ee0c72983fd
+  depends:
+  - python >=3.9
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/apipkg?source=hash-mapping
+  - pkg:pypi/iniconfig?source=hash-mapping
+  - pkg:pypi/py?source=hash-mapping
+  size: 80791
+  timestamp: 1734003519402
 - conda: https://conda.anaconda.org/conda-forge/linux-64/pyarrow-20.0.0-py312h7900ff3_0.conda
   sha256: f7b08ff9ef4626e19a3cd08165ca1672675168fa9af9c2b0d2a5c104c71baf01
   md5: 57b626b4232b77ee6410c7c03a99774d
@@ -3857,6 +3872,19 @@ packages:
   - pkg:pypi/pytest?source=hash-mapping
   size: 259816
   timestamp: 1740946648058
+- conda: https://conda.anaconda.org/conda-forge/noarch/pytest-forked-1.6.0-pyhd8ed1ab_1.conda
+  sha256: df40eeea0e36ecd95fc9edf41e55dbcea28d92fcdb6aa53bcec51aaf5bdf4ae6
+  md5: 2222c712a38755af8870642c17beabc1
+  depends:
+  - py
+  - pytest >=3.10
+  - python >=3.9
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/pytest-forked?source=hash-mapping
+  size: 10953
+  timestamp: 1734551290813
 - conda: https://conda.anaconda.org/conda-forge/noarch/pytest-xdist-3.6.1-pyhd8ed1ab_1.conda
   sha256: fb35da93084d653b86918c200abb2f0b88aceb3b0526c6aaa21b844f565ae237
   md5: 59aad4fb37cabc0bacc73cf344612ddd

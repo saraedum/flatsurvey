@@ -36,6 +36,7 @@ pyflatsurf = "*"
 pyintervalxt = "*"
 pytest = "*"
 pytest-xdist = "*"
+pytest-forked = "*"
 sage-flatsurf = ">=0.6.0"
 alive-progress = "*"
 
