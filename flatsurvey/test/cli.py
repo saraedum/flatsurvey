@@ -70,7 +70,7 @@ def invoke_subcommand(subcommand, *args, bindings: Bindings | None=None):
 
         >>> bindings = Bindings()
         >>> invoke_subcommand(subcommand, bindings=bindings)
-        
+
         >>> bindings.get("hello")
         'world'
 

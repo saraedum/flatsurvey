@@ -6,7 +6,7 @@ This implements a (somewhat unnecessary) wrapper for the dask API.
 EXAMPLES:
 
 We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
-    
+
     >>> from flatsurvey.pipeline import Bindings, Goal
     >>> survey = Bindings()
 
@@ -247,7 +247,7 @@ class Scheduler:
             connection_limit=2**16,
             # We want to use dask through its modern asynchronous API.
             asynchronous=True,
-            
+
             # The following parameters are only relevant when not providing our
             # own scheduler.
 

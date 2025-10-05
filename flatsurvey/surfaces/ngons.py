@@ -539,7 +539,7 @@ class Ngon(Surface):
           (or ``None`` to obtain a generic predicate.)
 
         EXAMPLES::
-            
+
             >>> from flatsurvey.surfaces import Ngon
             >>> surface = Ngon((1, 1, 1))
 
@@ -844,7 +844,7 @@ class Ngons:
         cls=GroupedCommand,
         group="Surfaces",
         help=__doc__.split("EXAMPLES")[0],  # type: ignore
-    ) 
+    )
     @click.option(
         "--vertices", "-n", type=int, required=True, help="number of vertices"
     )

@@ -245,7 +245,7 @@ class Json(Reporter, Command):
     def output(self):
         r"""
         Return an opened file to which we write the JSON output.
-        
+
         If ``output`` has not been set explicitly, the file name is
         automatically constructed so we do not overwrite existing files.
 

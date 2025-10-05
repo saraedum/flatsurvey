@@ -263,10 +263,12 @@ class Task:
             >>> from flatsurvey.surfaces import Ngon, Surface
             >>> from flatsurvey.jobs import OrbitClosure
             >>> from flatsurvey.pipeline import Bindings, Goal
+            >>> from flatsurvey.reporting import Reporter, Log
 
             >>> bindings = Bindings()
             >>> bindings.define(Surface, Ngon(angles=[1, 1, 1]))
             >>> bindings.append(list[Goal], OrbitClosure)
+            >>> bindings.append(list[Reporter], Log(output="-"))
 
             >>> task = Task(bindings=bindings)
 
@@ -286,7 +288,7 @@ class Task:
         except Exception as e:
             import pickletools
             raise ValueError(f"Failed to unpickle job: {pickletools.dis(self._bindings)}") from e
-            
+
         import asyncio
 
         from flatsurvey.worker import Worker

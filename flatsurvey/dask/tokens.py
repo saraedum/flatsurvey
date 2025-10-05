@@ -161,7 +161,7 @@ class SchedulerCancellationToken:
         else:
             for _ in maybe_futures:
                 pass
-        
+
     def cancel(self):
         r"""
         Mark this token as cancelled.
@@ -193,7 +193,7 @@ class SchedulerCancellationToken:
         def cancel():
             yield self._client.set_metadata(self._id, self._state)
             yield self._client.run(WorkerCancellationToken.cancel, self._id)
-    
+
         self._run(cancel())
 
     def abort(self):

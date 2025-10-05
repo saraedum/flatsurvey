@@ -176,10 +176,12 @@ class PickleProvider(ABC):
         # Work around some current problems in many of our pickles:
         # - Pickles use cppyy.gbl.flatsurf but it's not available yet somehow. See #10.
         import pyflatsurf
+        del pyflatsurf
 
         # - Pickles import sage.rings.number_field but SageMath cannot handle
         #   this so we get a circular import. See #10.
-        import sage.all
+        import sage.all as sageall
+        del sageall
 
         try:
             return loads(raw)

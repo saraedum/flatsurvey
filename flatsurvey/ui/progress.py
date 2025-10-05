@@ -21,7 +21,7 @@ Progress tracking during surveys
 # *********************************************************************
 
 from contextlib import AbstractContextManager, contextmanager
-from typing import Any, Self
+from typing import Any
 from abc import abstractmethod
 
 from alive_progress import alive_bar
@@ -41,7 +41,7 @@ class Progress(AbstractContextManager):
         queueing tasks |████████████████████████████████████████| 1 in 0.0s ...
 
     ::
-    
+
         >>> isinstance(progress, Progress)
         True
 

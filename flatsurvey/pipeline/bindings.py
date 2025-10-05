@@ -41,7 +41,7 @@ The binding values can also be types, as long as they have a static
 
     >>> class SaddleConnections:
     ...     def __init__(self, surface):
-    ...         self._surface = surface 
+    ...         self._surface = surface
     ...
     ...     @staticmethod
     ...     def create(bindings): return SaddleConnections(bindings.get(Surface))
@@ -94,7 +94,7 @@ We can also only define a variable in a certain scope::
     ...     def create(bindings):
     ...         with bindings.scope(OrbitClosure) as scoped:
     ...             return OrbitClosure(bindings.get(SaddleConnections), scoped.get("ambient"))
-    ...     
+    ...
 
     >>> with bindings.scope(OrbitClosure) as scoped:
     ...     scoped.define("ambient", "H_6(5^2, 0^2)")
@@ -153,7 +153,7 @@ class HasCreate[T](Protocol):
 
     """
     @staticmethod
-    def create(bindings: "Bindings") -> T: ... 
+    def create(bindings: "Bindings") -> T: ...
 
 
 class Binding[T](ABC):

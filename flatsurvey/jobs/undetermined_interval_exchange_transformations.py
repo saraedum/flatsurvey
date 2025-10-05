@@ -247,53 +247,6 @@ class UndeterminedIntervalExchangeTransformations(Consumer, Command):
                 cache_only=cache_only,
             )
 
-    _hacks_enabled = False
-
-    @classmethod
-    def _enable_hacks(cls):
-        if cls._hacks_enabled:
-            return
-
-        cls._hacks_enabled = True
-
-        # Make this iet serializable in pyintervalxt by simply saying dumps(iet.forget())
-        # i.e., when serializing an IET of unknown type (as is this one because
-        # (a) it comes from C++ and was not constructed in Python and (b) it
-        # has intervalxt::sample::Lengths and not intervalxt::cppyy::Lengths)
-        # be smart about registering the right types in cppyy. (If possible.) See #10.
-        # Expose something like this construction() in intervalxt. See #10.
-        import cppyy
-        import pyeantic
-        import pyexactreal
-        import pyintervalxt
-
-        cppyy.cppdef(
-            r"""
-            #include <boost/type_erasure/any_cast.hpp>
-
-            template <typename T> std::tuple<std::vector<eantic::renf_elem_class>, std::vector<int> > construction(T& iet) {
-                std::vector<eantic::renf_elem_class> lengths;
-                std::vector<int> permutation;
-                const auto top = iet.top();
-                const auto bottom = iet.bottom();
-                for (auto& label : top) {
-                    lengths.push_back(boost::type_erasure::any_cast<eantic::renf_elem_class>(iet.lengths()->forget().get(label)));
-                }
-                for (auto& label : bottom) {
-                    permutation.push_back(std::find(std::begin(top), std::end(top), label) - std::begin(top));
-                }
-
-                return std::make_tuple(lengths, permutation);
-            }
-
-            template <typename T> int degree(T& iet) {
-                auto label = *std::begin(iet.top());
-                auto length = boost::type_erasure::any_cast<eantic::renf_elem_class>(iet.lengths()->forget().get(label));
-                return length.parent().degree();
-            }
-            """
-        )
-
     async def _consume(self, product, cost):
         r"""
         Track any undetermined IETs in the decomposition ``product``.
@@ -316,7 +269,7 @@ class UndeterminedIntervalExchangeTransformations(Consumer, Command):
             >>> with bindings.scope(FlowDecompositions) as scoped: scoped.define(limit=1)
             >>> with bindings.scope(UndeterminedIntervalExchangeTransformations) as scoped: scoped.define(limit=1)
             >>> uiet = bindings.get(UndeterminedIntervalExchangeTransformations)
-            
+
             >>> import asyncio
             >>> asyncio.run(uiet.resolve())
             [Ngon([1, 3, 5])] [UndeterminedIntervalExchangeTransformations] ...
@@ -348,7 +301,9 @@ class UndeterminedIntervalExchangeTransformations(Consumer, Command):
 
             import cppyy
             import pyeantic  # for length pickling
+            del pyeantic
             import gmpxxyy  # for SAF pickling
+            del gmpxxyy
             cppyy.include('boost/type_erasure/any_cast.hpp')
 
             to_eantic = cppyy.gbl.boost.type_erasure.any_cast[cppyy.gbl.eantic.renf_elem_class]

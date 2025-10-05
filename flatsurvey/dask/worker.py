@@ -92,6 +92,8 @@ def dask_setup(worker, mem_limit, time_limit):
     We use this to set global runtime limits that are stored in a global
     ``LIMITS`` variable.
     """
+    del worker
+
     if mem_limit is not None:
         from flatsurvey.dask.limits import MemoryLimit
         from flatsurvey.dask.task import Task

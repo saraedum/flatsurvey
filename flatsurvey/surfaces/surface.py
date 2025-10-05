@@ -150,7 +150,7 @@ class Surface(ABC):
           (or ``None`` to obtain a generic predicate.)
 
         EXAMPLES::
-            
+
             >>> from flatsurvey.surfaces import Ngon
             >>> surface = Ngon((1, 1, 1, 1))
 

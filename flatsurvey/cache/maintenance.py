@@ -60,6 +60,8 @@ def cli(debug, verbose):
 
     Specific tasks are registered as subcommands.
     """
+    del debug  # handled by process()
+    del verbose  # handled by process()
 
 
 for command in flatsurvey.cache.maintenance_commands:
@@ -86,7 +88,7 @@ def process(commands, debug, verbose):
         import pdb
         import signal
 
-        signal.signal(signal.SIGUSR1, lambda sig, frame: pdb.Pdb().set_trace(frame))
+        signal.signal(signal.SIGUSR1, lambda _, frame: pdb.Pdb().set_trace(frame))
 
     if verbose:
         import logging

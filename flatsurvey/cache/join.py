@@ -141,7 +141,7 @@ class Join(Goal, Command):
 
         Note that this is idempotent. Processing the output through the join
         again leaves the files unmodified.
-            
+
         """
         from flatsurvey.cache import Cache
 

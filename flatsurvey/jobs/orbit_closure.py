@@ -499,7 +499,7 @@ class OrbitClosure(Consumer, Command):
             and self.dimension > 3
             and self._directions >= self._stale_limit
         ):
-            self._report.log(self, f"Explored {self._directions} directions with conclusion. Deforming surface.") 
+            self._report.log(self, f"Explored {self._directions} directions with conclusion. Deforming surface.")
 
             tangents = [
                 orbit_closure.lift(v) for v in orbit_closure.tangent_space_basis()[2:]
