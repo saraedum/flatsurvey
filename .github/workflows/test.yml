@@ -32,6 +32,8 @@ jobs:
       - name: build cache database from previous run
         shell: pixi run bash -e {0}
         run: |
+          shopt -s globstar
+
           # Creata single cache file from the runs.
           flatsurvey-maintenance join --outdir survey-results survey/**/*.json
 
