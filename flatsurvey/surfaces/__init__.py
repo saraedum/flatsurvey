@@ -27,8 +27,7 @@ families of such surfaces such as unfoldings of all triangles.
 from flatsurvey.surfaces.deformation import Deformation
 from flatsurvey.surfaces.ngons import Ngon, Ngons
 from flatsurvey.surfaces.surface import Surface
-from flatsurvey.surfaces.thurston_veech import ThurstonVeech, ThurstonVeechs
 
-generators = [Ngons.click, ThurstonVeechs.click]
+generators = [Ngons.click]
 
-commands = [Ngon.click, ThurstonVeech.click]
+commands = [Ngon.click]
