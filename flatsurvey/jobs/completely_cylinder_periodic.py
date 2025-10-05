@@ -46,6 +46,7 @@ Validate the results of the "survey"::
     True
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -93,15 +94,16 @@ class CompletelyCylinderPeriodic(Consumer, Command):
         completely-cylinder-periodic
 
     """
+
     DEFAULT_LIMIT = None
 
     def __init__(
         self,
         flow_decompositions: FlowDecompositions,
         cache: Cache,
-        cache_only: bool=Consumer.DEFAULT_CACHE_ONLY,
-        limit: int | None=DEFAULT_LIMIT,
-        report: Report|None=None,
+        cache_only: bool = Consumer.DEFAULT_CACHE_ONLY,
+        limit: int | None = DEFAULT_LIMIT,
+        report: Report | None = None,
     ):
         self._flow_decompositions = flow_decompositions
         self._limit = limit
@@ -169,6 +171,7 @@ class CompletelyCylinderPeriodic(Consumer, Command):
 
         """
         from flatsurvey.pipeline import Goal
+
         bindings.append(list[Goal], CompletelyCylinderPeriodic)
 
         with bindings.scope(CompletelyCylinderPeriodic) as scoped:

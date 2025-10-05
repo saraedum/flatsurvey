@@ -66,6 +66,7 @@ class Runner:
         >>> client.shutdown()
 
     """
+
     def __init__(self, task: Task, token: WorkerCancellationToken):
         self._task = task
         self._token = token
@@ -139,14 +140,18 @@ class Runner:
         # parent dies.
         # For most workloads this does not seem to be necessary, and we might
         # want to change that at some point.
-        process = forkserver.Process(target=Runner._run, args=(self,), daemon=False, name=repr(self._task))
+        process = forkserver.Process(
+            target=Runner._run, args=(self,), daemon=False, name=repr(self._task)
+        )
 
         import dask.distributed
+
         client = dask.distributed.get_client()
         if self._token.is_cancelled(client):
             return
 
         import threading
+
         kill_lock = threading.Lock()
 
         def kill():
@@ -189,6 +194,7 @@ class Runner:
         self._result_receiver.close()
 
         from threading import Thread
+
         Thread(target=Runner._wait_for_shutdown, args=(self,))
 
         try:
@@ -196,8 +202,12 @@ class Runner:
                 result = self._task.run()
             except Exception:
                 import traceback
+
                 result = RunnerException(f"exception occurred in runner")
-                result.add_note("\nThe above exception was caused by the following exception in the runner:\n\n"+traceback.format_exc())
+                result.add_note(
+                    "\nThe above exception was caused by the following exception in the runner:\n\n"
+                    + traceback.format_exc()
+                )
 
             self._result_sender.send("DONE")
 
@@ -219,6 +229,7 @@ class Runner:
             self._shutdown_receiver.close()
         except:
             import sys
+
             sys.exit()
 
 

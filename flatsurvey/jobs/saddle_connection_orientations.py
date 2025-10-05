@@ -11,6 +11,7 @@ The saddle connection directions on a translation surface module scaling.
       --help  Show this message and exit.
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -45,7 +46,9 @@ class SaddleConnectionOrientations(Processor, Command):
     saddle connections irrespective of scaling and sign.
     """
 
-    def __init__(self, saddle_connections: SaddleConnections, report: Report|None=None):
+    def __init__(
+        self, saddle_connections: SaddleConnections, report: Report | None = None
+    ):
         super().__init__(producers=[saddle_connections], report=report)
 
         self._saddle_connections = saddle_connections
@@ -71,7 +74,7 @@ class SaddleConnectionOrientations(Processor, Command):
         """
         return SaddleConnectionOrientations(
             saddle_connections=bindings.get(SaddleConnections),
-            report=bindings.get(Report)
+            report=bindings.get(Report),
         )
 
     @staticmethod

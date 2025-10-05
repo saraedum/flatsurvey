@@ -14,6 +14,7 @@ The saddle connections on a translation surface.
       --help           Show this message and exit.
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -46,10 +47,17 @@ class SaddleConnections(Producer, Command):
     r"""
     Saddle connections on the surface.
     """
+
     DEFAULT_BOUND = None
     DEFAULT_LIMIT = None
 
-    def __init__(self, surface: Surface, report: Report|None=None, limit=DEFAULT_LIMIT, bound=DEFAULT_BOUND):
+    def __init__(
+        self,
+        surface: Surface,
+        report: Report | None = None,
+        limit=DEFAULT_LIMIT,
+        bound=DEFAULT_BOUND,
+    ):
         super().__init__(report=report)
 
         self._surface = surface
@@ -85,8 +93,12 @@ class SaddleConnections(Producer, Command):
             return SaddleConnections(
                 surface=bindings.get(Surface),
                 report=bindings.get(Report),
-                limit=scoped.get("limit", default=lambda: SaddleConnections.DEFAULT_LIMIT),
-                bound=scoped.get("bound", default=lambda: SaddleConnections.DEFAULT_BOUND),
+                limit=scoped.get(
+                    "limit", default=lambda: SaddleConnections.DEFAULT_LIMIT
+                ),
+                bound=scoped.get(
+                    "bound", default=lambda: SaddleConnections.DEFAULT_BOUND
+                ),
             )
 
     @staticmethod
@@ -158,7 +170,10 @@ class SaddleConnections(Producer, Command):
 
         """
         self._reset(
-            self._surface.surface().pyflatsurf().codomain().flat_triangulation()
+            self._surface.surface()
+            .pyflatsurf()
+            .codomain()
+            .flat_triangulation()
             .connections()
             .sample()
             .lowerBound(lower_bound)
@@ -176,6 +191,7 @@ class SaddleConnections(Producer, Command):
 
         if self._limit is not None:
             from itertools import islice
+
             connections = islice(connections, 0, self._limit)
 
         # We keep an explicit reference to the pyflatsurf object to avoid segfault due to too eager cleanup
@@ -184,7 +200,14 @@ class SaddleConnections(Producer, Command):
 
     def _produce(self):
         if self.__connections_iterator is None:
-            self._reset(self._surface.surface().pyflatsurf().codomain().flat_triangulation().connections().byLength())
+            self._reset(
+                self._surface.surface()
+                .pyflatsurf()
+                .codomain()
+                .flat_triangulation()
+                .connections()
+                .byLength()
+            )
 
         assert self.__connections_iterator is not None
 

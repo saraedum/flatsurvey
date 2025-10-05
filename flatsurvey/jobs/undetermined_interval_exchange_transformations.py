@@ -45,6 +45,7 @@ All reported IETs are defined over a number field of degree 6::
     6
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -97,6 +98,7 @@ class UndeterminedIntervalExchangeTransformations(Consumer, Command):
         undetermined-iets
 
     """
+
     DEFAULT_LIMIT = 256
 
     def __init__(
@@ -107,7 +109,7 @@ class UndeterminedIntervalExchangeTransformations(Consumer, Command):
         cache: Cache,
         cache_only=Consumer.DEFAULT_CACHE_ONLY,
         limit=DEFAULT_LIMIT,
-        report: Report|None = None,
+        report: Report | None = None,
     ):
         self._surface = surface
         self._saddle_connection_orientations = saddle_connection_orientations
@@ -176,12 +178,19 @@ class UndeterminedIntervalExchangeTransformations(Consumer, Command):
             # There's no value in just reproducing existing results.
             return
 
-        results = self._cache.get(UndeterminedIntervalExchangeTransformations).filter(self._surface.cache_predicate(True, cache=self._cache))
+        results = self._cache.get(UndeterminedIntervalExchangeTransformations).filter(
+            self._surface.cache_predicate(True, cache=self._cache)
+        )
 
         for result in results:
             keys = result.keys()
             keys.remove("value")
-            await self._report.result(self, result.value, cached=True, **{key: getattr(result, key) for key in keys})
+            await self._report.result(
+                self,
+                result.value,
+                cached=True,
+                **{key: getattr(result, key) for key in keys}
+            )
 
         self._resolved = True
 
@@ -208,10 +217,14 @@ class UndeterminedIntervalExchangeTransformations(Consumer, Command):
                 surface=bindings.get(Surface),
                 report=bindings.get(Report),
                 flow_decompositions=bindings.get(FlowDecompositions),
-                saddle_connection_orientations=bindings.get(SaddleConnectionOrientations),
+                saddle_connection_orientations=bindings.get(
+                    SaddleConnectionOrientations
+                ),
                 cache=bindings.get(Cache),
                 cache_only=scoped.get("cache_only", Consumer.DEFAULT_CACHE_ONLY),
-                limit=scoped.get("limit", UndeterminedIntervalExchangeTransformations.DEFAULT_LIMIT),
+                limit=scoped.get(
+                    "limit", UndeterminedIntervalExchangeTransformations.DEFAULT_LIMIT
+                ),
             )
 
     @staticmethod
@@ -287,7 +300,7 @@ class UndeterminedIntervalExchangeTransformations(Consumer, Command):
             # fail to certify this IET even when trying much harder.
             iet = component.dynamicalComponent().iet()
             start = time.perf_counter()
-            if str(iet.induce(self._limit)) != 'LIMIT_REACHED':
+            if str(iet.induce(self._limit)) != "LIMIT_REACHED":
                 continue
             cost += time.perf_counter() - start
 
@@ -301,14 +314,20 @@ class UndeterminedIntervalExchangeTransformations(Consumer, Command):
 
             import cppyy
             import pyeantic  # for length pickling
+
             del pyeantic
             import gmpxxyy  # for SAF pickling
+
             del gmpxxyy
-            cppyy.include('boost/type_erasure/any_cast.hpp')
+            cppyy.include("boost/type_erasure/any_cast.hpp")
 
-            to_eantic = cppyy.gbl.boost.type_erasure.any_cast[cppyy.gbl.eantic.renf_elem_class]
+            to_eantic = cppyy.gbl.boost.type_erasure.any_cast[
+                cppyy.gbl.eantic.renf_elem_class
+            ]
 
-            lengths = [to_eantic(iet.lengths().forget().get(label)) for label in iet.top()]
+            lengths = [
+                to_eantic(iet.lengths().forget().get(label)) for label in iet.top()
+            ]
             degree = max(length.parent().degree() for length in lengths)
 
             top = [str(label) for label in iet.top()]

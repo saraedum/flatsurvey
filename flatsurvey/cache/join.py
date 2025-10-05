@@ -17,6 +17,7 @@ EXAMPLES::
       --help         Show this message and exit.
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -71,7 +72,10 @@ class Join(Goal, Command):
     @click.command(name="join", help=__doc__.split("INPUT")[0])  # type: ignore
     @click.argument("jsons", nargs=-1, type=click.Path(exists=True))
     @click.option(
-        "--outdir", type=click.Path(), required=True, help="a directory to write the output files to"
+        "--outdir",
+        type=click.Path(),
+        required=True,
+        help="a directory to write the output files to",
     )
     @Bindings.click
     def click(bindings: Bindings, jsons, outdir):
@@ -105,9 +109,7 @@ class Join(Goal, Command):
 
         """
         with bindings.scope(Join) as scoped:
-            return Join(
-                jsons=scoped.get("jsons"),
-                outdir=scoped.get("outdir"))
+            return Join(jsons=scoped.get("jsons"), outdir=scoped.get("outdir"))
 
     async def resolve(self):
         r"""
@@ -150,6 +152,7 @@ class Join(Goal, Command):
         for subject, values in subjects.items():
             with open(self._outdir / f"{subject}.json", "w") as output:
                 import json
+
                 json.dump({subject: values}, output, indent=2)
 
         return True

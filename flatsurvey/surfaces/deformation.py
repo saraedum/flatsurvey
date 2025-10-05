@@ -23,6 +23,7 @@ EXAMPLES::
     Deformation of Ngon([1, 1, 1])
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -44,6 +45,7 @@ EXAMPLES::
 
 from flatsurvey.surfaces.surface import Surface
 from flatsurvey.cache import Cache
+
 
 class Deformation(Surface):
     r"""
@@ -72,6 +74,7 @@ class Deformation(Surface):
         Deformation of Ngon([1, 1, 1])
 
     """
+
     def __init__(self, deformed: Surface, old: Surface):
         super().__init__(eliminate_marked_points=old._eliminate_marked_points)
         self._deformed = deformed
@@ -114,7 +117,7 @@ class Deformation(Surface):
             and self._old == other._old
         )
 
-    def cache_predicate(self, exact: bool, cache: Cache | None=None):
+    def cache_predicate(self, exact: bool, cache: Cache | None = None):
         r"""
         Return a predicate that can be used to filter cache rows for this surface.
 

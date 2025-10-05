@@ -45,6 +45,7 @@ Validate the results of the "survey"::
     True
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -89,6 +90,7 @@ class CylinderPeriodicDirection(Consumer, Command):
         cylinder-periodic-direction
 
     """
+
     DEFAULT_LIMIT = None
 
     def __init__(
@@ -97,7 +99,7 @@ class CylinderPeriodicDirection(Consumer, Command):
         cache: Cache,
         cache_only=Consumer.DEFAULT_CACHE_ONLY,
         limit=DEFAULT_LIMIT,
-        report: Report|None=None,
+        report: Report | None = None,
     ):
         super().__init__(
             producers=[flow_decompositions],
@@ -210,9 +212,14 @@ class CylinderPeriodicDirection(Consumer, Command):
                 report=bindings.get(Report),
                 flow_decompositions=bindings.get(FlowDecompositions),
                 cache=bindings.get(Cache),
-                cache_only=scoped.get("cache_only", lambda: Consumer.DEFAULT_CACHE_ONLY),
-                limit=scoped.get("limit", lambda: CylinderPeriodicDirection.DEFAULT_LIMIT),
+                cache_only=scoped.get(
+                    "cache_only", lambda: Consumer.DEFAULT_CACHE_ONLY
+                ),
+                limit=scoped.get(
+                    "limit", lambda: CylinderPeriodicDirection.DEFAULT_LIMIT
+                ),
             )
+
     @staticmethod
     @click.command(
         name="cylinder-periodic-direction",
@@ -239,6 +246,7 @@ class CylinderPeriodicDirection(Consumer, Command):
 
         """
         from flatsurvey.pipeline import Goal
+
         bindings.append(list[Goal], CylinderPeriodicDirection)
 
         with bindings.scope(CylinderPeriodicDirection) as scoped:
@@ -328,7 +336,9 @@ class CylinderPeriodicDirection(Consumer, Command):
 
         """
         if not self.reported():
-            await self._report.result(self, result, directions=self._directions, **kwargs)
+            await self._report.result(
+                self, result, directions=self._directions, **kwargs
+            )
 
 
 __test__ = {

@@ -36,6 +36,7 @@ that is used by the :class:`Runner`.
     <multiprocessing.context.ForkServerContext object at 0x...>
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -66,8 +67,10 @@ multiprocessing.set_forkserver_preload(["sage.all"])
 
 # Silence warnings from cppyy which is still relying on pkg_resources.
 import warnings
-warnings.filterwarnings('ignore', module='cppyy', message='pkg_resources is deprecated as an API')
 
+warnings.filterwarnings(
+    "ignore", module="cppyy", message="pkg_resources is deprecated as an API"
+)
 
 
 @click.command()

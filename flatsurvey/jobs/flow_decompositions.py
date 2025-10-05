@@ -19,6 +19,7 @@ number of Zorich induction steps:
       --help           Show this message and exit.
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -63,10 +64,15 @@ class FlowDecompositions(Processor, Command):
         flow-decompositions
 
     """
+
     DEFAULT_LIMIT = 256
 
     def __init__(
-        self, surface: Surface, saddle_connection_orientations: SaddleConnectionOrientations, report: Report|None=None, limit=DEFAULT_LIMIT
+        self,
+        surface: Surface,
+        saddle_connection_orientations: SaddleConnectionOrientations,
+        report: Report | None = None,
+        limit=DEFAULT_LIMIT,
     ):
         super().__init__(producers=[saddle_connection_orientations], report=report)
 
@@ -93,9 +99,11 @@ class FlowDecompositions(Processor, Command):
         with bindings.scope(FlowDecompositions) as scoped:
             return FlowDecompositions(
                 surface=bindings.get(Surface),
-                saddle_connection_orientations=bindings.get(SaddleConnectionOrientations),
+                saddle_connection_orientations=bindings.get(
+                    SaddleConnectionOrientations
+                ),
                 report=bindings.get(Report),
-                limit=scoped.get("limit", default=FlowDecompositions.DEFAULT_LIMIT)
+                limit=scoped.get("limit", default=FlowDecompositions.DEFAULT_LIMIT),
             )
 
     @staticmethod
@@ -164,6 +172,7 @@ class FlowDecompositions(Processor, Command):
         start = time.perf_counter()
 
         from flatsurf import GL2ROrbitClosure
+
         self._current = GL2ROrbitClosure(self._surface.surface()).decomposition(
             product, self._limit
         )

@@ -13,6 +13,7 @@ decompositions::
     True
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -102,4 +103,6 @@ class Processor(Producer, Consumer):
         return "NOT_EXHAUSTED"
 
     def _produce(self) -> Literal["EXHAUSTED"] | Literal["NOT_EXHAUSTED"]:
-        raise NotImplementedError("a Processor's _produce() should never be called only it's _consume()")
+        raise NotImplementedError(
+            "a Processor's _produce() should never be called only it's _consume()"
+        )

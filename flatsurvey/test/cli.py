@@ -5,6 +5,7 @@ Click's own CliRunner is quite cumbersome to work with in some simple test
 scenarios so we wrap it in more convenient ways here.
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -56,7 +57,7 @@ def invoke(command, *args):
         print(output)
 
 
-def invoke_subcommand(subcommand, *args, bindings: Bindings | None=None):
+def invoke_subcommand(subcommand, *args, bindings: Bindings | None = None):
     r"""
     Invoke a :meth:`Bindings.click` subcommand of a click command with the
     given list of ``arguments``.
@@ -89,7 +90,9 @@ def invoke_subcommand(subcommand, *args, bindings: Bindings | None=None):
         for command in commands:
             command(bindings)
 
-    invocation = CliRunner().invoke(doctest, (subcommand.name,) + args, catch_exceptions=False)
+    invocation = CliRunner().invoke(
+        doctest, (subcommand.name,) + args, catch_exceptions=False
+    )
     output = invocation.output.strip()
     if output:
         print(output)

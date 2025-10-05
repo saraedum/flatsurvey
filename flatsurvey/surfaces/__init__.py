@@ -5,6 +5,7 @@ There are two kinds of closely related structures in this module, individual
 surfaces, such as a particular unfolding of a polygon, and generators of
 families of such surfaces such as unfoldings of all triangles.
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #

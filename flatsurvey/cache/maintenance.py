@@ -17,6 +17,7 @@ TESTS::
       log  Writes progress and results as an unstructured log file.
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -107,9 +108,11 @@ def process(commands, debug, verbose):
         import asyncio
 
         from flatsurvey.worker import Worker
+
         asyncio.run(Worker.work(bindings=bindings, limits=[]))
     except Exception:
         if debug:
             import pdb
+
             pdb.post_mortem()
         raise

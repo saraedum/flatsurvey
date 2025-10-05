@@ -21,6 +21,7 @@ EXAMPLES::
       --help             Show this message and exit.
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -86,7 +87,7 @@ class Cache(Command):
     def __init__(
         self,
         cache: dict[str, list[CacheEntry]] | None = None,
-        pickles: Pickles | None=None,
+        pickles: Pickles | None = None,
     ):
         self._cache = cache or {}
         self._pickles = pickles or Pickles()
@@ -163,9 +164,7 @@ class Cache(Command):
         jsons = [Path(fname) for fname in json]
 
         with bindings.scope(Cache) as scoped:
-            scoped.define(
-                cache=Cache.load(jsons),
-                pickles=pickles)
+            scoped.define(cache=Cache.load(jsons), pickles=pickles)
 
     @staticmethod
     def load(jsons: list[Path]) -> dict:
@@ -220,6 +219,7 @@ class Cache(Command):
         """
         for json in jsons:
             from flatsurvey.reporting.json import Json
+
             with open(json, "r") as input:
                 import orjson
 
@@ -265,7 +265,10 @@ class Cache(Command):
                 configuration[key] = value
 
         # Copy configuration into each result if missing.
-        subjects = {subject: [dict(**configuration, **result) for result in results] for subject, results in subjects.items()}
+        subjects = {
+            subject: [dict(**configuration, **result) for result in results]
+            for subject, results in subjects.items()
+        }
 
         return subjects
 
@@ -347,7 +350,7 @@ class Cache(Command):
 
         return with_defaults()
 
-    def get(self, section: str | type | Command, sha: str | None=None) -> ResultSet:
+    def get(self, section: str | type | Command, sha: str | None = None) -> ResultSet:
         r"""
         Return the results for ``section``.
 

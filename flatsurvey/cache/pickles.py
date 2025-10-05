@@ -16,6 +16,7 @@ EXAMPLES::
       --help          Show this message and exit.
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -60,7 +61,8 @@ class Pickles(Command):
         pickles
 
     """
-    def __init__(self, providers: Iterable["PickleProvider"]=()):
+
+    def __init__(self, providers: Iterable["PickleProvider"] = ()):
         self._providers = tuple(providers)
 
     @staticmethod
@@ -91,9 +93,7 @@ class Pickles(Command):
         """
         providers = [DirectoryPickleProvider(Path(d)) for d in dir]
 
-        bindings.define(
-            scope=Pickles,
-            providers=providers)
+        bindings.define(scope=Pickles, providers=providers)
 
     @staticmethod
     def create(bindings: Bindings):
@@ -111,9 +111,7 @@ class Pickles(Command):
 
         """
         with bindings.scope(Pickles) as scoped:
-            return Pickles(
-                providers=scoped.get("providers", default=lambda: [])
-            )
+            return Pickles(providers=scoped.get("providers", default=lambda: []))
 
     def load(self, digest: str):
         r"""
@@ -149,6 +147,7 @@ class PickleProvider(ABC):
     r"""
     Abstract base class for resolvers of pickled data.
     """
+
     @abstractmethod
     def load(self, digest) -> Any:
         r"""
@@ -176,11 +175,13 @@ class PickleProvider(ABC):
         # Work around some current problems in many of our pickles:
         # - Pickles use cppyy.gbl.flatsurf but it's not available yet somehow. See #10.
         import pyflatsurf
+
         del pyflatsurf
 
         # - Pickles import sage.rings.number_field but SageMath cannot handle
         #   this so we get a circular import. See #10.
         import sage.all as sageall
+
         del sageall
 
         try:
@@ -223,6 +224,7 @@ class StaticPickleProvider(PickleProvider):
         'hello world'
 
     """
+
     def __init__(self, data, digest):
         self._pickle = data
         self._digest = digest
@@ -251,11 +253,12 @@ class DirectoryPickleProvider(PickleProvider):
         'hello world'
 
     """
+
     SUFFIX = ".pickle.gz"
 
     def __init__(self, path: Path):
         self._digests = {
-            fname.name[:-len(DirectoryPickleProvider.SUFFIX)]: fname
+            fname.name[: -len(DirectoryPickleProvider.SUFFIX)]: fname
             for fname in path.rglob(f"*{DirectoryPickleProvider.SUFFIX}")
         }
 

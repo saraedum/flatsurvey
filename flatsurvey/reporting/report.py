@@ -26,6 +26,7 @@ EXAMPLES::
     [Ngon([1, 1, 1])] [Ngon] Hello World
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -67,9 +68,16 @@ class Report(Command):
         >>> report.log(report, "invisible message because no reporter has been registered")
 
     """
-    DEFAULT_IGNORE = ["flow-decompositions", "saddle-connections", "saddle-connection-orientations"]
 
-    def __init__(self, reporters: List[Reporter]|None=None, ignore: list[str]|None=None):
+    DEFAULT_IGNORE = [
+        "flow-decompositions",
+        "saddle-connections",
+        "saddle-connection-orientations",
+    ]
+
+    def __init__(
+        self, reporters: List[Reporter] | None = None, ignore: list[str] | None = None
+    ):
         if reporters is None:
             reporters = []
         if ignore is None:
@@ -81,6 +89,7 @@ class Report(Command):
         # Keep track which goals have already reported their result (this is a
         # bit of a hack…)
         from flatsurvey.pipeline import Consumer
+
         self._reported: set[Consumer] = set()
 
     @staticmethod
@@ -90,7 +99,9 @@ class Report(Command):
         group="Reports",
         help=__doc__.split("EXAMPLES:")[0],  # type: ignore
     )
-    @click.option("--ignore", type=str, multiple=True, default=DEFAULT_IGNORE, show_default=True)
+    @click.option(
+        "--ignore", type=str, multiple=True, default=DEFAULT_IGNORE, show_default=True
+    )
     @Bindings.click
     def click(bindings: Bindings, ignore):
         r"""

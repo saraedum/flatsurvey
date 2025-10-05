@@ -8,6 +8,7 @@ EXAMPLES::
     True
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -47,9 +48,11 @@ class Producer:
         True
 
     """
+
     def __init__(self, report=None):
         if report is None:
             from flatsurvey.reporting import Report
+
             report = Report([])
 
         self._report = report

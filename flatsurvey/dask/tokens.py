@@ -61,6 +61,7 @@ Verify that this also works in an async context::
     True
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -88,6 +89,7 @@ NORMAL = 0
 CANCEL = 1
 ABORT = 2
 
+
 class SchedulerCancellationToken:
     r"""
     A token attached to a :class:`Scheduler` that can be used to signal to
@@ -104,11 +106,13 @@ class SchedulerCancellationToken:
         >>> client.shutdown()
 
     """
+
     def __init__(self, client: dask.distributed.Client):
         self._client = client
         self._state = NORMAL
 
         import uuid
+
         self._id = str(uuid.uuid4())
         self.worker_token = WorkerCancellationToken(self)
 
@@ -151,11 +155,13 @@ class SchedulerCancellationToken:
         ``maybe_futures`` and runs them asynchronously if they are futures.
         """
         if self._client.asynchronous:
+
             async def run_async():
                 for future in maybe_futures:
                     await future
 
             import asyncio
+
             asyncio.get_running_loop().create_task(run_async())
 
         else:
@@ -255,6 +261,7 @@ class WorkerCancellationToken:
         True
 
     """
+
     # A static collection of callbacks that should be executed on this worker
     # when abort() is called on the scheduler token, see on_abort() for details.
     # These callbacks are indexed by scheduler token id since a worker might be
@@ -361,7 +368,9 @@ class WorkerCancellationToken:
         while the worker is still booting up.
         """
         if client.asynchronous:
-            raise NotImplementedError("this synchronous method is not supported in an asynchronous context")
+            raise NotImplementedError(
+                "this synchronous method is not supported in an asynchronous context"
+            )
         self._state[self._id] = client.get_metadata(self._id, NORMAL)
 
     async def _refresh_async(self, client: dask.distributed.Client):
@@ -369,7 +378,9 @@ class WorkerCancellationToken:
         Async version of :meth:`_refresh`.
         """
         if not client.asynchronous:
-            raise NotImplementedError("this asynchronous method is not supported in a synchronous context")
+            raise NotImplementedError(
+                "this asynchronous method is not supported in a synchronous context"
+            )
 
         self._state[self._id] = await client.get_metadata(self._id, NORMAL)
 
@@ -464,7 +475,9 @@ class WorkerCancellationToken:
 
         """
         if client.asynchronous:
-            raise NotImplementedError("on_abort() is not implemented for asynchronous contexts yet")
+            raise NotImplementedError(
+                "on_abort() is not implemented for asynchronous contexts yet"
+            )
 
         with WorkerCancellationToken._lock:
             WorkerCancellationToken._abort_callbacks.setdefault(self._id, [])
@@ -474,7 +487,9 @@ class WorkerCancellationToken:
             with WorkerCancellationToken._lock:
                 if self._id in WorkerCancellationToken._abort_callbacks:
                     try:
-                        WorkerCancellationToken._abort_callbacks[self._id].remove(callback)
+                        WorkerCancellationToken._abort_callbacks[self._id].remove(
+                            callback
+                        )
                     except KeyError:
                         pass
                     if not WorkerCancellationToken._abort_callbacks[self._id]:

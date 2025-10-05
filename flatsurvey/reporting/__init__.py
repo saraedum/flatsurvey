@@ -4,6 +4,7 @@ A package providing ways to report progress and result of a computation.
 Note that simple visual progress tracking is available in
 :mod:`flatsurvey.ui.progress`.
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #

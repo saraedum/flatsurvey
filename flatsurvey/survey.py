@@ -45,6 +45,7 @@ We compute orbit closures of a few triangles::
     waiting for jobs to finish |████████████████████████████████████████| 3 in ...
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #

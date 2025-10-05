@@ -51,5 +51,6 @@ class Restart(Exception):
         [OrbitClosure] GL(2,R)-orbit closure of dimension at least 4 in H_6(10) (ambient dimension 12) (dimension: 4) (directions: ...) (directions_with_cylinders: ...) (dense: None)
 
     """
+
     def __init__(self, create_bindings: Callable[[Bindings], Bindings]):
         self.create_bindings = create_bindings

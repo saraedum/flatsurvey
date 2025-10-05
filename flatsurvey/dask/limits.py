@@ -33,6 +33,7 @@ Limits can also run in the background in async workflows::
     done.
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -231,7 +232,10 @@ class MemoryLimit(Limit):
 
         if cpus is None:
             import warnings
-            warnings.warn("System failed to report the number of available CPU threads. Assuming single CPU thread.")
+
+            warnings.warn(
+                "System failed to report the number of available CPU threads. Assuming single CPU thread."
+            )
             cpus = 1
 
         if limit == "conservative":
@@ -248,7 +252,7 @@ class MemoryLimit(Limit):
         return int(DataSize(limit))
 
     @staticmethod
-    def memory(pid: int | None=None):
+    def memory(pid: int | None = None):
         r"""
         Return the total memory (Rss + Swap) used by the process with ``pid``.
 
@@ -256,13 +260,16 @@ class MemoryLimit(Limit):
         process and its child processes.
         """
         import os
+
         if pid is None:
             pid = os.getpid()
 
             import psutil
+
             parent = psutil.Process(pid)
 
             from collections import defaultdict
+
             memory = defaultdict(lambda: 0)
 
             children = [child.pid for child in parent.children(recursive=True)]

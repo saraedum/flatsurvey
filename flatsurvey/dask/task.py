@@ -81,6 +81,7 @@ some log file by a reporter instead::
     much overlap between computations anyway.
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -287,7 +288,10 @@ class Task:
             bindings = loads(self._bindings)
         except Exception as e:
             import pickletools
-            raise ValueError(f"Failed to unpickle job: {pickletools.dis(self._bindings)}") from e
+
+            raise ValueError(
+                f"Failed to unpickle job: {pickletools.dis(self._bindings)}"
+            ) from e
 
         import asyncio
 

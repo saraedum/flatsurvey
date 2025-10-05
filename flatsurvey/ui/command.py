@@ -1,6 +1,7 @@
 r"""
 Utilities for subcommands that can be invoked from the command line.
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #

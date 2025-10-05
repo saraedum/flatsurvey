@@ -1,6 +1,7 @@
 r"""
 Progress tracking during surveys
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -26,6 +27,7 @@ from abc import abstractmethod
 
 from alive_progress import alive_bar
 
+
 class Progress(AbstractContextManager):
     r"""
     Abstract base class for progress indicators.
@@ -46,6 +48,7 @@ class Progress(AbstractContextManager):
         True
 
     """
+
     @staticmethod
     @contextmanager
     def create(stdout=True):
@@ -119,6 +122,7 @@ class SilentProgress(Progress):
         True
 
     """
+
     def queued(self):
         pass
 
@@ -151,6 +155,7 @@ class StdoutProgress(Progress):
         True
 
     """
+
     def __init__(self, activity: str):
         self._bar = alive_bar(title=activity)
         self._context: Any = None

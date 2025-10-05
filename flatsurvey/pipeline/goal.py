@@ -10,6 +10,7 @@ EXAMPLES:
     True
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -83,4 +84,3 @@ class Goal(ABC):
             True
 
         """
-

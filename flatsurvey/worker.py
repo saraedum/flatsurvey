@@ -41,6 +41,7 @@ TESTS::
       ngon  Unfolding of an n-gon with prescribed angles.
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -167,6 +168,7 @@ def process(commands, debug, mem_limit, time_limit, verbose):
         import asyncio
 
         from flatsurvey.reporting import Log, Reporter
+
         # Inject a default reporter to stdout if none is configured yet.
         try:
             bindings.get(list[Reporter])
@@ -188,6 +190,7 @@ class Worker:
     instead.
 
     """
+
     def __init__(
         self,
         goals: list[Goal],
@@ -197,7 +200,7 @@ class Worker:
         self._report = report
 
     @classmethod
-    async def work(cls, /, bindings: Bindings, limits: list[Limit]|None=None):
+    async def work(cls, /, bindings: Bindings, limits: list[Limit] | None = None):
         r"""
         Create a :class:`Worker` and use it to resolve the goals defined by
         ``bindings``.
@@ -251,12 +254,13 @@ class Worker:
             await worker._start(limits=limits)
         except Restart as restart:
             import logging
+
             logger = logging.getLogger()
             logger.info("Performing restart")
 
             await Worker.work(bindings=restart.create_bindings(bindings), limits=limits)
 
-    async def _start(self, limits: list[Limit]|None=None):
+    async def _start(self, limits: list[Limit] | None = None):
         r"""
         Run until all our goals are resolved.
 

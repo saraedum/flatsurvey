@@ -8,6 +8,7 @@ EXAMPLES::
     True
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -40,6 +41,7 @@ class Reporter:
         True
 
     """
+
     def log(self, source, message, **kwargs):
         r"""
         Write ``message`` emitted by ``source`` to this log.
@@ -60,7 +62,6 @@ class Reporter:
         del source
         del message
         del kwargs
-
 
     async def result(self, source, result, **kwargs):
         r"""
@@ -191,11 +192,15 @@ class Reporter:
 
         if isinstance(value, type(QQ())):
             import fractions
+
             return fractions.Fraction(int(value.numerator()), int(value.denominator()))
 
         if isinstance(value, gmpxxyy.mpq):
             import fractions
-            return fractions.Fraction(int(str(value.get_num())), int(str(value.get_den())))
+
+            return fractions.Fraction(
+                int(str(value.get_num())), int(str(value.get_den()))
+            )
 
         if isinstance(value, (str, int, float, type(None))):
             return value

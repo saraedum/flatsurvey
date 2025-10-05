@@ -112,6 +112,7 @@ say the goals of a survey::
     (<flatsurvey.pipeline.bindings.OrbitClosure object at 0x...>, 'something else')
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -135,7 +136,16 @@ say the goals of a survey::
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from contextlib import contextmanager
-from typing import overload, Type, override, Protocol, cast, Iterator, Iterable, runtime_checkable
+from typing import (
+    overload,
+    Type,
+    override,
+    Protocol,
+    cast,
+    Iterator,
+    Iterable,
+    runtime_checkable,
+)
 
 Key = str | Type
 
@@ -152,6 +162,7 @@ class HasCreate[T](Protocol):
         True
 
     """
+
     @staticmethod
     def create(bindings: "Bindings") -> T: ...
 
@@ -174,6 +185,7 @@ class Binding[T](ABC):
         True
 
     """
+
     @overload
     @staticmethod
     def create(value: "Binding[T]") -> "Binding[T]": ...
@@ -253,6 +265,7 @@ class ConstantBinding[T](Binding[T]):
         123
 
     """
+
     def __init__(self, value: T):
         self._value = value
 
@@ -265,7 +278,7 @@ class ConstantBinding[T](Binding[T]):
         return f"ConstantBinding({self._value})"
 
 
-class TypeBinding[T : HasCreate](Binding[T]):
+class TypeBinding[T: HasCreate](Binding[T]):
     r"""
     A value that is invoking ``.create`` on a type.
 
@@ -284,6 +297,7 @@ class TypeBinding[T : HasCreate](Binding[T]):
         <flatsurvey.pipeline.bindings.A object at 0x...>
 
     """
+
     def __init__(self, type: Type[T]):
         self._type = type
 
@@ -292,7 +306,9 @@ class TypeBinding[T : HasCreate](Binding[T]):
         try:
             return self._type.create(bindings)
         except Exception as e:
-            raise BindingException(f"Cannot create instance of '{self._type.__name__}' from bindings") from e
+            raise BindingException(
+                f"Cannot create instance of '{self._type.__name__}' from bindings"
+            ) from e
 
     def __repr__(self):
         return f"TypeBinding({self._type.__name__})"
@@ -315,6 +331,7 @@ class ListBinding[T](Binding[tuple[T, ...]]):
         (1, 2)
 
     """
+
     def __init__(self):
         self._value: list[Binding[T]] = []
 
@@ -376,6 +393,7 @@ class Bindings:
         ('surface1', ('some goal',))
 
     """
+
     def __init__(self, repr=None):
         self._values = {}
         self._bindings = {}
@@ -404,10 +422,12 @@ class Bindings:
 
         """
         from functools import wraps
+
         @wraps(wrapped)
         def command(*args, **kwargs):
             def wrapper(bindings: Bindings):
                 wrapped(bindings, *args, **kwargs)
+
             return wrapper
 
         return command
@@ -459,6 +479,7 @@ class Bindings:
 
         """
         from typing import get_origin
+
         if get_origin(key) != list:
             raise ValueError("key must be a list[?]")
 
@@ -508,12 +529,15 @@ class Bindings:
         Typically, this returns an infinite iterator of bindings.
         """
         from more_itertools import roundrobin
+
         sources = {key: roundrobin(*values) for key, values in self._survey.items()}
         from itertools import product
 
         for values in product(*sources.values()):
             keys = sources.keys()
-            bindings = self.clone(repr=f"Bindings(survey {','.join(f'{key}={value}' for key, value in zip(keys, values))})")
+            bindings = self.clone(
+                repr=f"Bindings(survey {','.join(f'{key}={value}' for key, value in zip(keys, values))})"
+            )
             configuration = {}
             for key, value in zip(keys, values):
                 configuration[key] = value
@@ -529,7 +553,7 @@ class Bindings:
     @overload
     def define(self, /, **value): ...
 
-    def define(self, key: Key | None=None, value=None, /, **values):
+    def define(self, key: Key | None = None, value=None, /, **values):
         r"""
         Set the rule to create ``key`` to ``value``.
 
@@ -552,9 +576,9 @@ class Bindings:
         """
         if key is not None:
             if key in self._bindings:
-                raise ValueError(f"cannot redefine {key}");
+                raise ValueError(f"cannot redefine {key}")
             if key in self._values:
-                raise ValueError(f"cannot redefine {key} which already has a value");
+                raise ValueError(f"cannot redefine {key} which already has a value")
 
             self._bindings[key] = Binding.create(value)
 
@@ -567,7 +591,7 @@ class Bindings:
     @overload
     def set(self, /, **value): ...
 
-    def set(self, key: Key | None=None, value=None, /, **values):
+    def set(self, key: Key | None = None, value=None, /, **values):
         r"""
         Set the value of ``key`` to the actual ``value``.
 
@@ -595,7 +619,7 @@ class Bindings:
         """
         if key is not None:
             if key in self._values:
-                raise ValueError(f"cannot reset {key}");
+                raise ValueError(f"cannot reset {key}")
 
             self._values[key] = value
 
@@ -624,7 +648,9 @@ class Bindings:
                         if isinstance(key, type):
                             self.define(key, key)
                         else:
-                            raise Exception(f"cannot resolve {key} and no default given")
+                            raise Exception(
+                                f"cannot resolve {key} and no default given"
+                            )
                     else:
                         if callable(default):
                             default = cast(T, default())
@@ -667,7 +693,9 @@ class Bindings:
 
         """
         clone = Bindings(repr=repr)
-        clone._bindings = {key: binding.clone() for key, binding in self._bindings.items()}
+        clone._bindings = {
+            key: binding.clone() for key, binding in self._bindings.items()
+        }
         clone._scopes = {scope: child.clone() for scope, child in self._scopes.items()}
         if clone._survey:
             raise NotImplementedError("cannot clone a survey binding")
@@ -710,4 +738,5 @@ class BindingException(Exception):
         flatsurvey.pipeline.bindings.BindingException: Cannot resolve ...
 
     """
+
     pass

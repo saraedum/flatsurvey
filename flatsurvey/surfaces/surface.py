@@ -8,6 +8,7 @@ EXAMPLES::
     True
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -131,7 +132,9 @@ class Surface(ABC):
         return re.sub("[^\\w]+", "-", repr(self)).strip("-").lower()
 
     @abstractmethod
-    def cache_predicate(self, exact: bool, cache: Cache | None=None) -> Callable[[Any], bool]:
+    def cache_predicate(
+        self, exact: bool, cache: Cache | None = None
+    ) -> Callable[[Any], bool]:
         r"""
         Return a predicate that can be used to filter cache rows for this surface.
 

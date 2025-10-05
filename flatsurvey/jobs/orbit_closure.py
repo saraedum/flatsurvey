@@ -60,6 +60,7 @@ Validate the results of the "survey"::
     True
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -108,6 +109,7 @@ class OrbitClosure(Consumer, Command):
         orbit-closure
 
     """
+
     DEFAULT_STALE_LIMIT = 32
     DEFAULT_EXPANSIONS_LIMIT = 4
     DEFAULT_DEFORM = False
@@ -122,7 +124,7 @@ class OrbitClosure(Consumer, Command):
         expansions_limit=DEFAULT_EXPANSIONS_LIMIT,
         deform=DEFAULT_DEFORM,
         cache_only=Consumer.DEFAULT_CACHE_ONLY,
-        report: Report|None=None,
+        report: Report | None = None,
     ):
         super().__init__(
             producers=[flow_decompositions],
@@ -139,6 +141,7 @@ class OrbitClosure(Consumer, Command):
         self._deform = deform
 
         from flatsurvey.surfaces.deformation import Deformation
+
         if isinstance(self._surface, Deformation):
             self._deform = False
 
@@ -148,6 +151,7 @@ class OrbitClosure(Consumer, Command):
         self._expansions_performed = 0
 
         import pyflatsurf
+
         del pyflatsurf
 
         self._lower_bound = 0
@@ -254,10 +258,16 @@ class OrbitClosure(Consumer, Command):
                 flow_decompositions=bindings.get(FlowDecompositions),
                 saddle_connections=bindings.get(SaddleConnections),
                 cache=bindings.get(Cache),
-                stale_limit=scoped.get("stale_limit", lambda: OrbitClosure.DEFAULT_STALE_LIMIT),
-                expansions_limit=scoped.get("expansions_limit", lambda: OrbitClosure.DEFAULT_EXPANSIONS_LIMIT),
+                stale_limit=scoped.get(
+                    "stale_limit", lambda: OrbitClosure.DEFAULT_STALE_LIMIT
+                ),
+                expansions_limit=scoped.get(
+                    "expansions_limit", lambda: OrbitClosure.DEFAULT_EXPANSIONS_LIMIT
+                ),
                 deform=scoped.get("deform", lambda: OrbitClosure.DEFAULT_DEFORM),
-                cache_only=scoped.get("cache_only", lambda: Consumer.DEFAULT_CACHE_ONLY),
+                cache_only=scoped.get(
+                    "cache_only", lambda: Consumer.DEFAULT_CACHE_ONLY
+                ),
             )
 
     @staticmethod
@@ -471,7 +481,10 @@ class OrbitClosure(Consumer, Command):
             if self._expansions_performed < self._expansions_limit:
                 self._expansions_performed += 1
 
-                self._report.log(self, f"Found {self._cylinders_without_increase} cylinders without improvements. Let's try something else.")
+                self._report.log(
+                    self,
+                    f"Found {self._cylinders_without_increase} cylinders without improvements. Let's try something else.",
+                )
 
                 if self._lower_bound == 0:
                     self._lower_bound = self._upper_bound
@@ -499,7 +512,10 @@ class OrbitClosure(Consumer, Command):
             and self.dimension > 3
             and self._directions >= self._stale_limit
         ):
-            self._report.log(self, f"Explored {self._directions} directions with conclusion. Deforming surface.")
+            self._report.log(
+                self,
+                f"Explored {self._directions} directions with conclusion. Deforming surface.",
+            )
 
             tangents = [
                 orbit_closure.lift(v) for v in orbit_closure.tangent_space_basis()[2:]
@@ -567,7 +583,9 @@ class OrbitClosure(Consumer, Command):
                         )
 
                         def create_bindings(old: Bindings):
-                            deformation = OrbitClosureDeformation(surface, old=self._surface)
+                            deformation = OrbitClosureDeformation(
+                                surface, old=self._surface
+                            )
 
                             bindings = old.clone()
                             bindings.forget(Surface)
@@ -576,16 +594,22 @@ class OrbitClosure(Consumer, Command):
                             return bindings
 
                         from flatsurvey.restart import Restart
+
                         # TODO: Explicitly test this code path in the doctests here
                         raise Restart(create_bindings)
                     except cppyy.gbl.std.invalid_argument:
-                        self._report.log(source=self, message=f"Failed to deform {orbit_closure._surface} with {n}")
+                        self._report.log(
+                            source=self,
+                            message=f"Failed to deform {orbit_closure._surface} with {n}",
+                        )
                         continue
 
                 scale += 1
 
                 if not eligibles:
-                    self._report.progress(source=self, message="failed to deform surface")
+                    self._report.progress(
+                        source=self, message="failed to deform surface"
+                    )
 
                     import logging
 
@@ -626,7 +650,7 @@ class OrbitClosure(Consumer, Command):
                 directions=self._directions,
                 directions_with_cylinders=self._directions_with_cylinders,
                 dense=self.dense,
-                **kwargs
+                **kwargs,
             )
 
 

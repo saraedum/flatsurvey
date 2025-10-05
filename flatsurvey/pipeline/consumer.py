@@ -10,6 +10,7 @@ Any goal of a computation implements the Consumer interface::
     True
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -71,6 +72,7 @@ class Consumer(Goal):
         goals in their ``click``.
 
     """
+
     DEFAULT_CACHE_ONLY = False
 
     _cache_only_option = click.option(
@@ -80,15 +82,19 @@ class Consumer(Goal):
         help="Do not perform any computation. Only query the cache.",
     )
 
-    def __init__(self, producers, cache=None, cache_only=DEFAULT_CACHE_ONLY, report=None):
+    def __init__(
+        self, producers, cache=None, cache_only=DEFAULT_CACHE_ONLY, report=None
+    ):
         super().__init__()
 
         from flatsurvey.cache import Cache
+
         if cache is None:
             cache = Cache()
 
         if report is None:
             from flatsurvey.reporting import Report
+
             report = Report([])
 
         self._producers = producers
@@ -144,7 +150,9 @@ class Consumer(Goal):
         if self._cache_only:
             self._resolved = True
 
-    async def consume(self, product, cost) -> Literal["COMPLETED"] | Literal["NOT_COMPLETED"]:
+    async def consume(
+        self, product, cost
+    ) -> Literal["COMPLETED"] | Literal["NOT_COMPLETED"]:
         r"""
         Process the ``product`` by one of the producers we are attached to and
         return whether we are willing to consume further data or whether we
@@ -182,7 +190,9 @@ class Consumer(Goal):
         return "COMPLETED" if self._resolved else "NOT_COMPLETED"
 
     @abstractmethod
-    async def _consume(self, product, cost) -> Literal["COMPLETED"] | Literal["NOT_COMPLETED"]:
+    async def _consume(
+        self, product, cost
+    ) -> Literal["COMPLETED"] | Literal["NOT_COMPLETED"]:
         r"""
         Process the ``product`` by one of the producers we are attached to and
         return whether we are willing to consume further data or whether we

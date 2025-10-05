@@ -5,6 +5,7 @@ Note that this was heavily inspired by discussion in
 https://github.com/pallets/click/issues/373.
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -55,7 +56,12 @@ class CommandWithGroups(click.Group):
             # Formula copied from the base class implementation
             limit = formatter.width - 6 - max(len(cmd[0]) for cmd in commands[group])
             with formatter.section(group):
-                formatter.write_dl([(command, cmd.get_short_help_str(limit=limit)) for (command, cmd) in sorted(commands[group])])
+                formatter.write_dl(
+                    [
+                        (command, cmd.get_short_help_str(limit=limit))
+                        for (command, cmd) in sorted(commands[group])
+                    ]
+                )
 
 
 class GroupedCommand(click.Command):
@@ -82,6 +88,7 @@ class GroupedCommand(click.Command):
           subcommand
 
     """
+
     def __init__(self, *args, **kwargs):
         self.group = kwargs.pop("group", None)
         super().__init__(*args, **kwargs)

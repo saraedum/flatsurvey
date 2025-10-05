@@ -4,6 +4,7 @@ Steps along the pipeline to resolve the targets of a survey.
 These steps are automatically registered as commands to the survey and worker
 entrypoints as subcommands.
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #

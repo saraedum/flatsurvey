@@ -25,6 +25,7 @@ EXAMPLES::
       --help              Show this message and exit.
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -70,7 +71,13 @@ class Log(Reporter, Command):
         [Ngon([1, 1, 1])] [Ngon] Hello World
 
     """
-    def __init__(self, configuration: dict|None=None, output: Path|Literal["-"]|None=None, prefix: Path|None=None):
+
+    def __init__(
+        self,
+        configuration: dict | None = None,
+        output: Path | Literal["-"] | None = None,
+        prefix: Path | None = None,
+    ):
         super().__init__()
 
         self._configuration = configuration
@@ -131,9 +138,10 @@ class Log(Reporter, Command):
         """
         with bindings.scope(Log) as scoped:
             return Log(
-                configuration = bindings.get("configuration", lambda: None),
+                configuration=bindings.get("configuration", lambda: None),
                 output=scoped.get("output"),
-                prefix=scoped.get("prefix"))
+                prefix=scoped.get("prefix"),
+            )
 
     @property
     @contextmanager
@@ -180,6 +188,7 @@ class Log(Reporter, Command):
 
         if output == "-":
             import sys
+
             yield sys.stdout
             sys.stdout.flush()
             return
@@ -219,7 +228,11 @@ class Log(Reporter, Command):
         """
         prefix = f"[{type(source).__name__}]"
         if self._configuration:
-            prefix = " ".join(f"[{value}]" for value in self._configuration.values()) + " " + prefix
+            prefix = (
+                " ".join(f"[{value}]" for value in self._configuration.values())
+                + " "
+                + prefix
+            )
         return prefix
 
     def log(self, source, message, **kwargs):

@@ -38,6 +38,7 @@ EXAMPLES::
       --help                          Show this message and exit.
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -265,7 +266,7 @@ class Ngon(Surface):
 
         assert (0, 1, 0) in S.labels()
 
-        for (_, x, y) in S.labels():
+        for _, x, y in S.labels():
             from sage.all import matrix
 
             symmetries.add(
@@ -616,9 +617,10 @@ class Ngon(Surface):
 
         while P.area() > 2:
             from sage.all import QQ
+
             P = ~QQ(2) * P
-        while 2*P.area() < 1:
-            P = 2*P
+        while 2 * P.area() < 1:
+            P = 2 * P
 
         return P
 
@@ -751,6 +753,7 @@ class Ngons:
         [Ngon([1, 1, 1]), Ngon([1, 2, 12]), Ngon([1, 1, 2])]
 
     """
+
     def __init__(self, vertices, min, limit, count, literature, family, filter):
         self._vertices = vertices
         self._min = min
@@ -883,7 +886,9 @@ class Ngons:
         help="only produce the n-gons which satisfy this lambda expression, e.g., 'lambda a, b, c: (a + b + c) % 2 == 0'",
     )
     @Bindings.click
-    def click(bindings: Bindings, vertices, min, limit, count, literature, family, filter):
+    def click(
+        bindings: Bindings, vertices, min, limit, count, literature, family, filter
+    ):
         r"""
         Parse command line options to configure a family of n-gons into the ``bindings``.
 
@@ -893,7 +898,18 @@ class Ngons:
             >>> invoke_subcommand(Ngons.click, "--vertices", "3")
 
         """
-        bindings.survey(Surface, Ngons(vertices=vertices, min=min, limit=limit, count=count, literature=literature, family=family, filter=filter))
+        bindings.survey(
+            Surface,
+            Ngons(
+                vertices=vertices,
+                min=min,
+                limit=limit,
+                count=count,
+                literature=literature,
+                family=family,
+                filter=filter,
+            ),
+        )
 
 
 def rotations(partition):

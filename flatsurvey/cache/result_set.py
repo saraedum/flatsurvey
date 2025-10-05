@@ -36,6 +36,7 @@ Or choose a policy of access that does not require argeement on the values::
     True
 
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -74,7 +75,13 @@ class ResultSet:
         2 cached results
 
     """
-    def __init__(self, rows, sources: list[Literal["CACHE"] | dict | Pickles], quorum: Quorum="UNIQUE"):
+
+    def __init__(
+        self,
+        rows,
+        sources: list[Literal["CACHE"] | dict | Pickles],
+        quorum: Quorum = "UNIQUE",
+    ):
         self._rows = rows
         self._sources = sources
         self._quorum: Quorum = quorum
@@ -122,12 +129,16 @@ class ResultSet:
             '3413'
 
         """
-        values = iter(ResultSet._getattr(row, name, self._sources) for row in self._rows)
+        values = iter(
+            ResultSet._getattr(row, name, self._sources) for row in self._rows
+        )
         value = next(values)
 
         for other in values:
             if other != value:
-                raise AttributeError(f"'{name}' is inconsistent in this cached result set, found {other} != {value}")
+                raise AttributeError(
+                    f"'{name}' is inconsistent in this cached result set, found {other} != {value}"
+                )
 
         return value
 
@@ -149,7 +160,9 @@ class ResultSet:
         return ResultSet._getattr(self._rows[-1], name, self._sources)
 
     @staticmethod
-    def _getattr(row: dict, name: str, sources: list[Literal["CACHE"] | dict | Pickles]):
+    def _getattr(
+        row: dict, name: str, sources: list[Literal["CACHE"] | dict | Pickles]
+    ):
         r"""
         Helper method for :meth:`__getattr__`.
 

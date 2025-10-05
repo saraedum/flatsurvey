@@ -16,6 +16,7 @@ EXAMPLES::
                            [default: pickles are not stored]
       --help               Show this message and exit.
 """
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -60,7 +61,13 @@ class Json(Reporter, Command):
 
     """
 
-    def __init__(self, configuration: dict|None, output: Path|Literal["-"]|None=None, prefix: Path|None=None, pickles: Path|None=None):
+    def __init__(
+        self,
+        configuration: dict | None,
+        output: Path | Literal["-"] | None = None,
+        prefix: Path | None = None,
+        pickles: Path | None = None,
+    ):
         super().__init__()
 
         self._configuration = configuration
@@ -77,7 +84,8 @@ class Json(Reporter, Command):
 
                 # Make kebab-case (like command line commands record their configuration)
                 import re
-                key = re.sub(r'(?<!^)(?=[A-Z])', '-', key).lower()
+
+                key = re.sub(r"(?<!^)(?=[A-Z])", "-", key).lower()
 
                 self._data.setdefault(key, value)
 
@@ -147,7 +155,9 @@ class Json(Reporter, Command):
             prefix = scoped.get("prefix")
             pickles = scoped.get("pickles")
 
-        return Json(configuration=configuration, output=output, prefix=prefix, pickles=pickles)
+        return Json(
+            configuration=configuration, output=output, prefix=prefix, pickles=pickles
+        )
 
     async def result(self, source, result, **kwargs):
         r"""
@@ -211,6 +221,7 @@ class Json(Reporter, Command):
             dir.mkdir(parents=True, exist_ok=True)
 
             from flatsurvey.cache.pickles import DirectoryPickleProvider
+
             path, sha = DirectoryPickleProvider.dump(obj, dir)
             del path
 
@@ -292,6 +303,7 @@ class Json(Reporter, Command):
 
         if output == "-":
             import sys
+
             yield sys.stdout
             return
 
