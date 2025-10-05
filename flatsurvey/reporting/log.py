@@ -270,31 +270,6 @@ class Log(GenericLog):
 
         super().__init__(stream=stream)
 
-    def deform(self, deformation):
-        r"""
-        Return a new logger that continues the previous logger's job after the
-        underlying surface has been replaced with a ``deformation``.
-
-        INPUT:
-
-        - ``deformation`` -- a :class:`Surface`
-
-        EXAMPLES::
-
-            >>> from flatsurvey.surfaces import Ngon
-            >>> surface = Ngon((1, 1, 1))
-
-            >>> log = Log(surface)
-            >>> log.log(source=surface, message="Hello World")
-            [Ngon([1, 1, 1])] [Ngon] Hello World
-
-            >>> log = log.deform(Ngon((1, 1, 2)))
-            >>> log.log(source=surface, message="Hello World")
-            [Ngon([1, 1, 2])] [Ngon] Hello World
-
-        """
-        return Log(surface=deformation, stream=self._stream)
-
     def _log_prefix(self, source):
         r"""
         Return the prefix to use for each log message coming from ``source``.

@@ -2,7 +2,7 @@ r"""
 A package providing ways to report progress and result of a computation.
 
 Note that simple visual progress tracking is available in
-:class:`flatsurvey.ui.progress.SurveyProgress`.
+:mod:`flatsurvey.ui.progress`.
 """
 # *********************************************************************
 #  This file is part of flatsurvey.
@@ -26,5 +26,6 @@ Note that simple visual progress tracking is available in
 from flatsurvey.reporting.json import Json
 from flatsurvey.reporting.log import Log, GenericLog
 from flatsurvey.reporting.report import Report
+from flatsurvey.reporting.reporter import Reporter
 
 commands = [Log.click, Json.click, Report.click]

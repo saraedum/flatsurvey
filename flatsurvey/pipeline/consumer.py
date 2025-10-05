@@ -35,7 +35,6 @@ from typing import Literal
 import click
 
 from flatsurvey.pipeline.goal import Goal
-from flatsurvey.reporting import Report
 
 
 class Consumer(Goal):
@@ -81,7 +80,7 @@ class Consumer(Goal):
         help="Do not perform any computation. Only query the cache.",
     )
 
-    def __init__(self, producers, cache=None, cache_only=DEFAULT_CACHE_ONLY, report: Report|None=None):
+    def __init__(self, producers, cache=None, cache_only=DEFAULT_CACHE_ONLY, report=None):
         super().__init__()
 
         from flatsurvey.cache import Cache

@@ -158,7 +158,7 @@ class OrbitClosure(Consumer, Command):
 
         EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections
             >>> from flatsurvey.cache import Cache
             >>> surface = Ngon((1, 1, 1))
@@ -205,7 +205,7 @@ class OrbitClosure(Consumer, Command):
 
             >>> from flatsurvey.reporting import Json, Report
 
-            >>> report = Report([Json(surface)])
+            >>> report = Report([Json({Surface: surface}, output="-")])
             >>> goal = OrbitClosure(surface=surface, report=report, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=cache)
 
             >>> import asyncio
@@ -382,7 +382,7 @@ class OrbitClosure(Consumer, Command):
 
         EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> from flatsurvey.reporting import Log, Report
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections
             >>> surface = Ngon((1, 3, 5))
@@ -406,7 +406,7 @@ class OrbitClosure(Consumer, Command):
 
             >>> from flatsurvey.reporting import Json
 
-            >>> report = Report([Json(surface)])
+            >>> report = Report([Json({Surface: surface}, output="-")])
             >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(connections))
             >>> oc = OrbitClosure(surface=surface, report=report, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=None)
 
@@ -590,12 +590,12 @@ class OrbitClosure(Consumer, Command):
 
         EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> from flatsurvey.reporting import Report, Json
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections
             >>> surface = Ngon((1, 3, 5))
             >>> connections = SaddleConnections(surface)
-            >>> report = Report([Json(surface)])
+            >>> report = Report([Json({Surface: surface}, output="-")])
             >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(connections))
             >>> oc = OrbitClosure(surface=surface, report=report, flow_decompositions=flow_decompositions, saddle_connections=connections, cache=None)
 

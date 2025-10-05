@@ -30,8 +30,6 @@ EXAMPLES::
 from abc import abstractmethod
 from typing import Literal
 
-from flatsurvey.reporting import Report
-
 
 class Producer:
     r"""
@@ -49,7 +47,7 @@ class Producer:
         True
 
     """
-    def __init__(self, report: Report|None=None):
+    def __init__(self, report=None):
         if report is None:
             from flatsurvey.reporting import Report
             report = Report([])

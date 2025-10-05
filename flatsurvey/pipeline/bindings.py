@@ -514,8 +514,12 @@ class Bindings:
         for values in product(*sources.values()):
             keys = sources.keys()
             bindings = self.clone(repr=f"Bindings(survey {','.join(f'{key}={value}' for key, value in zip(keys, values))})")
+            configuration = {}
             for key, value in zip(keys, values):
+                configuration[key] = value
                 bindings.define(key, value)
+
+            bindings.define(configuration=configuration)
 
             yield bindings
 

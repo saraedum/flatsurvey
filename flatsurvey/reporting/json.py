@@ -1,5 +1,5 @@
 r"""
-Writes results as JSON files.
+Writes results to a JSON file.
 
 EXAMPLES::
 
@@ -9,10 +9,11 @@ EXAMPLES::
     Usage: worker json [OPTIONS]
       Writes results in JSON format.
     Options:
-      --output FILE              [default: derived from surface name]
-      --prefix DIRECTORY
-      --pickles / --no-pickles
-      --help              Show this message and exit.
+      --output FILE        [default: derived automatically]
+      --prefix DIRECTORY   [default: current directory]
+      --pickles DIRECTORY  base directory to store pickles of non-primitive results
+                           [default: pickles are not stored]
+      --help               Show this message and exit.
 
 """
 # *********************************************************************
@@ -34,6 +35,10 @@ EXAMPLES::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
+from typing import Literal
+from pathlib import Path
+from contextlib import contextmanager
+
 import click
 
 from flatsurvey.ui import Command
@@ -48,35 +53,33 @@ class Json(Reporter, Command):
 
     EXAMPLES::
 
-        >>> from flatsurvey.surfaces import Ngon
+        >>> from flatsurvey.surfaces import Ngon, Surface
         >>> surface = Ngon((1, 1, 1))
-        >>> Json(surface)
+        >>> Json({Surface: surface})
         json
-
-        >>> TODO: Externalize pickles automatically.
 
     """
 
-    # TODO: Generalize the "surface" here. We want to track any configuration for this survey, i.e., anything that is not a "result".
-    # The logic that "Join" uses is that anything that does not map to a list is configuration.
-
-    def __init__(self, surface, output=None, prefix=None, pickles=False):
+    def __init__(self, configuration: dict|None, output: Path|Literal["-"]|None=None, prefix: Path|None=None, pickles: Path|None=None):
         super().__init__()
 
-        if prefix is not None:
-            if output is not None:
-                raise ValueError("at most one of output and prefix must be given")
-
-            import os.path
-            output = os.path.join(prefix, f"{surface.basename()}.json")
-
-        if output is None:
-            output = "-"
-
+        self._configuration = configuration
         self._output = output
+        self._prefix = prefix
         self._pickles = pickles
 
-        self._data: dict = {"surface": surface}
+        self._data = {}
+        if self._configuration:
+            for key, value in self._configuration.items():
+                if isinstance(key, type):
+                    key = key.__name__
+                key = str(key)
+
+                # Make kebab-case (like command line commands record their configuration)
+                import re
+                key = re.sub(r'(?<!^)(?=[A-Z])', '-', key).lower()
+
+                self._data.setdefault(key, value)
 
     @staticmethod
     @click.command(
@@ -87,16 +90,22 @@ class Json(Reporter, Command):
     )
     @click.option(
         "--output",
-        type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
+        type=click.Path(file_okay=True, dir_okay=False, allow_dash=True),
         default=None,
-        help="[default: derived from surface name]",
+        help="[default: derived automatically]",
     )
     @click.option(
         "--prefix",
-        type=click.Path(exists=True, file_okay=False, dir_okay=True, allow_dash=False),
+        type=click.Path(file_okay=False, dir_okay=True, allow_dash=False),
         default=None,
+        help="[default: current directory]",
     )
-    @click.option("--pickles/--no-pickles", default=False)
+    @click.option(
+        "--pickles",
+        type=click.Path(file_okay=False, dir_okay=True, allow_dash=False),
+        default=None,
+        help="base directory to store pickles of non-primitive results [default: pickles are not stored]",
+    )
     @Bindings.click
     def click(bindings: Bindings, output, prefix, pickles):
         r"""
@@ -108,6 +117,9 @@ class Json(Reporter, Command):
             >>> invoke_subcommand(Json.click)
 
         """
+        if output is not None and prefix is not None:
+            raise ValueError("at most one of output and prefix must be specified")
+
         bindings.append(list[Reporter], Json)
         with bindings.scope(Json) as scoped:
             scoped.define(output=output, prefix=prefix, pickles=pickles)
@@ -130,39 +142,12 @@ class Json(Reporter, Command):
 
         """
         with bindings.scope(Json) as scoped:
-            from flatsurvey.surfaces import Surface
-            surface = bindings.get(Surface)
+            configuration = bindings.get("configuration", lambda: None)
             output = scoped.get("output")
             prefix = scoped.get("prefix")
             pickles = scoped.get("pickles")
 
-        return Json(surface, output=output, prefix=prefix, pickles=pickles)
-
-    def deform(self, deformation):
-        r"""
-        Return a new logger that continues the previous logger's job after the
-        underlying surface has been replaced with a ``deformation``.
-
-        INPUT:
-
-        - ``deformation`` -- a :class:`Surface`
-
-        EXAMPLES:
-
-        We want to write data about a deformed surface to the original
-        surface's file so we do not change anything here. (The surface is only
-        used to determine the file name, it's not written anywhere in the JSON
-        file automatically.)::
-
-            >>> from flatsurvey.surfaces import Ngon
-            >>> surface = Ngon((1, 1, 1))
-
-            >>> json = Json(surface)
-            >>> json.deform(Ngon((1, 1, 2))) is json
-            True
-
-        """
-        return self
+        return Json(configuration=configuration, output=output, prefix=prefix, pickles=pickles)
 
     async def result(self, source, result, **kwargs):
         r"""
@@ -170,14 +155,14 @@ class Json(Reporter, Command):
 
         EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> surface = Ngon((1, 1, 1))
-            >>> json = Json(surface)
+            >>> json = Json({Surface: surface}, output="-")
 
             >>> import asyncio
-            >>> asyncio.run(json.result(source=None, result=True))
+            >>> asyncio.run(json.result("source", True))
             >>> json.flush()
-            {"surface": {"angles": [1, 1, 1], "type": "Ngon", "pickle": "dropped"}, "None": [{"timestamp": "...", "value": true}]}
+            {"surface": {"angles": [1, 1, 1], "type": "Ngon", "repr": "Ngon([1, 1, 1])"}, "source": [{"timestamp": "...", "value": true}]}
 
         """
         from datetime import datetime, timezone
@@ -197,21 +182,23 @@ class Json(Reporter, Command):
 
         EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> surface = Ngon((1, 1, 1))
-            >>> json = Json(surface, pickles=True)
 
+            >>> import tempfile
+            >>> with tempfile.TemporaryDirectory() as tmpdir:
+            ...     json = Json({Surface: surface}, pickles=Path(tmpdir))
+            ...     json._serialize_to_pickle(True)
+            {'type': 'bool', 'repr': 'True', 'pickle': '112bda3b495d867b6a98c899fac7c25eb60ca4b6e6fe5ec7ab9299f93e8274bc'}
+
+        If no pickle directory has been configured, pickles are silently
+        dropped::
+
+            >>> json = Json({Surface: surface})
             >>> json._serialize_to_pickle(True)
-            {'type': 'bool', 'pickle': 'gASILg=='}
-
-            >>> TODO: Use the version in pickles.py instead.
-
-            >>> TODO: Show dropped.
+            {'type': 'bool', 'repr': 'True'}
 
         """
-        import base64
-        from pickle import dumps
-
         characteristics = {}
 
         if hasattr(obj, "_flatsurvey_characteristics"):
@@ -220,9 +207,14 @@ class Json(Reporter, Command):
         characteristics.setdefault("type", type(obj).__name__)
         characteristics.setdefault("repr", repr(obj))
         if self._pickles:
-            characteristics.setdefault(
-                "pickle", base64.encodebytes(dumps(obj)).decode("utf-8").strip()
-            )
+            dir = self._pickles / type(obj).__name__
+            dir.mkdir(parents=True, exist_ok=True)
+
+            from flatsurvey.cache.pickles import DirectoryPickleProvider
+            path, sha = DirectoryPickleProvider.dump(obj, dir)
+            del path
+
+            characteristics.setdefault("pickle", sha)
 
         return characteristics
 
@@ -235,18 +227,77 @@ class Json(Reporter, Command):
         Anything that is unknown is rendered as its pickle, so we can let any
         object that we don't understand through without changes::
 
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> surface = Ngon((1, 1, 1))
-            >>> json = Json(surface)
+            >>> json = Json({Surface: surface}, output="-")
 
             >>> import asyncio
-            >>> asyncio.run(json.result("verdict", result=asyncio))
+            >>> asyncio.run(json.result("source", "verdict"))
 
             >>> json.flush()  # doctest: +ELLIPSIS
-            {"surface": {"angles": [1, 1, 1], "type": "Ngon", "pickle": "..."}, "verdict": [{"timestamp": ..., "value": {"type": "module", "pickle": "..."}}]}
+            {"surface": {"angles": [1, 1, 1], "type": "Ngon", "repr": "Ngon([1, 1, 1])"}, "source": [{"timestamp": "...", "value": "verdict"}]}
 
         """
         return value
+
+    @property
+    @contextmanager
+    def output(self):
+        r"""
+        Return an opened file to which we write the JSON output.
+        
+        If ``output`` has not been set explicitly, the file name is
+        automatically constructed so we do not overwrite existing files.
+
+        EXAMPLES::
+
+
+            >>> from flatsurvey.surfaces import Ngon, Surface
+            >>> surface = Ngon((1, 1, 1))
+
+            >>> import tempfile
+            >>> with tempfile.TemporaryDirectory() as tmpdir:
+            ...     json = Json({Surface: surface}, prefix=tmpdir)
+            ...     with json.output as output: print(output)
+            <_io.TextIOWrapper name='/.../ngon-1-1-1.json' mode='w' encoding='UTF-8'>
+
+        Files get automatic numbering to not overwrite existing results::
+
+            >>> import tempfile
+            >>> with tempfile.TemporaryDirectory() as tmpdir:
+            ...     json = Json({Surface: surface}, prefix=tmpdir)
+            ...     with json.output as output: print(output)
+            ...     with json.output as output: print(output)
+            <_io.TextIOWrapper name='/.../ngon-1-1-1.json' mode='w' encoding='UTF-8'>
+            <_io.TextIOWrapper name='/.../ngon-1-1-1.1.json' mode='w' encoding='UTF-8'>
+
+        """
+        output = self._output
+
+        if output is None:
+            dir = Path(self._prefix or Path.cwd())
+            dir.mkdir(parents=True, exist_ok=True)
+
+            prefix = "log"
+            if self._configuration:
+                keys = sorted(self._configuration.keys())
+                prefix = "-".join(self._configuration[key].basename() for key in keys)
+
+            infix = ""
+            suffix = ".json"
+
+            while (output := dir / f"{prefix}{infix}{suffix}").exists():
+                if not infix:
+                    infix = ".0"
+                infix = f".{int(infix[1:]) + 1}"
+
+        if output == "-":
+            import sys
+            yield sys.stdout
+            return
+
+        with open(output, "w") as stream:
+            yield stream
 
     def flush(self):
         r"""
@@ -254,42 +305,25 @@ class Json(Reporter, Command):
 
         EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> surface = Ngon((1, 1, 1))
-            >>> json = Json(surface)
+            >>> json = Json({Surface: surface}, output="-")
 
             >>> import asyncio
-            >>> asyncio.run(json.result("verdict", result=True))
+            >>> asyncio.run(json.result("source", "verdict"))
 
         Note that each result is reported individually, so the "verdict" is a list here::
 
             >>> json.flush()  # doctest: +ELLIPSIS
-            {"surface": {"angles": [1, 1, 1], "type": "Ngon", "pickle": "..."}, "verdict": [{"timestamp": ..., "value": true}]}
+            {"surface": {"angles": [1, 1, 1], "type": "Ngon", "repr": "Ngon([1, 1, 1])"}, "source": [{"timestamp": "...", "value": "verdict"}]}
 
         """
         import json
         import sys
-        from contextlib import nullcontext
 
-        with (
-            open(self._output, "w") if self._output != "-" else nullcontext(sys.stdout)
-        ) as stream:
-            stream.write(json.dumps(self._data, default=self._serialize_to_pickle))
-            stream.flush()
-
-    @staticmethod
-    def load(file) -> dict:
-        r"""
-        Load a JSON file into the cache dict with the fast orjson.
-        """
-        import orjson
-        try:
-            data = file.read().strip() or '{}'
-
-            return orjson.loads(data)
-        except Exception as e:
-            print(f"Failed to parse {file}, {e}. Ignoring.")
-            return {}
+        with self.output as output:
+            output.write(json.dumps(self._data, default=self._serialize_to_pickle))
+            output.flush()
 
 
 __test__ = {

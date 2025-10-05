@@ -182,7 +182,7 @@ class CompletelyCylinderPeriodic(Consumer, Command):
         EXAMPLES::
 
             >>> from flatsurvey.cache import Cache
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections
             >>> surface = Ngon((1, 1, 1))
             >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface)))
@@ -202,7 +202,7 @@ class CompletelyCylinderPeriodic(Consumer, Command):
         artificial cache::
 
             >>> from flatsurvey.reporting import Report, Json
-            >>> log = Report([Json(surface)])
+            >>> log = Report([Json({Surface: surface}, output="-")])
 
             >>> from io import StringIO
             >>> goal = make_goal(Cache({
@@ -302,11 +302,11 @@ class CompletelyCylinderPeriodic(Consumer, Command):
 
         EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> from flatsurvey.reporting import Json, Report
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections
             >>> surface = Ngon((1, 1, 11))
-            >>> report = Report([Json(surface)])
+            >>> report = Report([Json({Surface: surface}, output="-")])
             >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface)))
             >>> ccp = CompletelyCylinderPeriodic(report=report, flow_decompositions=flow_decompositions, cache=None)
 

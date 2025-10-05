@@ -43,9 +43,6 @@ class Reporter:
         True
 
     """
-    def deform(self, deformation) -> "Reporter":
-        raise NotImplementedError
-
     def log(self, source, message, **kwargs):
         r"""
         Write ``message`` emitted by ``source`` to this log.
@@ -63,11 +60,16 @@ class Reporter:
             [Ngon([1, 1, 1])] [Ngon] Hello World (additional_data: 1337)
 
         """
-        pass
+        del source
+        del message
+        del kwargs
+
 
     async def result(self, source, result, **kwargs):
         r"""
         Report a computation's ``result`` from ``source``.
+
+        Implementations should override this message to actually do something with the result.
 
         EXAMPLES::
 
@@ -82,7 +84,9 @@ class Reporter:
             [Ngon([1, 1, 1])] [Ngon] result (additional_data: 1337)
 
         """
-        pass
+        del source
+        del result
+        del kwargs
 
     def progress(
         self,
@@ -108,7 +112,11 @@ class Reporter:
             [Ngon([1, 1, 1])] [Ngon] progress: 13/37
 
         """
-        pass
+        del source
+        del count
+        del what
+        del total
+        del message
 
     def flush(self):
         r"""
@@ -126,25 +134,56 @@ class Reporter:
             >>> log.flush()
 
         """
-        pass
 
-    def _simplify_primitive(self, value):
+    def _simplify_object(self, value):
         r"""
         Return the argument in a way that the report can render out.
 
         EXAMPLES::
 
             >>> from flatsurvey.reporting import Json
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> surface = Ngon((1, 1, 1))
-            >>> log = Json(surface)
+            >>> log = Json({Surface: surface})
 
         Rewrites SageMath integers as Python integers::
 
             >>> from sage.all import ZZ
 
-            >>> log._simplify(ZZ(1))
+            >>> simplified = log._simplify(ZZ(1))
+            >>> simplified
             1
+            >>> type(simplified)
+            <class 'int'>
+
+        Rewrites SageMath rationals as Python fractions::
+
+            >>> from sage.all import QQ
+
+            >>> simplified = log._simplify(QQ(1/2))
+            >>> simplified
+            Fraction(1, 2)
+
+        Rewrites GMP integers as Python integers::
+
+            >>> from gmpxxyy import mpz
+
+            >>> simplified = log._simplify(mpz(1))
+            >>> simplified
+            1
+            >>> type(simplified)
+            <class 'int'>
+
+        Rewrites GMP rationals as Python fractions::
+
+            >>> from gmpxxyy import mpq
+
+            >>> simplified = log._simplify(mpq(1, 2))
+            >>> simplified
+            Fraction(1, 2)
+
+        This method can be further customized by implementing
+        :meth:`_simplify_unknown`.
 
         """
         from sage.all import ZZ, QQ
@@ -173,7 +212,8 @@ class Reporter:
         r"""
         Return the argument in a way that the report can render out.
 
-        Subclasses can overwrite this to provide a fallback.
+        Subclasses can overwrite this to provide a fallback when the other
+        ``_simplify`` methods do not know what to do about this value.
         """
         raise NotImplementedError(f"cannot represent {type(value)} in this report yet")
 
@@ -184,9 +224,9 @@ class Reporter:
         EXAMPLES::
 
             >>> from flatsurvey.reporting import Json
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> surface = Ngon((1, 1, 1))
-            >>> log = Json(surface)
+            >>> log = Json({Surface: surface})
 
         Combines arguments and keyword arguments::
 
@@ -226,4 +266,4 @@ class Reporter:
                 self._simplify(key): self._simplify(v) for (key, v) in value.items()
             }
 
-        return self._simplify_primitive(value)
+        return self._simplify_object(value)

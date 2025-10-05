@@ -37,7 +37,6 @@ from typing import Literal
 
 from flatsurvey.pipeline.consumer import Consumer
 from flatsurvey.pipeline.producer import Producer
-from flatsurvey.reporting import Report
 
 
 class Processor(Producer, Consumer):
@@ -61,7 +60,7 @@ class Processor(Producer, Consumer):
 
     """
 
-    def __init__(self, producers, report: Report | None=None):
+    def __init__(self, producers, report=None):
         Producer.__init__(self, report=report)
         Consumer.__init__(self, producers=producers, report=self._report)
 

@@ -101,7 +101,7 @@ class SaddleConnectionOrientations(Processor, Command):
         EXAMPLES::
 
             >>> import asyncio
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> from flatsurvey.reporting import Log, Report
             >>> from flatsurvey.jobs import SaddleConnections
             >>> surface = Ngon((1, 1, 1))
@@ -114,7 +114,7 @@ class SaddleConnectionOrientations(Processor, Command):
 
             >>> from flatsurvey.reporting import Json
 
-            >>> report = Report([Json(surface)], ignore=["saddle-connections"])
+            >>> report = Report([Json({Surface: surface}, output="-")], ignore=["saddle-connections"])
             >>> sco = SaddleConnectionOrientations(saddle_connections=SaddleConnections(surface), report=report)
 
             >>> asyncio.run(sco.produce())

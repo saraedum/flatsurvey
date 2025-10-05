@@ -221,7 +221,16 @@ class Cache(Command):
         for json in jsons:
             from flatsurvey.reporting.json import Json
             with open(json, "r") as input:
-                yield Json.load(input)
+                import orjson
+
+                data = input.read().strip()
+                if not data:
+                    continue
+
+                try:
+                    yield orjson.loads(data)
+                except Exception as e:
+                    print(f"Failed to parse {json}, {e}. Ignoring.")
 
     @staticmethod
     def _load_create_subjects(parsed: dict):

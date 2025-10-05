@@ -133,7 +133,7 @@ class FlowDecompositions(Processor, Command):
         EXAMPLES::
 
             >>> import asyncio
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> from flatsurvey.reporting import Log, Report
             >>> from flatsurvey.jobs import SaddleConnectionOrientations, SaddleConnections
             >>> surface = Ngon((1, 1, 1))
@@ -150,7 +150,7 @@ class FlowDecompositions(Processor, Command):
 
             >>> from flatsurvey.reporting import Json
 
-            >>> report = Report([Json(surface)], ignore=["saddle-connections"])
+            >>> report = Report([Json({Surface: surface}, output="-")], ignore=["saddle-connections"])
             >>> decompositions = FlowDecompositions(surface=surface, report=report, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface)))
 
             >>> asyncio.run(decompositions.produce())
