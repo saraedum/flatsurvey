@@ -568,11 +568,11 @@ class OrbitClosure(Consumer, Command):
                         )
 
                         surface = deformed.surface()
-                        from flatsurf.geometry.pyflatsurf_conversion import (
-                            from_pyflatsurf,
-                        )
 
-                        surface = from_pyflatsurf(surface)
+                        from flatsurf.geometry.pyflatsurf.conversion import FlatTriangulationConversion
+                        conversion = FlatTriangulationConversion.from_pyflatsurf(surface)
+
+                        surface = conversion.domain()
 
                         self._deformed = True
 
