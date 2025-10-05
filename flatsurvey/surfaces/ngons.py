@@ -12,7 +12,6 @@ EXAMPLES::
       -a, --angle INTEGER            inner angles of the polygon in multiples of (N
                                      - 2)π/A where N is the number of vertices and A
                                      the sum of all provided angles
-      --length [exact-real|e-antic]  how side lengths are chosen [default: e-antic]
       --help                         Show this message and exit.
 
     >>> from flatsurvey.survey import survey
@@ -21,7 +20,6 @@ EXAMPLES::
       The translation surfaces that come from unfolding n-gons.
     Options:
       -n, --vertices INTEGER          number of vertices  [required]
-      --length [exact-real|e-antic]   how side lengths are chosen  [default: e-antic]
       --min INTEGER                   minimum sum of angles  [default: 0]
       --limit INTEGER                 maximum sum of angles  [default: unlimited]
       --count INTEGER                 number of n-gons to produce  [default:
@@ -84,15 +82,13 @@ class Ngon(Surface):
 
     """
 
-    def __init__(self, angles, length="e-antic", polygon=None):
+    def __init__(self, angles, polygon=None):
         super().__init__()
 
         if len(angles) < 3:
             raise ValueError("n-gon must be at least a triangle")
 
         self.angles = list(angles)
-
-        self.length = length
 
         if polygon is not None:
             self.polygon.set_cache(polygon)  # type: ignore
@@ -127,7 +123,7 @@ class Ngon(Surface):
                 raise NotImplementedError(
                     f"Cannot translate explicit polygon from {self} when constructing equivalent surface."
                 )
-            return Ngon(angles, length=self.length)
+            return Ngon(angles)
 
         if any(a == sum(self.angles) / (len(self.angles) - 2) for a in self.angles):
             return [
@@ -565,6 +561,8 @@ class Ngon(Surface):
             True
 
         """
+        del cache
+
         def predicate(result):
             surface = result.surface
             if surface.type != "Ngon":
@@ -596,18 +594,12 @@ class Ngon(Surface):
         EXAMPLES::
 
             >>> Ngon((1, 1, 1)).polygon()
+            Polygon(vertices=[(0, 0), (2, 0), (1, c)])
 
         """
         from flatsurf import EuclideanPolygonsWithAngles
 
         E = EuclideanPolygonsWithAngles(*self.angles)
-        if self.length == "exact-real":
-            # sage-flatsurf does not support random_element() with exact-real lengths
-            raise NotImplementedError("exact-real ngons are currently not supported")
-        elif self.length == "e-antic":
-            pass
-        else:
-            raise NotImplementedError(self.length)
 
         P = E.random_element()
 
@@ -664,7 +656,7 @@ class Ngon(Surface):
             True
 
         """
-        return (Ngon, (self.angles, self.length, self.polygon.cache))  # type: ignore
+        return (Ngon, (self.angles, self.polygon.cache))  # type: ignore
 
     def __hash__(self):
         if self.polygon.cache is None:  # type: ignore
@@ -695,14 +687,8 @@ class Ngon(Surface):
         type=int,
         help="inner angles of the polygon in multiples of (N - 2)π/A where N is the number of vertices and A the sum of all provided angles",
     )
-    @click.option(
-        "--length",
-        type=click.Choice(["exact-real", "e-antic"]),
-        default="e-antic",
-        help="how side lengths are chosen [default: e-antic]",
-    )
     @Bindings.click
-    def click(bindings: Bindings, angle, length):
+    def click(bindings: Bindings, angle):
         r"""
         Parse command line options to configure an n-gon into the ``bindings``.
 
@@ -712,7 +698,28 @@ class Ngon(Surface):
             >>> invoke_subcommand(Ngon.click, "--angle", "1", "--angle", "2", "--angle", "3")
 
         """
-        bindings.define(Surface, Ngon(angles=angle, length=length))
+        bindings.define(Surface, Ngon)
+        with bindings.scope(Ngon) as scoped:
+            scoped.define(angles=angle)
+
+    @staticmethod
+    def create(bindings: Bindings) -> "Ngon":
+        r"""
+        Return an ``Ngon`` instance from the configuration registered in
+        ``bindings``.
+
+        TESTS::
+
+            >>> from flatsurvey.pipeline import Bindings
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> bindings = Bindings()
+            >>> invoke_subcommand(Ngon.click, "-a", "1", "-a", "1", "-a", "1", bindings=bindings)
+            >>> Ngon.create(bindings)
+            Ngon([1, 1, 1])
+
+        """
+        with bindings.scope(Ngon) as scoped:
+            return Ngon(angles=scoped.get("angles"))
 
 
 class Ngons:
@@ -722,31 +729,30 @@ class Ngons:
     EXAMPLES::
 
         >>> from flatsurvey.pipeline.bindings import Bindings
-        >>> ngons = Ngons(vertices=3, length="e-antic", min=0, limit=None, count=6, literature="include", family=None, filter=None)
+        >>> ngons = Ngons(vertices=3, min=0, limit=None, count=6, literature="include", family=None, filter=None)
         >>> list(ngons)
         [Ngon([1, 1, 1]), Ngon([1, 1, 2]), Ngon([1, 1, 3]), Ngon([1, 2, 2]), Ngon([1, 1, 4]), Ngon([1, 2, 3])]
 
         >>> bindings = Bindings()
-        >>> ngons = Ngons(vertices=3, length='e-antic', min=0, limit=None, count=6, literature='include', family=None, filter=None)
+        >>> ngons = Ngons(vertices=3, min=0, limit=None, count=6, literature='include', family=None, filter=None)
         >>> list(ngons)
         [Ngon([1, 1, 1]), Ngon([1, 1, 2]), Ngon([1, 1, 3]), Ngon([1, 2, 2]), Ngon([1, 1, 4]), Ngon([1, 2, 3])]
 
-        >>> ngons = Ngons(vertices=3, length='e-antic', min=0, limit=None, count=3, literature='include', family=None, filter='lambda a, b, c: (a + b + c) % 2 == 0')
+        >>> ngons = Ngons(vertices=3, min=0, limit=None, count=3, literature='include', family=None, filter='lambda a, b, c: (a + b + c) % 2 == 0')
         >>> list(ngons)
         [Ngon([1, 1, 2]), Ngon([1, 1, 4]), Ngon([1, 2, 3])]
 
-        >>> ngons = Ngons(vertices=3, length='e-antic', min=0, limit=None, count=3, literature='include', family='(1, 1, n)', filter=None)
+        >>> ngons = Ngons(vertices=3, min=0, limit=None, count=3, literature='include', family='(1, 1, n)', filter=None)
         >>> list(ngons)
         [Ngon([1, 1, 1]), Ngon([1, 1, 2]), Ngon([1, 1, 3])]
 
-        >>> ngons = Ngons(vertices=3, length='e-antic', min=0, limit=None, count=3, literature='include', family='[(1, 1, n), (1, 2, 12*n)]', filter=None)
+        >>> ngons = Ngons(vertices=3, min=0, limit=None, count=3, literature='include', family='[(1, 1, n), (1, 2, 12*n)]', filter=None)
         >>> list(ngons)
         [Ngon([1, 1, 1]), Ngon([1, 2, 12]), Ngon([1, 1, 2])]
 
     """
-    def __init__(self, vertices, length, min, limit, count, literature, family, filter):
+    def __init__(self, vertices, min, limit, count, literature, family, filter):
         self._vertices = vertices
-        self._length = length or "e-antic"
         self._min = min
         self._limit = limit
         self._count = count
@@ -761,7 +767,7 @@ class Ngons:
         EXAMPLES::
 
             >>> from flatsurvey.pipeline.bindings import Bindings
-            >>> ngons = Ngons(vertices=3, length="e-antic", min=0, limit=None, count=6, literature="include", family=None, filter=None)
+            >>> ngons = Ngons(vertices=3, min=0, limit=None, count=6, literature="include", family=None, filter=None)
             >>> list(ngons)
             [Ngon([1, 1, 1]), Ngon([1, 1, 2]), Ngon([1, 1, 3]), Ngon([1, 2, 2]), Ngon([1, 1, 4]), Ngon([1, 2, 3])]
 
@@ -808,7 +814,7 @@ class Ngons:
                     if not filter(*angles):
                         continue
 
-                ngon = Ngon(angles, length=self._length)
+                ngon = Ngon(angles)
 
                 if self._literature == "include":
                     pass
@@ -841,12 +847,6 @@ class Ngons:
     ) 
     @click.option(
         "--vertices", "-n", type=int, required=True, help="number of vertices"
-    )
-    @click.option(
-        "--length",
-        type=click.Choice(["exact-real", "e-antic"]),
-        required=False,
-        help="how side lengths are chosen  [default: e-antic]",
     )
     @click.option(
         "--min", type=int, default=0, help="minimum sum of angles  [default: 0]"
@@ -883,7 +883,7 @@ class Ngons:
         help="only produce the n-gons which satisfy this lambda expression, e.g., 'lambda a, b, c: (a + b + c) % 2 == 0'",
     )
     @Bindings.click
-    def click(bindings: Bindings, vertices, length, min, limit, count, literature, family, filter):
+    def click(bindings: Bindings, vertices, min, limit, count, literature, family, filter):
         r"""
         Parse command line options to configure a family of n-gons into the ``bindings``.
 
@@ -893,7 +893,7 @@ class Ngons:
             >>> invoke_subcommand(Ngons.click, "--vertices", "3")
 
         """
-        bindings.survey(Surface, Ngons(vertices=vertices, length=length, min=min, limit=limit, count=count, literature=literature, family=family, filter=filter))
+        bindings.survey(Surface, Ngons(vertices=vertices, min=min, limit=limit, count=count, literature=literature, family=family, filter=filter))
 
 
 def rotations(partition):

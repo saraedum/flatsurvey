@@ -152,7 +152,7 @@ class Surface(ABC):
         EXAMPLES::
             
             >>> from flatsurvey.surfaces import Ngon
-            >>> surface = Ngon((1, 1, 1))
+            >>> surface = Ngon((1, 1, 1, 1))
 
             >>> class CacheSurface:
             ...     def __init__(self, surface):
