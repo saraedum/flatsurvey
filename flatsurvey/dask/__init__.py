@@ -17,6 +17,6 @@
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from flatsurvey.dask.limits import TimeLimit, MemoryLimit
+from flatsurvey.dask.limits import MemoryLimit, TimeLimit
 from flatsurvey.dask.scheduler import Scheduler
 from flatsurvey.dask.tokens import SchedulerCancellationToken, WorkerCancellationToken

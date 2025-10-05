@@ -178,7 +178,6 @@ def process(
         import sys
 
         from flatsurvey.dask import Scheduler
-
         from flatsurvey.ui.progress import Progress
 
         with Progress.create(stdout=not quiet) as progress:

@@ -41,17 +41,15 @@ EXAMPLES::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from typing import Literal, Any
 from pathlib import Path
+from typing import Any, Literal
 
 import click
 
 from flatsurvey.cache.pickles import Pickles
 from flatsurvey.cache.result_set import ResultSet
-from flatsurvey.ui import Command
 from flatsurvey.pipeline import Bindings
-from flatsurvey.ui import GroupedCommand
-
+from flatsurvey.ui import Command, GroupedCommand
 
 CacheEntry = dict[str, Any]
 Source = Literal["CACHE", "DEFAULTS", "PICKLE"]

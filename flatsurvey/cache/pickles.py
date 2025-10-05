@@ -36,14 +36,14 @@ EXAMPLES::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-import click
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Any, Iterable
 
-from typing import Iterable, Any
+import click
 
-from flatsurvey.ui import Command, GroupedCommand
 from flatsurvey.pipeline import Bindings
+from flatsurvey.ui import Command, GroupedCommand
 
 
 class Pickles(Command):

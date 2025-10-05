@@ -36,11 +36,11 @@ The saddle connections on a translation surface.
 
 import click
 
-from flatsurvey.ui import Command
-from flatsurvey.pipeline import Producer, Bindings
-from flatsurvey.ui.group import GroupedCommand
-from flatsurvey.surfaces import Surface
+from flatsurvey.pipeline import Bindings, Producer
 from flatsurvey.reporting import Report
+from flatsurvey.surfaces import Surface
+from flatsurvey.ui import Command
+from flatsurvey.ui.group import GroupedCommand
 
 
 class SaddleConnections(Producer, Command):

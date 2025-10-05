@@ -29,10 +29,10 @@ EXAMPLES::
 # *********************************************************************
 
 from abc import ABC, abstractmethod
-
-from typing import Callable, Any
+from typing import Any, Callable
 
 from sage.misc.cachefunc import cached_method
+
 from flatsurvey.cache import Cache
 
 

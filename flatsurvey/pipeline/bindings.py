@@ -137,13 +137,13 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from contextlib import contextmanager
 from typing import (
-    overload,
-    Type,
-    override,
-    Protocol,
-    cast,
-    Iterator,
     Iterable,
+    Iterator,
+    Protocol,
+    Type,
+    cast,
+    overload,
+    override,
     runtime_checkable,
 )
 

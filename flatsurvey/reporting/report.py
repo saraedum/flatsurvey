@@ -46,14 +46,14 @@ EXAMPLES::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-import click
-
 from typing import List
 
+import click
+
+from flatsurvey.pipeline import Bindings
+from flatsurvey.reporting.reporter import Reporter
 from flatsurvey.ui import Command
 from flatsurvey.ui.group import GroupedCommand
-from flatsurvey.reporting.reporter import Reporter
-from flatsurvey.pipeline import Bindings
 
 
 class Report(Command):

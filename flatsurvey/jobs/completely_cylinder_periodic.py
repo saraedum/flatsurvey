@@ -67,15 +67,14 @@ Validate the results of the "survey"::
 # *********************************************************************
 
 import click
-
 from pyflatsurf import flatsurf  # type: ignore
 
-from flatsurvey.ui import Command
-from flatsurvey.pipeline import Consumer, Bindings
-from flatsurvey.ui.group import GroupedCommand
-from flatsurvey.jobs.flow_decompositions import FlowDecompositions
-from flatsurvey.reporting import Report
 from flatsurvey.cache import Cache
+from flatsurvey.jobs.flow_decompositions import FlowDecompositions
+from flatsurvey.pipeline import Bindings, Consumer
+from flatsurvey.reporting import Report
+from flatsurvey.ui import Command
+from flatsurvey.ui.group import GroupedCommand
 
 
 class CompletelyCylinderPeriodic(Consumer, Command):

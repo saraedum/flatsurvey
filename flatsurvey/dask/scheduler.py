@@ -43,16 +43,15 @@ We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
+import logging
 from contextlib import contextmanager
 from typing import Iterator, List
-import logging
 
 import dask.distributed
 
+from flatsurvey.dask.tokens import SchedulerCancellationToken
 from flatsurvey.pipeline import Bindings
 from flatsurvey.ui import Progress
-from flatsurvey.dask.tokens import SchedulerCancellationToken
-
 
 logger = logging.getLogger()
 
@@ -206,6 +205,7 @@ class Scheduler:
                 token.cancel()
 
         import signal
+
         from cysignals.pysignals import changesignal
 
         with changesignal(signal.SIGINT, handle_sigint):
@@ -236,9 +236,9 @@ class Scheduler:
         # scheduler_file is set.)
         dask.config.set({"distributed.worker.daemon": False})
 
-        import dask.distributed
-
         from multiprocessing import cpu_count
+
+        import dask.distributed
 
         return await dask.distributed.Client(
             scheduler_file=self._scheduler_json,

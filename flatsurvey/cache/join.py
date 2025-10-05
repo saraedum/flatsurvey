@@ -41,8 +41,8 @@ from pathlib import Path
 
 import click
 
+from flatsurvey.pipeline import Bindings, Goal
 from flatsurvey.ui import Command
-from flatsurvey.pipeline import Goal, Bindings
 
 
 class Join(Goal, Command):

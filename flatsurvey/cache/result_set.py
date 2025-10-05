@@ -58,9 +58,7 @@ Or choose a policy of access that does not require argeement on the values::
 
 from typing import Literal
 
-
 from flatsurvey.cache.pickles import Pickles
-
 
 Quorum = Literal["UNIQUE", "LATEST"]
 

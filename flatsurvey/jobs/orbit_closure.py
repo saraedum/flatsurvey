@@ -81,17 +81,16 @@ Validate the results of the "survey"::
 # *********************************************************************
 
 import click
-
 from sage.misc.cachefunc import cached_method
 
-from flatsurvey.ui import Command
-from flatsurvey.pipeline import Consumer, Bindings, Goal
-from flatsurvey.ui.group import GroupedCommand
 from flatsurvey.cache import Cache
-from flatsurvey.surfaces import Surface, Deformation
-from flatsurvey.reporting import Report
 from flatsurvey.jobs.flow_decompositions import FlowDecompositions
 from flatsurvey.jobs.saddle_connections import SaddleConnections
+from flatsurvey.pipeline import Bindings, Consumer, Goal
+from flatsurvey.reporting import Report
+from flatsurvey.surfaces import Deformation, Surface
+from flatsurvey.ui import Command
+from flatsurvey.ui.group import GroupedCommand
 
 
 class OrbitClosure(Consumer, Command):

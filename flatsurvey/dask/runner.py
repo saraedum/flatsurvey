@@ -17,10 +17,9 @@
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from flatsurvey.dask.worker import forkserver
-
 from flatsurvey.dask.task import Task
 from flatsurvey.dask.tokens import WorkerCancellationToken
+from flatsurvey.dask.worker import forkserver
 
 
 class Runner:

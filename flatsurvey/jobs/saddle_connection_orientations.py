@@ -33,11 +33,11 @@ The saddle connection directions on a translation surface module scaling.
 
 import click
 
-from flatsurvey.ui import Command
-from flatsurvey.pipeline import Processor, Bindings
-from flatsurvey.ui.group import GroupedCommand
 from flatsurvey.jobs.saddle_connections import SaddleConnections
+from flatsurvey.pipeline import Bindings, Processor
 from flatsurvey.reporting import Report
+from flatsurvey.ui import Command
+from flatsurvey.ui.group import GroupedCommand
 
 
 class SaddleConnectionOrientations(Processor, Command):

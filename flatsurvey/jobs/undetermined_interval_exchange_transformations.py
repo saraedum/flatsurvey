@@ -72,7 +72,7 @@ import click
 from flatsurvey.cache import Cache
 from flatsurvey.jobs.flow_decompositions import FlowDecompositions
 from flatsurvey.jobs.saddle_connection_orientations import SaddleConnectionOrientations
-from flatsurvey.pipeline import Goal, Consumer, Bindings
+from flatsurvey.pipeline import Bindings, Consumer, Goal
 from flatsurvey.reporting import Report
 from flatsurvey.surfaces import Surface
 from flatsurvey.ui import Command

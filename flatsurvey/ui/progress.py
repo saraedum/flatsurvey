@@ -21,9 +21,9 @@ Progress tracking during surveys
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
+from abc import abstractmethod
 from contextlib import AbstractContextManager, contextmanager
 from typing import Any
-from abc import abstractmethod
 
 from alive_progress import alive_bar
 

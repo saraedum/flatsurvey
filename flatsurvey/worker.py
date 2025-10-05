@@ -67,10 +67,10 @@ import flatsurvey.cache
 import flatsurvey.jobs
 import flatsurvey.reporting
 import flatsurvey.surfaces
-from flatsurvey.pipeline import Bindings, Goal, BindingException, Consumer
-from flatsurvey.ui.group import CommandWithGroups
-from flatsurvey.reporting.report import Report
 from flatsurvey.dask.limits import Limit
+from flatsurvey.pipeline import BindingException, Bindings, Consumer, Goal
+from flatsurvey.reporting.report import Report
+from flatsurvey.ui.group import CommandWithGroups
 
 
 @click.group(

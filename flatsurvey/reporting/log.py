@@ -45,15 +45,15 @@ EXAMPLES::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from typing import Literal
-from pathlib import Path
 from contextlib import contextmanager
+from pathlib import Path
+from typing import Literal
 
 import click
 
-from flatsurvey.ui import Command
 from flatsurvey.pipeline import Bindings
 from flatsurvey.reporting.reporter import Reporter
+from flatsurvey.ui import Command
 from flatsurvey.ui.group import GroupedCommand
 
 

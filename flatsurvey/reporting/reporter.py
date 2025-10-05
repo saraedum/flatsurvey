@@ -181,8 +181,8 @@ class Reporter:
         :meth:`_simplify_unknown`.
 
         """
-        from sage.all import ZZ, QQ
         import gmpxxyy
+        from sage.all import QQ, ZZ
 
         if isinstance(value, type(ZZ())):
             return int(value)

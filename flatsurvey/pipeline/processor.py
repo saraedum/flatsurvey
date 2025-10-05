@@ -35,7 +35,6 @@ decompositions::
 
 from typing import Literal
 
-
 from flatsurvey.pipeline.consumer import Consumer
 from flatsurvey.pipeline.producer import Producer
 

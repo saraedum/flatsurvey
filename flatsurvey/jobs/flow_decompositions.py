@@ -43,12 +43,12 @@ import time
 
 import click
 
-from flatsurvey.ui import Command
-from flatsurvey.pipeline import Processor, Bindings
-from flatsurvey.ui.group import GroupedCommand
-from flatsurvey.surfaces import Surface
 from flatsurvey.jobs.saddle_connection_orientations import SaddleConnectionOrientations
+from flatsurvey.pipeline import Bindings, Processor
 from flatsurvey.reporting.report import Report
+from flatsurvey.surfaces import Surface
+from flatsurvey.ui import Command
+from flatsurvey.ui.group import GroupedCommand
 
 
 class FlowDecompositions(Processor, Command):

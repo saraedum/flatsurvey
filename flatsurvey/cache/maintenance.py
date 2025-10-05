@@ -39,8 +39,8 @@ TESTS::
 
 import click
 
-from flatsurvey.ui import CommandWithGroups
 import flatsurvey.cache
+from flatsurvey.ui import CommandWithGroups
 
 
 @click.group(

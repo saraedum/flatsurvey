@@ -18,5 +18,5 @@
 # *********************************************************************
 
 from flatsurvey.ui.command import Command
-from flatsurvey.ui.group import GroupedCommand, CommandWithGroups
+from flatsurvey.ui.group import CommandWithGroups, GroupedCommand
 from flatsurvey.ui.progress import Progress, StdoutProgress

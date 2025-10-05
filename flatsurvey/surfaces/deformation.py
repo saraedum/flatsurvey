@@ -43,8 +43,8 @@ EXAMPLES::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from flatsurvey.surfaces.surface import Surface
 from flatsurvey.cache import Cache
+from flatsurvey.surfaces.surface import Surface
 
 
 class Deformation(Surface):

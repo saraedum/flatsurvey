@@ -101,8 +101,8 @@ some log file by a reporter instead::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from flatsurvey.pipeline import Bindings
 from flatsurvey.dask.tokens import WorkerCancellationToken
+from flatsurvey.pipeline import Bindings
 
 
 class Task:

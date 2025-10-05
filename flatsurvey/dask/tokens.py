@@ -62,6 +62,8 @@ Verify that this also works in an async context::
 
 """
 
+import threading
+
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -81,7 +83,6 @@ Verify that this also works in an async context::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 from contextlib import contextmanager
-import threading
 
 import dask.distributed
 
