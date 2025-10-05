@@ -238,7 +238,7 @@ class Consumer(Goal):
 
         EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> from flatsurvey.reporting import Log, Report
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections, OrbitClosure
             >>> surface = Ngon((1, 3, 5))
