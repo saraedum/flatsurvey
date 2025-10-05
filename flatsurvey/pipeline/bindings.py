@@ -496,7 +496,7 @@ class Bindings:
         will be iterated in :meth:`survey_bindings` in a roundrobin manner.
 
         If ``survey`` is called with different keys, then
-        :meth:`survey_bindings` will produce their product.
+        :meth:`survey_bindings` will iterate over their product in a zig-zag.
 
         EXAMPLES::
 
@@ -507,12 +507,12 @@ class Bindings:
 
             >>> list(bindings.survey_bindings)  # doctest: +NORMALIZE_WHITESPACE
             [Bindings(survey surface=square torus,coefficients=e-antic),
-             Bindings(survey surface=square torus,coefficients=exact-real),
              Bindings(survey surface=double pentagon,coefficients=e-antic),
-             Bindings(survey surface=double pentagon,coefficients=exact-real),
+             Bindings(survey surface=square torus,coefficients=exact-real),
              Bindings(survey surface=golden L,coefficients=e-antic),
-             Bindings(survey surface=golden L,coefficients=exact-real),
+             Bindings(survey surface=double pentagon,coefficients=exact-real),
              Bindings(survey surface=octagon,coefficients=e-antic),
+             Bindings(survey surface=golden L,coefficients=exact-real),
              Bindings(survey surface=octagon,coefficients=exact-real)]
 
         """
@@ -527,13 +527,32 @@ class Bindings:
         :meth:`survey`.
 
         Typically, this returns an infinite iterator of bindings.
+
+        EXAMPLES::
+
+            >>> from flatsurvey.surfaces import Ngons, Surface
+
+            >>> bindings = Bindings()
+            >>> bindings.survey(Surface, Ngons(vertices=3, min=0, limit=None, count=None, literature="include", family=None, filter=None))
+            >>> bindings.survey(Surface, Ngons(vertices=4, min=0, limit=None, count=None, literature="include", family=None, filter=None))
+            >>> survey_bindings = bindings.survey_bindings
+
+            >>> next(survey_bindings)
+            Bindings(survey <class 'flatsurvey.surfaces.surface.Surface'>=Ngon([1, 1, 1]))
+            >>> next(survey_bindings)
+            Bindings(survey <class 'flatsurvey.surfaces.surface.Surface'>=Ngon([1, 1, 1, 1]))
+            >>> next(survey_bindings)
+            Bindings(survey <class 'flatsurvey.surfaces.surface.Surface'>=Ngon([1, 1, 2]))
+            >>> next(survey_bindings)
+            Bindings(survey <class 'flatsurvey.surfaces.surface.Surface'>=Ngon([1, 1, 1, 2]))
+
         """
         from more_itertools import roundrobin
+        from sympy.utilities.iterables import iproduct
 
         sources = {key: roundrobin(*values) for key, values in self._survey.items()}
-        from itertools import product
 
-        for values in product(*sources.values()):
+        for values in iproduct(*sources.values()):
             keys = sources.keys()
             bindings = self.clone(
                 repr=f"Bindings(survey {','.join(f'{key}={value}' for key, value in zip(keys, values))})"

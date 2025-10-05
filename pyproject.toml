@@ -39,6 +39,7 @@ pytest-xdist = "*"
 pytest-forked = "*"
 sage-flatsurf = ">=0.6.0"
 alive-progress = "*"
+sympy = ">=1.14.0,<2"
 
 [tool.pixi.pypi-dependencies]
 flatsurvey = { path = ".", editable = true }
