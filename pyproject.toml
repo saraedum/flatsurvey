@@ -7,7 +7,7 @@ name = "flatsurvey"
 version = "0.1.0"
 readme = "README.md"
 license = { file = "LICENSE" }
-dependencies = ["datasize", "click", "dask", "humanfriendly", "more-itertools", "orjson", "ruamel.yaml", "sage-flatsurf"]
+dependencies = ["datasize", "click", "dask", "more-itertools", "orjson", "sage-flatsurf"]
 
 [project.scripts]
 flatsurvey = "flatsurvey.survey:survey"
@@ -27,7 +27,6 @@ black = "*"
 click = "*"
 codespell = "*"
 dask = "*"
-humanfriendly = "*"
 isort = "*"
 more-itertools = "*"
 orjson = "*"
@@ -35,18 +34,13 @@ pip = "*"
 psutil = "*"
 pyflatsurf = "*"
 pyintervalxt = "*"
-pylint = "*"
 pytest = "*"
 pytest-xdist = "*"
-python-dateutil = "*"
-rich = "*"
-"ruamel.yaml" = "*"
 sage-flatsurf = ">=0.6.0"
 alive-progress = "*"
 
 [tool.pixi.pypi-dependencies]
 flatsurvey = { path = ".", editable = true }
-cancel-token = "*"
 
 [tool.pixi.tasks.test]
 cmd = "pytest --forked -n $(nproc) --doctest-modules flatsurvey"
@@ -56,3 +50,6 @@ cmd = "black flatsurvey/**/*.py"
 
 [tool.pixi.tasks.codespell]
 cmd = "codespell flatsurvey"
+
+[tool.pixi.tasks.isort]
+cmd = "isort --profile black flatsurvey"
