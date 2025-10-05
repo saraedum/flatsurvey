@@ -34,18 +34,20 @@ def invoke(command, *args):
     r"""
     Invoke the click ``command`` with the given list of string arguments.
 
-    >>> import click
-    >>> @click.command()
-    ... def hello(): print("Hello World")
-    >>> invoke(hello)
-    Hello World
+    EXAMPLES::
 
-    >>> @click.command()
-    ... def fails(): raise Exception("expected error")
-    >>> invoke(fails)
-    Traceback (most recent call last):
-    ...
-    Exception: expected error
+        >>> import click
+        >>> @click.command()
+        ... def hello(): print("Hello World")
+        >>> invoke(hello)
+        Hello World
+
+        >>> @click.command()
+        ... def fails(): raise Exception("expected error")
+        >>> invoke(fails)
+        Traceback (most recent call last):
+        ...
+        Exception: expected error
 
     """
     invocation = CliRunner().invoke(command, args, catch_exceptions=False)
@@ -54,7 +56,25 @@ def invoke(command, *args):
         print(output)
 
 
-def invoke_subcommand(command, *args, bindings: Bindings | None=None):
+def invoke_subcommand(subcommand, *args, bindings: Bindings | None=None):
+    r"""
+    Invoke a :meth:`Bindings.click` subcommand of a click command with the
+    given list of ``arguments``.
+
+    EXAMPLES::
+
+        >>> import click
+        >>> @click.command("subcommand")
+        ... @Bindings.click
+        ... def subcommand(bindings: Bindings): bindings.define(hello="world")
+
+        >>> bindings = Bindings()
+        >>> invoke_subcommand(subcommand, bindings=bindings)
+        
+        >>> bindings.get("hello")
+        'world'
+
+    """
     if bindings is None:
         bindings = Bindings()
 
@@ -62,14 +82,14 @@ def invoke_subcommand(command, *args, bindings: Bindings | None=None):
     def doctest():
         pass
 
-    doctest.add_command(command)
+    doctest.add_command(subcommand)
 
     @doctest.result_callback()
-    def process(commands):
+    def _(commands):
         for command in commands:
             command(bindings)
 
-    invocation = CliRunner().invoke(doctest, (command.name,) + args, catch_exceptions=False)
+    invocation = CliRunner().invoke(doctest, (subcommand.name,) + args, catch_exceptions=False)
     output = invocation.output.strip()
     if output:
         print(output)
