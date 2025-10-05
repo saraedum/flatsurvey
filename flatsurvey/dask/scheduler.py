@@ -101,8 +101,13 @@ class Scheduler:
         scheduler_json=None,
         queue_limit=None,
     ):
+
+        if progress is None:
+            from flatsurvey.ui.progress import SilentProgress
+            progress = SilentProgress()
+
         self._survey_bindings = iter(survey_bindings)
-        self._progress = progress or Progress()
+        self._progress: Progress = progress
         self._scheduler_json = scheduler_json
         self._queue_limit = queue_limit
 

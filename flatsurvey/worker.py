@@ -1,9 +1,10 @@
 r"""
 Entrypoint for the survey worker to solve a single work package.
 
-Invoke this providing a source and some goals, e.g., to compute the orbit closure of a quadrilateral:
+Invoke this providing a source and some goals, e.g., to compute the orbit
+closure of a quadrilateral:
 ```
-python -m survey.worker ngon -a 1 -a 2 -a 3 -a 4 orbit-closure
+flatsurvey-worker ngon -a 1 -a 2 -a 3 -a 4 orbit-closure
 ```
 
 TESTS::
@@ -14,42 +15,30 @@ TESTS::
       Explore a surface.
     Options:
       --debug
-      --help             Show this message and exit.
       --mem-limit TEXT   Gracefully stop the worker when the memory consumption
                          exceeds this amount
       --time-limit TEXT  Gracefully stop the worker when the wall time elapsed
                          exceeds this amount
       -v, --verbose      Enable verbose message, repeat for debug message.
+      --help             Show this message and exit.
     Cache:
-      local-cache  A cache of previous results stored in local JSON files.
-      pickles      Access a database of pickles storing parts of previous
-                   computations.
+      local-cache  A readonly cache of previous results, read from local JSON...
+      pickles      Provide pickle files as referenced in the caches.
     Goals:
-      completely-cylinder-periodic  Determines whether for all directions given by
-                                    saddle connections, the decomposition of the
-                                    surface is completely cylinder periodic, i.e.,
-                                    the decomposition consists only of cylinders.
-      cylinder-periodic-direction   Determines whether there is a direction for
-                                    which the surface decomposes into cylinders.
-      orbit-closure                 Determines the GL₂(R) orbit closure of
-                                    ``surface``.
-      undetermined-iet              Tracks undetermined Interval Exchange
-                                    Transformations.
+      completely-cylinder-periodic  Determines whether for all directions given...
+      cylinder-periodic-direction   Determines whether there is a direction for...
+      orbit-closure                 Determines the GL₂(R) orbit closure of...
+      undetermined-iets             Tracks undetermined Interval Exchange...
     Intermediates:
-      flow-decompositions             Turns directions coming from saddle
-                                      connections into flow decompositions.
-      saddle-connection-orientations  Orientations of saddle connections on the
-                                      surface, i.e., the vectors of saddle
-                                      connections irrespective of scaling and sign.
+      flow-decompositions             Turns directions coming from saddle...
+      saddle-connection-orientations  Orientations of saddle connections on the...
       saddle-connections              Saddle connections on the surface.
     Reports:
       json    Writes results in JSON format.
       log     Writes progress and results as an unstructured log file.
       report  Generic reporting of results.
     Surfaces:
-      ngon            Unfolding of an n-gon with prescribed angles.
-      pickle          A base64 encoded pickle.
-      thurston-veech  Thurston-Veech construction
+      ngon  Unfolding of an n-gon with prescribed angles.
 
 """
 # *********************************************************************
@@ -77,10 +66,10 @@ import flatsurvey.cache
 import flatsurvey.jobs
 import flatsurvey.reporting
 import flatsurvey.surfaces
-from flatsurvey.pipeline import Bindings, Goal, BindingException
+from flatsurvey.pipeline import Bindings, Goal, BindingException, Consumer
 from flatsurvey.ui.group import CommandWithGroups
 from flatsurvey.reporting.report import Report
-from flatsurvey.restart import Restart
+from flatsurvey.dask.limits import Limit
 
 
 @click.group(
@@ -110,6 +99,10 @@ def worker(debug, mem_limit, time_limit, verbose):
     Main command to invoke the worker; specific objects and goals are
     registered automatically as subcommands.
     """
+    del debug  # handled by process()
+    del mem_limit  # handled by process()
+    del time_limit  # handled by process()
+    del verbose  # handled by process()
 
 
 # Register subcommands
@@ -135,15 +128,16 @@ def process(commands, debug, mem_limit, time_limit, verbose):
 
         >>> from flatsurvey.test.cli import invoke
         >>> invoke(worker, "ngon", "-a", "1", "-a", "1", "-a", "1", "orbit-closure")
-        [Ngon([1, 1, 1])] [OrbitClosure] dimension: 2/2
-        [Ngon([1, 1, 1])] [OrbitClosure] GL(2,R)-orbit closure of dimension at least 2 in H_1(0) (ambient dimension 2) (dimension: 2) (directions: 1) (directions_with_cylinders: 1) (dense: True)
+        [OrbitClosure] dimension: 2/2
+        [OrbitClosure] GL(2,R)-orbit closure of dimension at least 2 in H_1(0) (ambient dimension 2) (dimension: 2) (directions: 1) (directions_with_cylinders: 1) (dense: True)
 
     """
+    import pdb
+
     if debug:
-        import pdb
         import signal
 
-        signal.signal(signal.SIGUSR1, lambda sig, frame: pdb.Pdb().set_trace(frame))
+        signal.signal(signal.SIGUSR1, lambda _, frame: pdb.Pdb().set_trace(frame))
 
     if verbose:
         import logging
@@ -172,6 +166,13 @@ def process(commands, debug, mem_limit, time_limit, verbose):
     try:
         import asyncio
 
+        from flatsurvey.reporting import Log, Reporter
+        # Inject a default reporter to stdout if none is configured yet.
+        try:
+            bindings.get(list[Reporter])
+        except BindingException:
+            bindings.append(list[Reporter], Log(output="-"))
+
         asyncio.run(Worker.work(bindings=bindings, limits=limits))
     except Exception:
         if debug:
@@ -183,16 +184,10 @@ class Worker:
     r"""
     Works on a set of ``goals`` until they are all resolved.
 
-    EXAMPLES::
-
-        >>> import asyncio
-        >>> from flatsurvey.reporting.report import Report
-        >>> worker = Worker(goals=[], report=Report(reporters=[]))
-        >>> start = worker.start()
-        >>> asyncio.run(start)
+    Instances of this class should not be created directly. Use :meth:`work`
+    instead.
 
     """
-
     def __init__(
         self,
         goals: list[Goal],
@@ -201,23 +196,59 @@ class Worker:
         self._goals = goals
         self._report = report
 
-    @staticmethod
-    def create(bindings):
-        from flatsurvey.reporting import Log, Reporter
-        # Inject a default reporter to stdout if none is configured yet.
-        try:
-            bindings.get(list[Reporter])
-        except BindingException:
-            bindings.append(list[Reporter], Log(output="-"))
-
-        return Worker(goals=bindings.get(list[Goal], []), report=bindings.get(Report))
-
     @classmethod
-    async def work(cls, /, bindings: Bindings, limits=[]):
-        worker = bindings.get(Worker)
+    async def work(cls, /, bindings: Bindings, limits: list[Limit]|None=None):
+        r"""
+        Create a :class:`Worker` and use it to resolve the goals defined by
+        ``bindings``.
+
+        INPUT:
+
+        - ``bindings`` -- bindings whose ``list[Goal]`` entry specifies the
+          tasks that should be resolved.
+
+        - ``limits`` -- a list of :class:`Limit` resource checks that abort all
+          computations when the limits are exceeded.
+
+        EXAMPLES::
+
+            >>> from flatsurvey.surfaces import Ngon, Surface
+            >>> from flatsurvey.jobs import OrbitClosure
+            >>> from flatsurvey.pipeline import Bindings, Goal
+            >>> from flatsurvey.reporting import Log, Reporter
+
+            >>> bindings = Bindings()
+            >>> bindings.define(Surface, Ngon(angles=[1, 1, 1]))
+            >>> bindings.append(list[Goal], OrbitClosure)
+            >>> bindings.append(list[Reporter], Log(output="-"))
+
+            >>> import asyncio
+            >>> asyncio.run(Worker.work(bindings))
+            [OrbitClosure] dimension: 2/2
+            [OrbitClosure] GL(2,R)-orbit closure of dimension at least 2 in H_1(0) (ambient dimension 2) (dimension: 2) (directions: 1) (directions_with_cylinders: 1) (dense: True)
+
+        When the computation raises a restart exception, it restarts with the
+        modified bindings automatically::
+
+            >>> bindings = Bindings()
+            >>> bindings.define(Surface, Ngon(angles=[1, 4, 11]))
+            >>> bindings.append(list[Goal], OrbitClosure)
+            >>> with bindings.scope(OrbitClosure) as scoped: scoped.define(deform=True, stale_limit=1, expansions_limit=1)
+            >>> bindings.append(list[Reporter], Log(output="-"))
+
+            >>> import asyncio
+            >>> asyncio.run(Worker.work(bindings))  # doctest: +ELLIPSIS
+            [OrbitClosure] dimension: 3/8...
+            [OrbitClosure] Explored ... directions with conclusion. Deforming surface...
+            [OrbitClosure] GL(2,R)-orbit closure of dimension at least 4 in H_6(10) (ambient dimension 12) (dimension: 4) (directions: ...) (directions_with_cylinders: ...) (dense: None)
+
+        """
+        from flatsurvey.restart import Restart
+
+        worker = Worker(goals=bindings.get(list[Goal], []), report=bindings.get(Report))
 
         try:
-            await worker.start(limits=limits)
+            await worker._start(limits=limits)
         except Restart as restart:
             import logging
             logger = logging.getLogger()
@@ -225,10 +256,21 @@ class Worker:
 
             await Worker.work(bindings=restart.create_bindings(bindings), limits=limits)
 
-    async def start(self, limits=[]):
+    async def _start(self, limits: list[Limit]|None=None):
         r"""
         Run until all our goals are resolved.
+
+        Helper method for :meth:`work`.
+
+        EXAMPLES::
+
+            >>> import asyncio
+            >>> from flatsurvey.reporting.report import Report
+            >>> worker = Worker(goals=[], report=Report(reporters=[]))
+            >>> asyncio.run(worker._start())
+
         """
+        limits = limits or []
 
         def callback():
             for goal in self._goals:
@@ -244,18 +286,16 @@ class Worker:
         try:
             try:
                 for goal in self._goals:
-                    await goal.consume_cache()
+                    if isinstance(goal, Consumer):
+                        await goal.consume_cache()
                 for goal in self._goals:
                     await goal.resolve()
             finally:
                 for goal in self._goals:
-                    await goal.report()
+                    if isinstance(goal, Consumer):
+                        await goal.report()
         finally:
             for check in checks:
                 check.stop()
 
         self._report.flush()
-
-
-if __name__ == "__main__":
-    worker()

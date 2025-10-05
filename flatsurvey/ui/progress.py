@@ -21,7 +21,7 @@ Progress tracking during surveys
 # *********************************************************************
 
 from contextlib import AbstractContextManager, contextmanager
-from typing import Any
+from typing import Any, Self
 from abc import abstractmethod
 
 from alive_progress import alive_bar
