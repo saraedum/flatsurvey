@@ -217,8 +217,10 @@ class Log(Reporter, Command):
             '[Ngon([1, 1, 1])] [Log]'
 
         """
-        prefix = " ".join(f"[{value}]" for value in (self._configuration or {}).values())
-        return f"{prefix} [{type(source).__name__}]"
+        prefix = f"[{type(source).__name__}]"
+        if self._configuration:
+            prefix = " ".join(f"[{value}]" for value in self._configuration.values()) + " " + prefix
+        return prefix
 
     def log(self, source, message, **kwargs):
         r"""

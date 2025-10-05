@@ -34,7 +34,8 @@ EXAMPLES::
 Verify that this goal works in a non-survey run::
 
     >>> invoke(worker, "ngon", "-a", "1", "-a", "2", "-a", "4", "orbit-closure")  # doctest: +ELLIPSIS
-    [Ngon([1, 2, 4])] ... [OrbitClosure] GL(2,R)-orbit closure of dimension at least 7 in H_3(3, 1) (ambient dimension 7) (dimension: 7) (directions: 8) (directions_with_cylinders: 8) (dense: True)
+    [OrbitClosure] ...
+    [OrbitClosure] GL(2,R)-orbit closure of dimension at least 7 in H_3(3, 1) (ambient dimension 7) (dimension: 7) (directions: 8) (directions_with_cylinders: 8) (dense: True)
 
 TESTS:
 
@@ -387,7 +388,7 @@ class OrbitClosure(Consumer, Command):
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnectionOrientations, SaddleConnections
             >>> surface = Ngon((1, 3, 5))
             >>> connections = SaddleConnections(surface)
-            >>> log = Log(surface=surface)
+            >>> log = Log({Surface: surface}, output="-")
             >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(connections))
             >>> oc = OrbitClosure(surface=surface, report=Report([log]), flow_decompositions=flow_decompositions, saddle_connections=connections, cache=None)
 

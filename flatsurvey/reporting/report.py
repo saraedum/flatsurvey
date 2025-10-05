@@ -10,16 +10,17 @@ EXAMPLES::
       Generic reporting of results.
       A simple wrapper of several ``reporters`` that dispatches reporting.
     Options:
-      --ignore TEXT  [default: flow-decompositions, saddle-connections]
+      --ignore TEXT  [default: flow-decompositions, saddle-connections, saddle-
+                     connection-orientations]
       --help         Show this message and exit.
 
 ::
 
-    >>> from flatsurvey.surfaces import Ngon
+    >>> from flatsurvey.surfaces import Ngon, Surface
     >>> surface = Ngon((1, 1, 1))
 
     >>> from flatsurvey.reporting import Log
-    >>> log = Log(surface)
+    >>> log = Log({Surface: surface}, output="-")
     >>> report = Report([log])
     >>> report.log(surface, "Hello World")
     [Ngon([1, 1, 1])] [Ngon] Hello World
@@ -68,13 +69,19 @@ class Report(Command):
     """
     DEFAULT_IGNORE = ["flow-decompositions", "saddle-connections", "saddle-connection-orientations"]
 
-    def __init__(self, reporters: List[Reporter], ignore=None):
+    def __init__(self, reporters: List[Reporter]|None=None, ignore: list[str]|None=None):
+        if reporters is None:
+            reporters = []
         if ignore is None:
             ignore = Report.DEFAULT_IGNORE
 
         self._reporters = reporters
-        self._reported = set()
         self._ignore = ignore
+
+        # Keep track which goals have already reported their result (this is a
+        # bit of a hack…)
+        from flatsurvey.pipeline import Consumer
+        self._reported: set[Consumer] = set()
 
     @staticmethod
     @click.command(
@@ -114,15 +121,18 @@ class Report(Command):
             >>> report = Report.create(bindings)
 
             >>> report._ignore
-            ('flow-decompositions', 'saddle-connections')
+            ('flow-decompositions', 'saddle-connections', 'saddle-connection-orientations')
+
+        Note that we do not set a default reporter to stdout. If no reporter is
+        specified, then no reporting at all is going to happen::
+
+            >>> report._reporters
+            []
 
         """
         with bindings.scope(Report) as scoped:
-            from flatsurvey.surfaces.surface import Surface
-            from flatsurvey.reporting.log import Log
-
-            reporters = bindings.get(list[Reporter], default=lambda: [Log(surface=bindings.get(Surface))])
-            ignore = scoped.get("ignore", default=lambda: Report.DEFAULT_IGNORE)
+            reporters = bindings.get(list[Reporter], default=lambda: [])
+            ignore = scoped.get("ignore", default=Report.DEFAULT_IGNORE)
 
             return Report(reporters=reporters, ignore=ignore)
 
@@ -132,11 +142,11 @@ class Report(Command):
 
         EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> surface = Ngon((1, 1, 1))
 
             >>> from flatsurvey.reporting import Log
-            >>> log = Log(surface)
+            >>> log = Log({Surface: surface}, output="-")
             >>> report = Report([log, log])
             >>> report.log(surface, "Hello World printed by two identical reporters")
             [Ngon([1, 1, 1])] [Ngon] Hello World printed by two identical reporters
@@ -145,6 +155,7 @@ class Report(Command):
         """
         if self.ignore(source):
             return
+
         for reporter in self._reporters:
             reporter.log(source, message, **kwargs)
 
@@ -154,13 +165,13 @@ class Report(Command):
 
         EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> surface = Ngon((1, 1, 1))
             >>> _ = surface.polygon()  # called to make hashing work below
 
             >>> import asyncio
             >>> from flatsurvey.reporting import Log
-            >>> log = Log(surface)
+            >>> log = Log({Surface: surface}, output="-")
             >>> report = Report([log, log])
             >>> result = report.result(surface, "Computation completed.")
             >>> asyncio.run(result)
@@ -191,11 +202,11 @@ class Report(Command):
 
         EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> surface = Ngon((1, 1, 1))
 
             >>> from flatsurvey.reporting import Log
-            >>> log = Log(surface)
+            >>> log = Log({Surface: surface}, output="-")
             >>> report = Report([log, log])
             >>> context = report.progress(surface, what="dimension", count=13, total=37)
             [Ngon([1, 1, 1])] [Ngon] dimension: 13/37
@@ -214,7 +225,7 @@ class Report(Command):
                 message=message,
             )
 
-    def ignore(self, source):
+    def ignore(self, source) -> bool:
         r"""
         Return whether data from ``source`` should be ignored by this report.
 
@@ -256,13 +267,13 @@ class Report(Command):
         EXAMPLES::
 
             >>> from flatsurvey.reporting import Json, Report
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> surface = Ngon((1, 1, 1))
-            >>> json = Json(surface)
+            >>> json = Json({Surface: surface}, output="-")
             >>> report = Report([json])
 
             >>> report.flush()
-            {"surface": {"angles": [1, 1, 1], "type": "Ngon", "pickle": "dropped"}}
+            {"surface": {"angles": [1, 1, 1], "type": "Ngon", "repr": "Ngon([1, 1, 1])"}}
 
         """
         for reporter in self._reporters:

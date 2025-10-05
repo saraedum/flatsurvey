@@ -129,7 +129,7 @@ class UndeterminedIntervalExchangeTransformations(Consumer, Command):
 
         EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> from flatsurvey.cache import Cache
             >>> from flatsurvey.reporting.log import Log
             >>> from flatsurvey.reporting import Report
@@ -137,7 +137,7 @@ class UndeterminedIntervalExchangeTransformations(Consumer, Command):
             >>> surface = Ngon((1, 1, 1))
             >>> saddle_connection_orientations = SaddleConnectionOrientations(saddle_connections=SaddleConnections(surface=surface))
             >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=saddle_connection_orientations)
-            >>> log = Log(surface)
+            >>> log = Log({Surface: surface}, output="-")
 
         We mock some artificial results from previous runs and consume that
         artificial cache. Since we set ``--cache-only``, a result is reported
@@ -306,9 +306,12 @@ class UndeterminedIntervalExchangeTransformations(Consumer, Command):
 
             >>> from flatsurvey.pipeline import Bindings
             >>> from flatsurvey.surfaces import Ngon, Surface
+            >>> from flatsurvey.reporting import Reporter, Log
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnections
+            >>> surface = Ngon([1, 3, 5])
             >>> bindings = Bindings()
-            >>> bindings.define(Surface, Ngon([1, 3, 5]))
+            >>> bindings.define(Surface, surface)
+            >>> bindings.append(list[Reporter], Log({Surface: surface}, output="-"))
             >>> with bindings.scope(SaddleConnections) as scoped: scoped.define(limit=73)
             >>> with bindings.scope(FlowDecompositions) as scoped: scoped.define(limit=1)
             >>> with bindings.scope(UndeterminedIntervalExchangeTransformations) as scoped: scoped.define(limit=1)
@@ -317,6 +320,7 @@ class UndeterminedIntervalExchangeTransformations(Consumer, Command):
             >>> import asyncio
             >>> asyncio.run(uiet.resolve())
             [Ngon([1, 3, 5])] [UndeterminedIntervalExchangeTransformations] ...
+            False
 
         """
         for component in product.components():

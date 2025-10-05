@@ -20,7 +20,7 @@ non-cylinder.
 Verify that this goal works in a non-survey run::
 
     >>> invoke(worker, "ngon", "-a", "1", "-a", "3", "-a", "11", "cylinder-periodic-direction")  # doctest: +ELLIPSIS
-    [Ngon([1, 3, 11])] [CylinderPeriodicDirection] True ...
+    [CylinderPeriodicDirection] True ...
 
 TESTS:
 
@@ -255,7 +255,7 @@ class CylinderPeriodicDirection(Consumer, Command):
             >>> from flatsurvey.reporting import Log, Report
             >>> from flatsurvey.jobs import FlowDecompositions, SaddleConnections, SaddleConnectionOrientations
             >>> surface = Ngon((1, 1, 1))
-            >>> log = Log(surface)
+            >>> log = Log({Surface: surface}, output="-")
             >>> flow_decompositions = FlowDecompositions(surface=surface, saddle_connection_orientations=SaddleConnectionOrientations(SaddleConnections(surface)))
             >>> cpd = CylinderPeriodicDirection(report=Report([log]), flow_decompositions=flow_decompositions, cache=None)
 

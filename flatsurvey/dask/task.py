@@ -275,8 +275,8 @@ class Task:
         output files::
 
             >>> task.run()
-            [Ngon([1, 1, 1])] [OrbitClosure] dimension: 2/2
-            [Ngon([1, 1, 1])] [OrbitClosure] GL(2,R)-orbit closure of dimension at least 2 in H_1(0) (ambient dimension 2) (dimension: 2) (directions: 1) (directions_with_cylinders: 1) (dense: True)
+            [OrbitClosure] dimension: 2/2
+            [OrbitClosure] GL(2,R)-orbit closure of dimension at least 2 in H_1(0) (ambient dimension 2) (dimension: 2) (directions: 1) (directions_with_cylinders: 1) (dense: True)
 
         """
         from pickle import loads

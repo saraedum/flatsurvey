@@ -34,11 +34,8 @@ class Reporter:
 
     EXAMPLES::
 
-        >>> from flatsurvey.surfaces import Ngon
-        >>> surface = Ngon((1, 1, 1))
-
         >>> from flatsurvey.reporting import Log
-        >>> log = Log(surface)
+        >>> log = Log(output="-")
         >>> isinstance(log, Reporter)
         True
 
@@ -51,11 +48,11 @@ class Reporter:
 
         EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> surface = Ngon((1, 1, 1))
 
             >>> from flatsurvey.reporting import Log
-            >>> log = Log(surface)
+            >>> log = Log({Surface: surface}, output="-")
             >>> log.log(source=surface, message="Hello World", additional_data=1337)
             [Ngon([1, 1, 1])] [Ngon] Hello World (additional_data: 1337)
 
@@ -73,12 +70,12 @@ class Reporter:
 
         EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> surface = Ngon((1, 1, 1))
 
             >>> import asyncio
             >>> from flatsurvey.reporting import Log
-            >>> log = Log(surface)
+            >>> log = Log({Surface: surface}, output="-")
             >>> report = log.result(source=surface, result="result", additional_data=1337)
             >>> asyncio.run(report)
             [Ngon([1, 1, 1])] [Ngon] result (additional_data: 1337)
@@ -103,11 +100,11 @@ class Reporter:
 
         EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurvey.surfaces import Ngon, Surface
             >>> surface = Ngon((1, 1, 1))
 
             >>> from flatsurvey.reporting import Log
-            >>> log = Log(surface)
+            >>> log = Log({Surface: surface}, output="-")
             >>> log.progress(source=surface, what="progress", count=13, total=37)
             [Ngon([1, 1, 1])] [Ngon] progress: 13/37
 
@@ -126,11 +123,8 @@ class Reporter:
 
         EXAMPLES::
 
-            >>> from flatsurvey.surfaces import Ngon
-            >>> surface = Ngon((1, 1, 1))
-
             >>> from flatsurvey.reporting import Log
-            >>> log = Log(surface)
+            >>> log = Log(output="-")
             >>> log.flush()
 
         """

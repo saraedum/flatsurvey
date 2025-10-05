@@ -77,7 +77,7 @@ import flatsurvey.cache
 import flatsurvey.jobs
 import flatsurvey.reporting
 import flatsurvey.surfaces
-from flatsurvey.pipeline import Bindings
+from flatsurvey.pipeline import Bindings, Goal
 from flatsurvey.ui.group import CommandWithGroups
 from flatsurvey.reporting.report import Report
 from flatsurvey.restart import Restart
@@ -109,7 +109,6 @@ def worker(debug, mem_limit, time_limit, verbose):
     r"""
     Main command to invoke the worker; specific objects and goals are
     registered automatically as subcommands.
-
     """
 
 
@@ -196,7 +195,7 @@ class Worker:
 
     def __init__(
         self,
-        goals,
+        goals: list[Goal],
         report: Report,
     ):
         self._goals = goals
@@ -204,7 +203,10 @@ class Worker:
 
     @staticmethod
     def create(bindings):
-        from flatsurvey.pipeline import Goal
+        from flatsurvey.reporting import Log, Reporter
+        # Inject a default reporter to stdout if none is configured yet.
+        bindings.get(list[Reporter], lambda: [Log(output="-")])
+
         return Worker(goals=bindings.get(list[Goal], []), report=bindings.get(Report))
 
     @classmethod
