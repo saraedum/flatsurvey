@@ -104,13 +104,17 @@ class Json(Reporter, Command):
     )
     @click.option(
         "--prefix",
-        type=click.Path(file_okay=False, dir_okay=True, allow_dash=False, path_type=Path),
+        type=click.Path(
+            file_okay=False, dir_okay=True, allow_dash=False, path_type=Path
+        ),
         default=None,
         help="directory for JSON output files [default: current directory]",
     )
     @click.option(
         "--pickles",
-        type=click.Path(file_okay=False, dir_okay=True, allow_dash=False, path_type=Path),
+        type=click.Path(
+            file_okay=False, dir_okay=True, allow_dash=False, path_type=Path
+        ),
         default=None,
         help="base directory to store pickles of non-primitive results [default: pickles are not stored]",
     )
