@@ -49,7 +49,7 @@ class Runner:
         >>> from flatsurvey.pipeline import Bindings, Goal
 
         >>> bindings = Bindings()
-        >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
+        >>> bindings.define(Surface, Ngon(angles=[1, 1, 1]))
         >>> bindings.append(list[Goal], OrbitClosure)
 
         >>> task = Task(bindings=bindings)
@@ -105,7 +105,7 @@ class Runner:
             >>> from flatsurvey.pipeline import Bindings, Goal
 
             >>> bindings = Bindings()
-            >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
+            >>> bindings.define(Surface, Ngon(angles=[1, 1, 1]))
             >>> bindings.append(list[Goal], OrbitClosure)
 
             >>> task = Task(bindings=bindings)

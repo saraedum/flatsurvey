@@ -29,10 +29,10 @@ spin up a dask client and have it run a task from this module::
     >>> survey.append(list[Goal], OrbitClosure)
 
     >>> bindings1 = survey.clone()
-    >>> bindings1.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
+    >>> bindings1.define(Surface, Ngon(angles=[1, 1, 1]))
 
     >>> bindings2 = survey.clone()
-    >>> bindings2.define(Surface, Ngon(angles=[1, 1, 2], length="e-antic"))
+    >>> bindings2.define(Surface, Ngon(angles=[1, 1, 2]))
 
     >>> tasks = [Task(bindings=bindings1), Task(bindings=bindings2)]
     >>> tasks
@@ -135,7 +135,7 @@ class Task:
         >>> from flatsurvey.pipeline import Bindings, Goal
 
         >>> bindings = Bindings()
-        >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
+        >>> bindings.define(Surface, Ngon(angles=[1, 1, 1]))
         >>> bindings.append(list[Goal], OrbitClosure)
 
         >>> task = Task(bindings=bindings)
@@ -200,7 +200,7 @@ class Task:
             >>> from flatsurvey.pipeline import Bindings, Goal
 
             >>> bindings = Bindings()
-            >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
+            >>> bindings.define(Surface, Ngon(angles=[1, 1, 1]))
             >>> bindings.append(list[Goal], OrbitClosure)
 
             >>> task = Task(bindings=bindings)
@@ -265,7 +265,7 @@ class Task:
             >>> from flatsurvey.pipeline import Bindings, Goal
 
             >>> bindings = Bindings()
-            >>> bindings.define(Surface, Ngon(angles=[1, 1, 1], length="e-antic"))
+            >>> bindings.define(Surface, Ngon(angles=[1, 1, 1]))
             >>> bindings.append(list[Goal], OrbitClosure)
 
             >>> task = Task(bindings=bindings)

@@ -11,7 +11,7 @@ We compute the orbit closure of the (1,1,1) and the (1,1,2) triangles::
     >>> survey = Bindings()
 
     >>> from flatsurvey.surfaces import Surface, Ngons
-    >>> ngons = Ngons(vertices=3, length="e-antic", min=0, limit=None, count=2, literature='include', family=None, filter=None)
+    >>> ngons = Ngons(vertices=3, min=0, limit=None, count=2, literature='include', family=None, filter=None)
     >>> survey.survey(Surface, ngons)
 
     >>> from flatsurvey.jobs import OrbitClosure
