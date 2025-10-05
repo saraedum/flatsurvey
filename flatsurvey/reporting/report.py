@@ -126,28 +126,6 @@ class Report(Command):
 
             return Report(reporters=reporters, ignore=ignore)
 
-    def deform(self, deformation) -> "Report":
-        r"""
-        Return a report that can be used to report about a ``deformation`` of
-        the original surface.
-
-        EXAMPLES::
-
-            >>> from flatsurvey.surfaces import Ngon
-            >>> surface = Ngon((1, 1, 1))
-
-            >>> from flatsurvey.reporting import Log
-            >>> report = Report([Log(surface)])
-            >>> report.log(source=surface, message="Hello World")
-            [Ngon([1, 1, 1])] [Ngon] Hello World
-
-            >>> report = report.deform(Ngon((1, 1, 2)))
-            >>> report.log(source=surface, message="Hello World")
-            [Ngon([1, 1, 2])] [Ngon] Hello World
-
-        """
-        return Report(reporters=[reporter.deform(deformation) for reporter in self._reporters], ignore=self._ignore)
-
     def log(self, source, message, **kwargs):
         r"""
         Write an informational message to the report.

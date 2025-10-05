@@ -9,12 +9,12 @@ EXAMPLES::
     Usage: worker json [OPTIONS]
       Writes results in JSON format.
     Options:
-      --output FILE        [default: derived automatically]
-      --prefix DIRECTORY   [default: current directory]
+      --output FILE        JSON output file [default: derived automatically]
+      --prefix DIRECTORY   directory for JSON output files [default: current
+                           directory]
       --pickles DIRECTORY  base directory to store pickles of non-primitive results
                            [default: pickles are not stored]
       --help               Show this message and exit.
-
 """
 # *********************************************************************
 #  This file is part of flatsurvey.
@@ -92,13 +92,13 @@ class Json(Reporter, Command):
         "--output",
         type=click.Path(file_okay=True, dir_okay=False, allow_dash=True),
         default=None,
-        help="[default: derived automatically]",
+        help="JSON output file [default: derived automatically]",
     )
     @click.option(
         "--prefix",
         type=click.Path(file_okay=False, dir_okay=True, allow_dash=False),
         default=None,
-        help="[default: current directory]",
+        help="directory for JSON output files [default: current directory]",
     )
     @click.option(
         "--pickles",
@@ -250,7 +250,6 @@ class Json(Reporter, Command):
         automatically constructed so we do not overwrite existing files.
 
         EXAMPLES::
-
 
             >>> from flatsurvey.surfaces import Ngon, Surface
             >>> surface = Ngon((1, 1, 1))

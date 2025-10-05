@@ -24,7 +24,7 @@ Note that simple visual progress tracking is available in
 # *********************************************************************
 
 from flatsurvey.reporting.json import Json
-from flatsurvey.reporting.log import Log, GenericLog
+from flatsurvey.reporting.log import Log
 from flatsurvey.reporting.report import Report
 from flatsurvey.reporting.reporter import Reporter
 

@@ -23,7 +23,8 @@ Reads caches of previous results.
 from flatsurvey.cache.cache import Cache
 from flatsurvey.cache.pickles import Pickles
 from flatsurvey.cache.join import Join
+from flatsurvey.reporting import Log
 
 commands = [Cache.click, Pickles.click]
 
-maintenance_commands = [Join.click]
+maintenance_commands = [Join.click, Log.click]
