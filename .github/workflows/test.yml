@@ -28,19 +28,19 @@ jobs:
       - name: run survey
         shell: pixi run bash -e {0}
         run: |
-          flatsurvey orbit-closure ngons --vertices 3 --limit 7 json
+          flatsurvey orbit-closure ngons --vertices 3 --limit 7 json --prefix survey
       - name: build cache database from previous run
         shell: pixi run bash -e {0}
         run: |
           # Creata single cache file from the runs.
-          flatsurvey-maintenance join *.json
+          flatsurvey-maintenance join --outdir survey-results survey/**/*.json
 
-          cat orbit-closure.json
+          cat survey-results/orbit-closure.json
       - name: run survey from cache
         shell: pixi run bash -e {0}
         run: |
           # The survey succeeds with the cache enabled.
-          flatsurvey orbit-closure ngons --vertices 3 --limit 7 local-cache --json orbit-closure.json log
+          flatsurvey orbit-closure ngons --vertices 3 --limit 7 local-cache --json survey-results/orbit-closure.json log --output -
 
           # The survey succeeds without running any computations.
-          flatsurvey orbit-closure --cache-only ngons --vertices 3 --limit 7 local-cache --json orbit-closure.json log
+          flatsurvey orbit-closure --cache-only ngons --vertices 3 --limit 7 local-cache --json survey-results/orbit-closure.json log --output -

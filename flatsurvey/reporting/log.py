@@ -99,7 +99,7 @@ class Log(Reporter, Command):
     )
     @click.option(
         "--prefix",
-        type=click.Path(exists=True, file_okay=False, dir_okay=True, allow_dash=False),
+        type=click.Path(exists=True, file_okay=False, dir_okay=True, allow_dash=False, path_type=Path),
         default=None,
         help="directory for output file [default: current directory]",
     )

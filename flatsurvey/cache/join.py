@@ -70,10 +70,10 @@ class Join(Goal, Command):
 
     @staticmethod
     @click.command(name="join", help=__doc__.split("INPUT")[0])  # type: ignore
-    @click.argument("jsons", nargs=-1, type=click.Path(exists=True))
+    @click.argument("jsons", nargs=-1, type=click.Path(exists=True, path_type=Path))
     @click.option(
         "--outdir",
-        type=click.Path(),
+        type=click.Path(path_type=Path),
         required=True,
         help="a directory to write the output files to",
     )
@@ -148,6 +148,8 @@ class Join(Goal, Command):
         from flatsurvey.cache import Cache
 
         subjects = Cache.load(self._jsons)
+
+        self._outdir.mkdir(parents=True, exist_ok=True)
 
         for subject, values in subjects.items():
             with open(self._outdir / f"{subject}.json", "w") as output:
