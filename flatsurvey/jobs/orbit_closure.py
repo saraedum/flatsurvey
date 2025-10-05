@@ -87,7 +87,7 @@ from flatsurvey.ui import Command
 from flatsurvey.pipeline import Consumer, Bindings, Goal
 from flatsurvey.ui.group import GroupedCommand
 from flatsurvey.cache import Cache
-from flatsurvey.surfaces import Surface
+from flatsurvey.surfaces import Surface, Deformation
 from flatsurvey.reporting import Report
 from flatsurvey.jobs.flow_decompositions import FlowDecompositions
 from flatsurvey.jobs.saddle_connections import SaddleConnections
@@ -567,8 +567,7 @@ class OrbitClosure(Consumer, Command):
                         )
 
                         def create_bindings(old: Bindings):
-                            from flatsurvey.surfaces import Deformation
-                            deformation = Deformation(surface, old=self._surface)
+                            deformation = OrbitClosureDeformation(surface, old=self._surface)
 
                             bindings = old.clone()
                             bindings.forget(Surface)
@@ -629,6 +628,35 @@ class OrbitClosure(Consumer, Command):
                 dense=self.dense,
                 **kwargs
             )
+
+
+class OrbitClosureDeformation(Deformation):
+    @property
+    def orbit_closure_dimension_upper_bound(self):
+        r"""
+        Return an upper bound for the dimension of the orbit closure.
+
+        This is the same as the upper bound for the surface before deformation.
+
+        EXAMPLES::
+
+            >>> from flatsurvey.surfaces import Ngon
+            >>> from flatsurf.geometry.pyflatsurf_conversion import from_pyflatsurf
+            >>> from flatsurf import GL2ROrbitClosure
+
+            >>> S = Ngon((1, 1, 1))
+
+            >>> O = GL2ROrbitClosure(S.surface())
+
+            >>> delta = [O.V2(v, 0).vector for v in O.lift(O.tangent_space_basis()[0])]
+            >>> deformation = from_pyflatsurf((O._surface + delta).surface())
+
+            >>> T = OrbitClosureDeformation(deformation, S)
+            >>> T.orbit_closure_dimension_upper_bound
+            2
+
+        """
+        return self._old.orbit_closure_dimension_upper_bound
 
 
 __test__ = {

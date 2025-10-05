@@ -1,4 +1,3 @@
-# TODO: Inline this into orbit_closure
 r"""
 Deformations of surfaces
 
@@ -43,11 +42,8 @@ EXAMPLES::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from flatsurvey.restart import Restart
 from flatsurvey.surfaces.surface import Surface
 from flatsurvey.cache import Cache
-from flatsurvey.pipeline import Bindings
-
 
 class Deformation(Surface):
     r"""
@@ -76,40 +72,13 @@ class Deformation(Surface):
         Deformation of Ngon([1, 1, 1])
 
     """
-    def __init__(self, deformed, old):
-        super().__init__(old._eliminate_marked_points)
+    def __init__(self, deformed: Surface, old: Surface):
+        super().__init__(eliminate_marked_points=old._eliminate_marked_points)
         self._deformed = deformed
         self._old = old
 
     def __repr__(self):
         return f"Deformation of {self._old}"
-
-    @property
-    def orbit_closure_dimension_upper_bound(self):
-        r"""
-        Return an upper bound for the dimension of the orbit closure.
-
-        This is the same as the upper bound for the surface before deformation.
-
-        EXAMPLES::
-
-            >>> from flatsurvey.surfaces import Ngon, Deformation
-            >>> from flatsurf.geometry.pyflatsurf_conversion import from_pyflatsurf
-            >>> from flatsurf import GL2ROrbitClosure
-
-            >>> S = Ngon((1, 1, 1))
-
-            >>> O = GL2ROrbitClosure(S.surface())
-
-            >>> delta = [O.V2(v, 0).vector for v in O.lift(O.tangent_space_basis()[0])]
-            >>> deformation = from_pyflatsurf((O._surface + delta).surface())
-
-            >>> T = Deformation(deformation, S)
-            >>> T.orbit_closure_dimension_upper_bound
-            2
-
-        """
-        return self._old.orbit_closure_dimension_upper_bound
 
     def _surface(self):
         r"""
@@ -153,37 +122,6 @@ class Deformation(Surface):
         is just the constant ``False``. We assume that this is a fairly random
         deformation that is not going to be present in the cache anyway.
         """
-        return lambda result: False
-
-    # TODO: Move this into a restart() method or something like that.
-    class Restart(Restart):
-        r"""
-        An exception that can be raised anywhere in the worker to restart work
-        on a surface with a ``deformed`` version.
-
-        This exception is raised during the orbit closure search when the
-        search has spent too many iterations without making any progress.
-        """
-        def __init__(self, deformed, old):
-            self._deformation = Deformation(deformed=deformed, old=old)
-
-        def restart(self, bindings: Bindings):
-            r"""
-            Return a modification of the bindings that define the survey of the
-            ``old`` surface to run on the ``deformed`` surface instead.
-            """
-            # We mangle the report and inject it back into the bindings so that
-            # the reporting has a chance to write any results to the files for
-            # the unmodified surface.
-            from flatsurvey.reporting import Report
-            report = bindings.get(Report)
-            report = report.deform(self._deformation)
-
-            bindings = bindings.clone()
-            bindings.forget(Report)
-            bindings.define(Report, report)
-
-            bindings.forget(Surface)
-            bindings.define(Surface, self._deformation)
-
-            return bindings
+        del exact
+        del cache
+        return lambda _: False
