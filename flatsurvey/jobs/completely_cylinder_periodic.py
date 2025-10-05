@@ -248,7 +248,7 @@ class CompletelyCylinderPeriodic(Consumer, Command):
 
     async def _consume(self, product: flatsurf.FlowDecomposition, cost):
         r"""
-        Determine wheter ``product`` is cylinder periodic.
+        Determine whether ``product`` is cylinder periodic.
 
         EXAMPLES::
 

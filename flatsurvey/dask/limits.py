@@ -206,7 +206,7 @@ class MemoryLimit(Limit):
     r"""
     A limit on the total RAM and swap memory used by this process.
 
-    EXMAPLES::
+    EXAMPLES::
 
         >>> from flatsurvey.dask.limits import MemoryLimit
         >>> limit = MemoryLimit(2**30)

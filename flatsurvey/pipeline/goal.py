@@ -44,7 +44,7 @@ class Goal(ABC):
 
         EXAMPLES:
 
-        Typicall, a :class:`Transformation` does never reach the resolved
+        Typically, a :class:`Transformation` does never reach the resolved
         status::
 
             >>> from flatsurvey.surfaces import Ngon

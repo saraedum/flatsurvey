@@ -699,7 +699,7 @@ class Bindings:
 
 class BindingException(Exception):
     r"""
-    Generic exception that is thrown whan a binding could not be resolved.
+    Generic exception that is thrown when a binding could not be resolved.
 
     EXAMPLES::
 

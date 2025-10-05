@@ -71,7 +71,7 @@ some log file by a reporter instead::
     OMP_NUM_THREADS=1``.)
 
     We cannot use a dask nanny with our workers since the nanny spawns the
-    worker as a daemon, and a daemon canot easily have children in Python (see
+    worker as a daemon, and a daemon cannot easily have children in Python (see
     https://mail.python.org/pipermail/python-list/2011-March/600152.html.) So
     we must start our workers with ``--no-nanny``.
 

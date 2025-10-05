@@ -247,7 +247,7 @@ class CylinderPeriodicDirection(Consumer, Command):
 
     async def _consume(self, product, cost):
         r"""
-        Determine wheter ``decomposition`` is cylinder periodic.
+        Determine whether ``decomposition`` is cylinder periodic.
 
         EXAMPLES::
 

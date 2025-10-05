@@ -105,7 +105,7 @@ class Producer:
             >>> connections = SaddleConnections(surface=surface, limit=0)
 
         For a producer to be exhausted, it has to be asked to :meth:`produce`
-        at least once unsuccesfully. This is a bit unfortunate, but due to the
+        at least once unsuccessfully. This is a bit unfortunate, but due to the
         lazy implementation, there is currently no other way::
 
             >>> import asyncio

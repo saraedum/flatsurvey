@@ -254,7 +254,7 @@ class UndeterminedIntervalExchangeTransformations(Consumer, Command):
         EXAMPLES:
 
         We look at flow decompositions in the (1, 3, 5) surface and limit to a
-        single Rauzy induction step so we artifically create some
+        single Rauzy induction step so we artificially create some
         "undetermined" IETs here::
 
             >>> from flatsurvey.pipeline import Bindings
