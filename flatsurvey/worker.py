@@ -130,7 +130,7 @@ def process(commands, debug, mem_limit, time_limit, verbose):
         >>> from flatsurvey.test.cli import invoke
         >>> invoke(worker, "ngon", "-a", "1", "-a", "1", "-a", "1", "orbit-closure")
         [OrbitClosure] dimension: 2/2
-        [OrbitClosure] GL(2,R)-orbit closure of dimension at least 2 in H_1(0) (ambient dimension 2) (dimension: 2) (directions: 1) (directions_with_cylinders: 1) (dense: True)
+        [OrbitClosure] GL(2,R)-orbit closure of dimension at least 2 in H_1(0) (ambient dimension 2) (dimension: 2) (dimension_upper_bound: 2) (directions: 1) (directions_with_cylinders: 1) (dense: True)
 
     """
     import pdb
@@ -228,7 +228,7 @@ class Worker:
             >>> import asyncio
             >>> asyncio.run(Worker.work(bindings))
             [OrbitClosure] dimension: 2/2
-            [OrbitClosure] GL(2,R)-orbit closure of dimension at least 2 in H_1(0) (ambient dimension 2) (dimension: 2) (directions: 1) (directions_with_cylinders: 1) (dense: True)
+            [OrbitClosure] GL(2,R)-orbit closure of dimension at least 2 in H_1(0) (ambient dimension 2) (dimension: 2) (dimension_upper_bound: 2) (directions: 1) (directions_with_cylinders: 1) (dense: True)
 
         When the computation raises a restart exception, it restarts with the
         modified bindings automatically::
@@ -243,7 +243,7 @@ class Worker:
             >>> asyncio.run(Worker.work(bindings))  # doctest: +ELLIPSIS
             [OrbitClosure] dimension: 3/8...
             [OrbitClosure] Explored ... directions with conclusion. Deforming surface...
-            [OrbitClosure] GL(2,R)-orbit closure of dimension at least 4 in H_6(10) (ambient dimension 12) (dimension: 4) (directions: ...) (directions_with_cylinders: ...) (dense: None)
+            [OrbitClosure] GL(2,R)-orbit closure of dimension at least 4 in H_6(10) (ambient dimension 12) (dimension: 4) (dimension_upper_bound: 8) (directions: ...) (directions_with_cylinders: ...) (dense: None)
 
         """
         from flatsurvey.restart import Restart

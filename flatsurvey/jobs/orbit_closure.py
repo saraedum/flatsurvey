@@ -35,7 +35,7 @@ Verify that this goal works in a non-survey run::
 
     >>> invoke(worker, "ngon", "-a", "1", "-a", "2", "-a", "4", "orbit-closure")  # doctest: +ELLIPSIS
     [OrbitClosure] ...
-    [OrbitClosure] GL(2,R)-orbit closure of dimension at least 7 in H_3(3, 1) (ambient dimension 7) (dimension: 7) (upper_bound: 7) (directions: 8) (directions_with_cylinders: 8) (dense: True)
+    [OrbitClosure] GL(2,R)-orbit closure of dimension at least 7 in H_3(3, 1) (ambient dimension 7) (dimension: 7) (dimension_upper_bound: 7) (directions: 8) (directions_with_cylinders: 8) (dense: True)
 
 TESTS:
 
@@ -71,7 +71,7 @@ closure::
     ...     cache = Cache(Cache.load([tmpdir]))
 
     >>> cached = cache.get("orbit-closure")
-    >>> cached = cached.filter(lambda row: row.upper_bound != 2)
+    >>> cached = cached.filter(lambda row: row.dimension_upper_bound != 2)
     >>> len(cached)
     4
     >>> cached.dense is None
@@ -426,7 +426,7 @@ class OrbitClosure(Consumer, Command):
             >>> assert asyncio.run(resolve)
             [Ngon([1, 3, 5])] [OrbitClosure] dimension: 4/6
             [Ngon([1, 3, 5])] [OrbitClosure] dimension: 6/6
-            [Ngon([1, 3, 5])] [OrbitClosure] GL(2,R)-orbit closure of dimension at least 6 in H_3(4) (ambient dimension 6) (dimension: 6) (upper_bound: 6) (directions: 2) (directions_with_cylinders: 2) (dense: True)
+            [Ngon([1, 3, 5])] [OrbitClosure] GL(2,R)-orbit closure of dimension at least 6 in H_3(4) (ambient dimension 6) (dimension: 6) (dimension_upper_bound: 6) (directions: 2) (directions_with_cylinders: 2) (dense: True)
 
         TESTS:
 
@@ -444,7 +444,7 @@ class OrbitClosure(Consumer, Command):
 
             >>> asyncio.run(oc.report())
             >>> report.flush()  # doctest: +ELLIPSIS
-            {"surface": {"angles": [1, 3, 5], "type": "Ngon", "repr": "Ngon([1, 3, 5])"}, "orbit-closure": [{"timestamp": "...", "dimension": 6, "upper_bound": 6, "directions": 2, "directions_with_cylinders": 2, "dense": true, "value": {"type": "GL2ROrbitClosure", "repr": "GL(2,R)-orbit closure of dimension at least 6 in H_3(4) (ambient dimension 6)"}}]}
+            {"surface": {"angles": [1, 3, 5], "type": "Ngon", "repr": "Ngon([1, 3, 5])"}, "orbit-closure": [{"timestamp": "...", "dimension": 6, "dimension_upper_bound": 6, "directions": 2, "directions_with_cylinders": 2, "dense": true, "value": {"type": "GL2ROrbitClosure", "repr": "GL(2,R)-orbit closure of dimension at least 6 in H_3(4) (ambient dimension 6)"}}]}
 
 
         """
@@ -664,7 +664,7 @@ class OrbitClosure(Consumer, Command):
                 self,
                 self._orbit_closure(),
                 dimension=self.dimension,
-                upper_bound=self._surface.orbit_closure_dimension_upper_bound,
+                dimension_upper_bound=self._surface.orbit_closure_dimension_upper_bound,
                 directions=self._directions,
                 directions_with_cylinders=self._directions_with_cylinders,
                 dense=self.dense,

@@ -50,7 +50,7 @@ class Restart(Exception):
         >>> invoke(worker, "ngon", "-a", "1", "-a", "4", "-a", "11", "orbit-closure", "--deform", "--stale-limit", "1", "--expansions-limit", "1")
         [OrbitClosure] dimension: 3/8...
         [OrbitClosure] Explored ... directions with conclusion. Deforming surface...
-        [OrbitClosure] GL(2,R)-orbit closure of dimension at least 4 in H_6(10) (ambient dimension 12) (dimension: 4) (directions: ...) (directions_with_cylinders: ...) (dense: None)
+        [OrbitClosure] GL(2,R)-orbit closure of dimension at least 4 in H_6(10) (ambient dimension 12) (dimension: 4) (dimension_upper_bound: 8) (directions: ...) (directions_with_cylinders: ...) (dense: None)
 
     """
 
