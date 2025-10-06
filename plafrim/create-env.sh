@@ -1,18 +1,19 @@
 set -eo pipefail
 
-# TODO: Adapt to pixi.
-MINIFORGE=/tmp/jrueth/miniforge
-rm -rf $MINIFORGE
-wget -O miniforge.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
-sh miniforge.sh -b -p $MINIFORGE
-source "${MINIFORGE}/etc/profile.d/conda.sh"
-source "${MINIFORGE}/etc/profile.d/mamba.sh"
+# To install pixi, ssh -R 3333 and set https_proxy=socks5://localhost:3333.
+# Then install pixi as usual. The conda-forge repositories are not blocked by
+# PlaFRIM, only the installation scripts are, so reconnect without this hack.
 
-mamba env create -n flatsurvey -f environment.yml
-mamba activate flatsurvey
-pip install .
+# Go to the flatsurvey root directory.
+cd "$(dirname "$0")"/..
 
-mamba install -n base -y conda-pack
-rm -f /beegfs/jrueth/flatsurvey.tar.gz
-conda pack -n flatsurvey -o /beegfs/jrueth/flatsurvey.tar.gz
+# We install the pixi environment into a fast local directory.
+DETACHED_ENVIRONMENTS=/tmp/jrueth/pixi
 
+mkdir -p .pixi
+cat <<EOF > .pixi/config.toml
+detached-environments = "$DETACHED_ENVIRONMENTS"
+EOF
+
+# We cannot install our environment on the devel machines since the ulimit is
+# set to 300 processes which is not enough for a functional pixi.

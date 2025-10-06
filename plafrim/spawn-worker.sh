@@ -1,15 +1,10 @@
 set -eo pipefail
 
-HOME=/tmp/jrueth
-
-cd $HOME
-
-ENV=/tmp/jrueth/$1
-
-source $ENV/bin/activate
+# Go to the flatsurvey root directory.
+cd "$(dirname "$0")"/..
 
 SCHEDULER=/beegfs/jrueth/scheduler.$1.json
 
-echo "Connecting from `hostname` to scheduler $SCHEDULER"
+echo "Connecting worker from `hostname` to scheduler $SCHEDULER"
 
-MKL_NUM_THREADS=1 SAGE_NUM_THREADS=1 OMP_NUM_THREADS=1 DOT_SAGE=/tmp/sage.jrueth$1 dask worker --scheduler-file $SCHEDULER --nthreads 1 --nworkers 1 --no-nanny --preload flatsurvey.worker.dask --memory-limit=128G --mem-limit=conservative --time-limit=1h
+MKL_NUM_THREADS=1 SAGE_NUM_THREADS=1 OMP_NUM_THREADS=1 DOT_SAGE=/tmp/sage.jrueth$1 pixi run dask worker --scheduler-file $SCHEDULER --nthreads 1 --nworkers 1 --no-nanny --preload flatsurvey.dask.worker --memory-limit=128G --mem-limit=conservative --time-limit=1h

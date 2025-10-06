@@ -15,7 +15,8 @@ TESTS::
       Run a survey on the `objects` until all the `goals` are reached.
     Options:
       --debug
-      --queue INTEGER   Jobs to prepare in the background for scheduling.
+      --queue INTEGER   Jobs to prepare in the background for scheduling. [default:
+                        3 × cores]
       -v, --verbose     Enable verbose message, repeat for debug message.
       --quiet           Silence all terminal output
       --scheduler TEXT  Path to a dask scheduler file
@@ -83,8 +84,8 @@ from flatsurvey.ui.group import CommandWithGroups
 @click.option(
     "--queue",
     type=int,
-    default=1024,
-    help="Jobs to prepare in the background for scheduling.",
+    default=None,
+    help="Jobs to prepare in the background for scheduling. [default: 3 × cores]",
 )
 @click.option(
     "--verbose",
@@ -133,7 +134,7 @@ for commands in [
 
 @survey.result_callback()
 def process(
-    subcommands, debug=False, queue=128, verbose=0, quiet=False, scheduler=None
+    subcommands, debug=False, queue=None, verbose=0, quiet=False, scheduler=None
 ):
     r"""
     Run the specified subcommands of ``survey``.

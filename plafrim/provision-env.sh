@@ -1,19 +1,8 @@
 set -eo pipefail
 
-conda deactivate || true
+# Go to the flatsurvey root directory.
+cd "$(dirname "$0")"/..
 
-ENV=/tmp/jrueth/$1
+pixi install --locked
 
-rm -rf $ENV
-
-echo "Restoring conda environment"
-
-mkdir -p $ENV
-
-tar zxf /beegfs/jrueth/flatsurvey.tar.gz -C $ENV
-
-source $ENV/bin/activate
-
-conda-unpack
-
-python -c 'import cppyy'
+pixi run python -c 'import cppyy'

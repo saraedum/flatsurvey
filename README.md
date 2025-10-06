@@ -3,7 +3,7 @@ survey large sets of objects.
 
 To perform a full survey, use [`flatsurvey`](./flatsurvey/survey.py). To
 investigate a single object, run
-[`flatsurvey-worker`](./flatsurvey/worker/worker.py).
+[`flatsurvey-worker`](./flatsurvey/worker.py).
 
 # Local Usage
 
@@ -12,26 +12,28 @@ have all the required dependencies installed in the correct versions.
 
 Here, we check that the (1, 1, 1, 6) quadrilateral has dense orbit closure::
 
-```
-flatsurvey-worker ngon -a 1 -a 1 -a 1 -a 6 orbit-closure --deform log
+```sh
+flatsurvey-worker ngon -a 1 -a 1 -a 1 -a 6 orbit-closure --deform
 ```
 
 Here is a typical survey that collects data about triangles, quadrilaterals, and pentagons:
 
-```
+```sh
 mkdir -p surveyname
 nice flatsurvey ngons --vertices 3 ngons --vertices 4 ngons --vertices 5 orbit-closure --deform json --prefix=./surveyname
 ```
 
-To use the results of this survey to speed up a future survey, we collect the results in one `orbit_closure.json`:
+This will run indefinitely, so you want to stop this at some point with C-c.
 
-```
-flatsurvey-maintenance join surveyname/*.json
+To use the results of this survey to speed up a future survey, we collect the results in one `survey-results/orbit_closure.json`:
+
+```sh
+flatsurvey-maintenance join --outdir survey-results surveyname/*.json
 ```
 
 And then use that JSON file as a database for the next run:
 
-```
+```sh
 nice flatsurvey ngons --vertices 3 ngons --vertices 4 ngons --vertices 5 orbit-closure --deform local-cache --json orbit-closure.json json --prefix=./surveyname
 ```
 
@@ -40,19 +42,19 @@ nice flatsurvey ngons --vertices 3 ngons --vertices 4 ngons --vertices 5 orbit-c
 We provide example scripts that run surveys on the PlaFRIM cluster. It should
 be easy to adapt these to work on any cluster that can run a dask workload.
 
-Install the requirements and flatsurvey and package it for the workers:
+Setup this pixi repository for the scheduler and the workers:
 
-```
+```sh
 sh plafrim/create-env.sh
 ```
 
-Spawn a dask scheduler:
+Spawn a dask scheduler (here we call our survey `flatsurvey-3`):
 
 ```
 sh plafrim/spawn-scheduler.sh flatsurvey-3
 ```
 
-Reserve resources in your cluster (this is a slurm specific command):
+Reserve resources in your cluster:
 
 ```
 salloc --ntasks=768 --time=13:30:00 --constraint="diablo|bora|brise|sirocco|zonda|miriel|souris|kona"
@@ -69,13 +71,13 @@ srun sh plafrim/spawn-worker.sh flatsurvey-3
 Start the survey:
 
 ```
-sh plafrim/survey.sh 3
+sh plafrim/survey.sh flatsurvey-3 "ngons --vertices 3"
 ```
 
 Post-process the survey:
 
 ```
-sh plafrim/postprocess.sh
+sh plafrim/postprocess.sh flatsurvey-3
 ```
 
 ...

@@ -1,9 +1,9 @@
 set -eo pipefail
+shopt -s globstar
 
-MINIFORGE=/tmp/jrueth/miniforge
-source "${MINIFORGE}/etc/profile.d/conda.sh"
-conda activate flatsurvey
+# Go to the flatsurvey root directory.
+cd "$(dirname "$0")"/..
 
-pushd /beegfs/jrueth/flatsurvey
-flatsurvey-maintenance join *.json
-rm ngon-*.json
+cp -R /beegfs/jrueth/flatsurvey/history/ /beegfs/jrueth/flatsurvey/backup
+salloc --ntasks=1 --time=72:00:00 srun --pty pixi run flatsurvey-maintenance join /beegfs/jrueth/flatsurvey/$1/**/*.json /beegfs/jrueth/flatsurvey/history/**/*.json --outdir /beegfs/jrueth/flatsurvey/history/$1
+rm /beegfs/jrueth/flatsurvey/$1/**/*.json
