@@ -27,7 +27,7 @@ Otherwise, we can iterate manually over the result set::
 Run a predicate on the result set::
 
     >>> result_set.filter(lambda result: result.dense)
-    1 cached result
+    {'dense': True}
 
 Or choose a policy of access that does not require argeement on the values::
 
@@ -76,7 +76,7 @@ class ResultSet:
 
     def __init__(
         self,
-        rows,
+        rows: list[dict],
         sources: list[Literal["CACHE"] | dict | Pickles],
         quorum: Quorum = "UNIQUE",
     ):
@@ -85,7 +85,23 @@ class ResultSet:
         self._quorum: Quorum = quorum
 
     def __repr__(self):
-        return f"{len(self)} cached {'result' if len(self) == 1 else 'results'}"
+        r"""
+        Return a printable representation of this set of cached results.
+
+        EXAMPLES::
+
+            >>> results = ResultSet(rows=[{"dense": True}, {"dense": None}], sources=["CACHE"])
+            >>> results
+            2 cached results
+
+            >>> results[0]
+            {'dense': True}
+
+        """
+        if len(self) == 1:
+            return repr(self._rows[0])
+        else:
+            return f"{len(self)} cached results"
 
     def __len__(self):
         r"""
@@ -156,6 +172,54 @@ class ResultSet:
 
         """
         return ResultSet._getattr(self._rows[-1], name, self._sources)
+
+    def __getitem__(self, key):
+        r"""
+        Return a view of a subset of these cached results.
+
+        EXAMPLES::
+
+            >>> results = ResultSet(rows=[{"dense": True}, {"dense": None}], sources=["CACHE"])
+
+            >>> results[1]
+            {'dense': None}
+            >>> results[-1]
+            {'dense': None}
+            >>> results[1:]
+            {'dense': None}
+
+        """
+        rows = self._rows[key]
+        if not isinstance(key, slice):
+            rows = [rows]
+        return ResultSet(rows, sources=self._sources, quorum=self._quorum)
+
+    def __dir__(self):
+        r"""
+        Return an iterable of reasonable attributes to query on this result
+        set.
+
+        The underlying logic is a bit ad-hoc but works reasonably well for
+        tab-completion in practice.
+
+        EXAMPLES::
+
+            >>> results = ResultSet(rows=[{"dense": True}, {"dense": None, "version": "2", "dimension": 2}], sources=["CACHE", {"version": "unknown", "platform": "unknown"}])
+
+            >>> 'dense' in dir(results)
+            True
+            >>> 'foo' in dir(results)
+            False
+            >>> 'dimension' in dir(results)
+            True
+            >>> 'version' in dir(results)
+            True
+            >>> 'platform' in dir(results)
+            False
+
+        """
+        yield from super().__dir__()
+        yield from {key for row in self._rows for key in row.keys()}
 
     @staticmethod
     def _getattr(
@@ -248,22 +312,32 @@ class ResultSet:
         r"""
         Return whether this set of results is indistinguishable from ``other``.
 
-        Currently not implemented yet.
-
         EXAMPLES::
 
-            >>> results = ResultSet(rows=[], sources=[])
+            >>> results = ResultSet(rows=[{"dense": None}, {"dense": None}, {"dense": True}], sources=["CACHE"])
             >>> results == results
-            Traceback (most recent call last):
-            ...
-            NotImplementedError
-            >>> results != results
-            Traceback (most recent call last):
-            ...
-            NotImplementedError
+            True
+            >>> results[0] == results[1]
+            True
+            >>> results[0] == results[2]
+            False
+            >>> results[:2] == results[0]
+            False
 
         """
-        raise NotImplementedError
+        if self is other:
+            return True
+
+        if not isinstance(other, ResultSet):
+            return False
+
+        if self._sources != other._sources:
+            return False
+
+        if self._quorum != other._quorum:
+            return False
+
+        return self._rows == other._rows
 
     def __bool__(self):
         r"""
@@ -326,7 +400,7 @@ class ResultSet:
 
             >>> results = ResultSet(rows=[{"dense": True}, {"dense": None}], sources=["CACHE"])
             >>> results.filter(lambda result: result.dense)
-            1 cached result
+            {'dense': True}
 
         """
         rows = [result._rows[0] for result in self if predicate(result)]
@@ -373,7 +447,7 @@ class ResultSet:
 
             >>> results = ResultSet(rows=[{"dense": True}, {"dense": None}], sources=["CACHE"])
             >>> list(results)
-            [1 cached result, 1 cached result]
+            [{'dense': True}, {'dense': None}]
 
         """
         for row in self._rows:
