@@ -14,7 +14,7 @@ EXAMPLES::
     Usage: worker local-cache [OPTIONS]
       A readonly cache of previous results, read from local JSON files.
     Options:
-      -j, --json PATH    JSON files to read cached data from
+      -j, --json PATH    JSON files or directories to read cached data from
       -p, --pickles DIR  directory of pickle files to resolve references in JSON
                          files
       --help             Show this message and exit.
@@ -138,7 +138,7 @@ class Cache(Command):
         metavar="PATH",
         multiple=True,
         type=click.Path(path_type=Path, exists=True),
-        help="JSON files to read cached data from",
+        help="JSON files or directories to read cached data from",
     )
     @click.option(
         "--pickles",
@@ -167,10 +167,12 @@ class Cache(Command):
             scoped.define(cache=Cache.load(json), pickles=pickles)
 
     @staticmethod
-    def load(jsons: list[Path]) -> dict:
+    def load(paths: list[Path]) -> dict:
         r"""
-        Load previous results from ``jsons`` and return them as a dict of
+        Load previous results from ``paths`` and return them as a dict of
         results by subject.
+
+        If ``paths`` contains a directory, its contents are read recursively.
 
         Note that configuration of the runs, i.e., anything that is not a list
         is copied into each result.
@@ -192,14 +194,14 @@ class Cache(Command):
 
         subjects = defaultdict(lambda: [])
 
-        for parsed in Cache._load_parse(jsons):
+        for parsed in Cache._load_parse(paths):
             for subject, values in Cache._load_create_subjects(parsed).items():
                 subjects[subject].extend(values)
 
         return dict(subjects)
 
     @staticmethod
-    def _load_parse(jsons: list[Path]):
+    def _load_parse(paths: list[Path]):
         r"""
         Helper method for :meth:`load` that presents the JSON input as an
         iterator over parsed dicts.
@@ -217,20 +219,25 @@ class Cache(Command):
             [{'subject': {'result': True}}, {'subject': {'result': False}}]
 
         """
-        for json in jsons:
-            from flatsurvey.reporting.json import Json
+        seen = set()
 
-            with open(json, "r") as input:
-                import orjson
-
-                data = input.read().strip()
-                if not data:
+        for path in paths:
+            for json in (path.rglob("*.json") if path.is_dir() else [path]):
+                if json in seen:
                     continue
+                seen.add(json)
 
-                try:
-                    yield orjson.loads(data)
-                except Exception as e:
-                    print(f"Failed to parse {json}, {e}. Ignoring.")
+                with open(json, "r") as input:
+                    import orjson
+
+                    data = input.read().strip()
+                    if not data:
+                        continue
+
+                    try:
+                        yield orjson.loads(data)
+                    except Exception as e:
+                        print(f"Failed to parse {json}, {e}. Ignoring.")
 
     @staticmethod
     def _load_create_subjects(parsed: dict):
