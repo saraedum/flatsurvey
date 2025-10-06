@@ -14,8 +14,7 @@ EXAMPLES::
     Usage: worker local-cache [OPTIONS]
       A readonly cache of previous results, read from local JSON files.
     Options:
-      -j, --json PATH    JSON files to read cached data from or a directory to read
-                         recursively
+      -j, --json PATH    JSON files to read cached data from
       -p, --pickles DIR  directory of pickle files to resolve references in JSON
                          files
       --help             Show this message and exit.
@@ -138,18 +137,19 @@ class Cache(Command):
         "-j",
         metavar="PATH",
         multiple=True,
-        type=str,
-        help="JSON files to read cached data from or a directory to read recursively",
+        type=click.Path(path_type=Path, exists=True),
+        help="JSON files to read cached data from",
     )
     @click.option(
         "--pickles",
         "-p",
         metavar="DIR",
-        type=str,
+        type=click.Path(path_type=Path, exists=True),
+        default=None,
         help="directory of pickle files to resolve references in JSON files",
     )
     @Bindings.click
-    def click(bindings: Bindings, json, pickles):
+    def click(bindings: Bindings, json: list[Path], pickles):
         r"""
         Parse command line options into ``bindings``.
 
@@ -159,10 +159,12 @@ class Cache(Command):
             >>> invoke_subcommand(Cache.click)
 
         """
-        jsons = [Path(fname) for fname in json]
+        if pickles is not None:
+            from flatsurvey.cache.pickles import DirectoryPickleProvider
+            pickles = DirectoryPickleProvider(pickles)
 
         with bindings.scope(Cache) as scoped:
-            scoped.define(cache=Cache.load(jsons), pickles=pickles)
+            scoped.define(cache=Cache.load(json), pickles=pickles)
 
     @staticmethod
     def load(jsons: list[Path]) -> dict:
