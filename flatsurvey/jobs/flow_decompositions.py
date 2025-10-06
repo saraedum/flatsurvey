@@ -169,6 +169,9 @@ class FlowDecompositions(Processor, Command):
 
 
         """
+        from flatsurvey.survey import IS_SURVEY_ORCHESTRATOR
+        assert not IS_SURVEY_ORCHESTRATOR, "pyflatsurf objects should not be instantiated in the survey scheduler since they tend to cause memory leaks"
+
         start = time.perf_counter()
 
         from flatsurf import GL2ROrbitClosure

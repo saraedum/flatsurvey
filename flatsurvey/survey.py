@@ -75,6 +75,12 @@ import flatsurvey.surfaces
 from flatsurvey.ui.group import CommandWithGroups
 
 
+# Whether the current process is running the survey scheduler.
+# Used for memory leak prevention by not instantiating leaky objects in the
+# scheduler.
+IS_SURVEY_ORCHESTRATOR = False
+
+
 @click.group(
     chain=True,
     cls=CommandWithGroups,
@@ -167,6 +173,8 @@ def process(
         logger = logging.getLogger()
         logger.setLevel(logging.FATAL)
 
+    global IS_SURVEY_ORCHESTRATOR
+    IS_SURVEY_ORCHESTRATOR = True
     try:
         from flatsurvey.pipeline import Bindings
 
@@ -196,3 +204,5 @@ def process(
         if debug:
             pdb.post_mortem()
         raise
+    finally:
+        IS_SURVEY_ORCHESTRATOR = False

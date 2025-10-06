@@ -638,8 +638,8 @@ class Ngon(Surface):
         """
         from flatsurf import similarity_surfaces
 
-        # TODO: Err if this is called in the survey scheduler.
-        # TODO: Same for the flow decomposition object and for the orbit closure object elsewhere.
+        from flatsurvey.survey import IS_SURVEY_ORCHESTRATOR
+        assert not IS_SURVEY_ORCHESTRATOR, "sage-flatsurf surfaces should not be instantiated in the survey scheduler since they and their attached SageMath and C++ objects tend to cause memory leaks"
 
         S = similarity_surfaces.billiard(self.polygon())
         S = S.minimal_cover(cover_type="translation")
