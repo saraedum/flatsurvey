@@ -74,7 +74,6 @@ import flatsurvey.reporting
 import flatsurvey.surfaces
 from flatsurvey.ui.group import CommandWithGroups
 
-
 # Whether the current process is running the survey scheduler.
 # Used for memory leak prevention by not instantiating leaky objects in the
 # scheduler.

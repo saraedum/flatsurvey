@@ -446,7 +446,6 @@ class OrbitClosure(Consumer, Command):
             >>> report.flush()  # doctest: +ELLIPSIS
             {"surface": {"angles": [1, 3, 5], "type": "Ngon", "repr": "Ngon([1, 3, 5])"}, "orbit-closure": [{"timestamp": "...", "dimension": 6, "dimension_upper_bound": 6, "directions": 2, "directions_with_cylinders": 2, "dense": true, "value": {"type": "GL2ROrbitClosure", "repr": "GL(2,R)-orbit closure of dimension at least 6 in H_3(4) (ambient dimension 6)"}}]}
 
-
         """
         del cost
 
@@ -587,8 +586,13 @@ class OrbitClosure(Consumer, Command):
 
                         surface = deformed.surface()
 
-                        from flatsurf.geometry.pyflatsurf.conversion import FlatTriangulationConversion
-                        conversion = FlatTriangulationConversion.from_pyflatsurf(surface)
+                        from flatsurf.geometry.pyflatsurf.conversion import (
+                            FlatTriangulationConversion,
+                        )
+
+                        conversion = FlatTriangulationConversion.from_pyflatsurf(
+                            surface
+                        )
 
                         surface = conversion.domain()
 

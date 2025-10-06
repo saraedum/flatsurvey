@@ -15,7 +15,7 @@ jobs:
       - uses: prefix-dev/setup-pixi@v0.9.1
         with:
           pixi-version: v0.55.0
-      - run: pixi run black
+      - run: pixi run black --check
   isort:
     runs-on: ubuntu-24.04
     steps:
@@ -23,7 +23,7 @@ jobs:
       - uses: prefix-dev/setup-pixi@v0.9.1
         with:
           pixi-version: v0.55.0
-      - run: pixi run isort
+      - run: pixi run isort --check
   codespell:
     runs-on: ubuntu-24.04
     steps:

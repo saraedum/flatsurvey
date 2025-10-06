@@ -161,6 +161,7 @@ class Cache(Command):
         """
         if pickles is not None:
             from flatsurvey.cache.pickles import DirectoryPickleProvider
+
             pickles = DirectoryPickleProvider(pickles)
 
         with bindings.scope(Cache) as scoped:
@@ -222,7 +223,7 @@ class Cache(Command):
         seen = set()
 
         for path in paths:
-            for json in (path.rglob("*.json") if path.is_dir() else [path]):
+            for json in path.rglob("*.json") if path.is_dir() else [path]:
                 if json in seen:
                     continue
                 seen.add(json)
