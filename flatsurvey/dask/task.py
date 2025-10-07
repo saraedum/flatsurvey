@@ -101,9 +101,9 @@ some log file by a reporter instead::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
+from flatsurvey.dask.limits import Limit
 from flatsurvey.dask.tokens import WorkerCancellationToken
 from flatsurvey.pipeline import Bindings
-from flatsurvey.dask.limits import Limit
 
 
 class Task:

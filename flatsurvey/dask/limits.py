@@ -33,7 +33,6 @@ Limits can also run in the background in async workflows::
     done.
 
 """
-
 # *********************************************************************
 #  This file is part of flatsurvey.
 #
@@ -52,8 +51,9 @@ Limits can also run in the background in async workflows::
 #  You should have received a copy of the GNU General Public License
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
-import logging
+
 import datetime
+import logging
 
 logger = logging.getLogger()
 

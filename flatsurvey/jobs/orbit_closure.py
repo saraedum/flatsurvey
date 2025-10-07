@@ -122,8 +122,8 @@ limit::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 
-from dataclasses import dataclass, field
 import datetime
+from dataclasses import dataclass, field
 
 import click
 from sage.misc.cachefunc import cached_method
@@ -934,7 +934,7 @@ class OrbitClosure(Consumer, Command):
         # Rewrite a basis of a subspace of the tangent space as a matrix describing an integer lattice
         def to_integer_matrix(tangents):
             # Expand each number field element to degree many rational numbers
-            from sage.all import Matrix, QQ, ZZ
+            from sage.all import QQ, ZZ, Matrix
 
             degree = parent.degree()
             basis = Matrix(
@@ -964,8 +964,9 @@ class OrbitClosure(Consumer, Command):
         )
 
         # Rewrite tangent vector as an actual vector
-        from sage.all import vector
         from itertools import batched
+
+        from sage.all import vector
 
         tangent = vector(
             parent(coefficients) for coefficients in batched(tangent, parent.degree())
@@ -1052,7 +1053,7 @@ class OrbitClosure(Consumer, Command):
             True
 
         """
-        from sage.all import random_prime, vector, RR, ZZ
+        from sage.all import RR, ZZ, random_prime, vector
 
         renf = tangent.base_ring()
         number_field = renf.number_field

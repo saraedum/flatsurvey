@@ -49,10 +49,10 @@ from typing import Iterator, List
 
 import dask.distributed
 
+from flatsurvey.dask.limits import MemoryLimit, TimeLimit
 from flatsurvey.dask.tokens import SchedulerCancellationToken
 from flatsurvey.pipeline import Bindings
 from flatsurvey.ui import Progress
-from flatsurvey.dask.limits import MemoryLimit, TimeLimit
 
 logger = logging.getLogger()
 
