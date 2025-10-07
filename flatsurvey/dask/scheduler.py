@@ -98,9 +98,9 @@ class Scheduler:
     def __init__(
         self,
         survey_bindings: Iterator[Bindings],
-        mem_limit: MemoryLimit | None=None,
-        time_limit: TimeLimit | None=None,
-        progress: Progress | None=None,
+        mem_limit: MemoryLimit | None = None,
+        time_limit: TimeLimit | None = None,
+        progress: Progress | None = None,
         scheduler_json=None,
         queue_limit=None,
     ):

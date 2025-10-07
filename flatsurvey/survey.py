@@ -150,7 +150,14 @@ for commands in [
 
 @survey.result_callback()
 def process(
-    subcommands, debug=False, mem_limit=None, time_limit=None, queue=None, verbose=0, quiet=False, scheduler=None
+    subcommands,
+    debug=False,
+    mem_limit=None,
+    time_limit=None,
+    queue=None,
+    verbose=0,
+    quiet=False,
+    scheduler=None,
 ):
     r"""
     Run the specified subcommands of ``survey``.
@@ -185,10 +192,12 @@ def process(
 
     if mem_limit is not None:
         from flatsurvey.dask.limits import MemoryLimit
+
         mem_limit = MemoryLimit(mem_limit)
 
     if time_limit is not None:
         from flatsurvey.dask.limits import TimeLimit
+
         time_limit = TimeLimit(time_limit)
 
     global IS_SURVEY_ORCHESTRATOR

@@ -29,7 +29,7 @@ EXAMPLES::
 # *********************************************************************
 from typing import TypeVar, overload
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class Reporter:

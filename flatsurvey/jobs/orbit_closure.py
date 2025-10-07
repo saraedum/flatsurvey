@@ -182,8 +182,8 @@ class OrbitClosure(Consumer, Command):
         flow_decompositions: FlowDecompositions,
         saddle_connections: SaddleConnections,
         cache: Cache,
-        limit: int | None=DEFAULT_LIMIT,
-        stale_limit: int | datetime.timedelta=DEFAULT_STALE_LIMIT,
+        limit: int | None = DEFAULT_LIMIT,
+        stale_limit: int | datetime.timedelta = DEFAULT_STALE_LIMIT,
         deform_limit=DEFAULT_DEFORM_LIMIT,
         cache_only=Consumer.DEFAULT_CACHE_ONLY,
         report: Report | None = None,
@@ -310,7 +310,9 @@ class OrbitClosure(Consumer, Command):
                 cache=bindings.get(Cache),
                 limit=scoped.get("limit", lambda: OrbitClosure.DEFAULT_LIMIT),
                 stale_limit=scoped.get("stale_limit", OrbitClosure.DEFAULT_STALE_LIMIT),
-                deform_limit=scoped.get("deform_limit", lambda: OrbitClosure.DEFAULT_DEFORM_LIMIT),
+                deform_limit=scoped.get(
+                    "deform_limit", lambda: OrbitClosure.DEFAULT_DEFORM_LIMIT
+                ),
                 cache_only=scoped.get("cache_only", Consumer.DEFAULT_CACHE_ONLY),
             )
 
@@ -325,7 +327,7 @@ class OrbitClosure(Consumer, Command):
         "--limit",
         type=int,
         default=None,
-        help="stop after having looked at that many flow decompositions  [default: no limit]"
+        help="stop after having looked at that many flow decompositions  [default: no limit]",
     )
     @click.option(
         "--stale-limit",
@@ -349,7 +351,14 @@ class OrbitClosure(Consumer, Command):
     )
     @Consumer._cache_only_option
     @Bindings.click
-    def click(bindings: Bindings, limit, stale_limit, expansions_limit, deform_limit, cache_only):
+    def click(
+        bindings: Bindings,
+        limit,
+        stale_limit,
+        expansions_limit,
+        deform_limit,
+        cache_only,
+    ):
         r"""
         Parse command line options into ``bindings``.
 
@@ -363,6 +372,7 @@ class OrbitClosure(Consumer, Command):
             stale_limit = int(stale_limit)
         except ValueError:
             import pandas
+
             stale_limit = pandas.Timedelta(stale_limit).to_pytimedelta()  # type: ignore
 
         assert isinstance(stale_limit, (int, datetime.timedelta))
@@ -372,6 +382,7 @@ class OrbitClosure(Consumer, Command):
                 deform_limit = int(deform_limit)
             except ValueError:
                 import pandas
+
                 deform_limit = pandas.Timedelta(deform_limit).to_pytimedelta()  # type: ignore
 
             assert isinstance(deform_limit, (int, datetime.timedelta))
@@ -502,7 +513,9 @@ class OrbitClosure(Consumer, Command):
 
         return orbit_closure.dimension() - dimension
 
-    def _consume_update_statistics(self, saddle_connection, flow_decomposition, dimension_increase: int) -> None:
+    def _consume_update_statistics(
+        self, saddle_connection, flow_decomposition, dimension_increase: int
+    ) -> None:
         r"""
         Update the internal statistics we collect on the orbit closure search.
 
@@ -543,25 +556,39 @@ class OrbitClosure(Consumer, Command):
             0
 
         """
-        for statistics in [self._statistics, self._statistics_since_augmentation, self._statistics_since_augmentation_in_expansion]:
+        for statistics in [
+            self._statistics,
+            self._statistics_since_augmentation,
+            self._statistics_since_augmentation_in_expansion,
+        ]:
             statistics.directions += 1
 
             if flow_decomposition.cylinders():
                 statistics.directions_with_cylinders += 1
 
             from flatsurf.geometry.pyflatsurf.conversion import VectorSpaceConversion
+
             holonomy = saddle_connection.vector()
             conversion = VectorSpaceConversion.from_pyflatsurf_from_elements([holonomy])
             holonomy = conversion.section(holonomy)
 
-            def length2(v): return v.dot_product(v)
+            def length2(v):
+                return v.dot_product(v)
 
-            statistics.shortest_saddle_connection_holonomy = statistics.shortest_saddle_connection_holonomy or holonomy
-            if (length2(holonomy) < length2(statistics.shortest_saddle_connection_holonomy)):
+            statistics.shortest_saddle_connection_holonomy = (
+                statistics.shortest_saddle_connection_holonomy or holonomy
+            )
+            if length2(holonomy) < length2(
+                statistics.shortest_saddle_connection_holonomy
+            ):
                 statistics.shortest_saddle_connection_holonomy = holonomy
 
-            statistics.longest_saddle_connection_holonomy = statistics.longest_saddle_connection_holonomy or holonomy
-            if (length2(holonomy) > length2(statistics.shortest_saddle_connection_holonomy)):
+            statistics.longest_saddle_connection_holonomy = (
+                statistics.longest_saddle_connection_holonomy or holonomy
+            )
+            if length2(holonomy) > length2(
+                statistics.shortest_saddle_connection_holonomy
+            ):
                 statistics.longest_saddle_connection_holonomy = holonomy
 
         if dimension_increase:
@@ -649,12 +676,24 @@ class OrbitClosure(Consumer, Command):
             # usually doesn't get better by going further out in the surface;
             # rather, heuristically at least, short directions have more
             # cylinders than long ones.
-            if self._statistics_since_augmentation_in_expansion.directions_with_cylinders >= self._stale_limit:
-                self._report.log(self, f"Found {self._statistics_since_augmentation_in_expansion.directions_with_cylinders} directions with cylinders without a dimension increase since the last expansion. Will expand the search radius again.")
+            if (
+                self._statistics_since_augmentation_in_expansion.directions_with_cylinders
+                >= self._stale_limit
+            ):
+                self._report.log(
+                    self,
+                    f"Found {self._statistics_since_augmentation_in_expansion.directions_with_cylinders} directions with cylinders without a dimension increase since the last expansion. Will expand the search radius again.",
+                )
                 return True
         elif isinstance(self._stale_limit, datetime.timedelta):
-            if self._statistics_since_augmentation_in_expansion.timedelta >= self._stale_limit:
-                self._report.log(self, f"Found {self._statistics_since_augmentation_in_expansion.directions_with_cylinders} directions with cylinders without a dimension increase in the past {self._statistics_since_augmentation_in_expansion.timedelta} since the last expansion. Will expand the search radius again.")
+            if (
+                self._statistics_since_augmentation_in_expansion.timedelta
+                >= self._stale_limit
+            ):
+                self._report.log(
+                    self,
+                    f"Found {self._statistics_since_augmentation_in_expansion.directions_with_cylinders} directions with cylinders without a dimension increase in the past {self._statistics_since_augmentation_in_expansion.timedelta} since the last expansion. Will expand the search radius again.",
+                )
                 return True
         else:
             raise NotImplementedError
@@ -671,12 +710,16 @@ class OrbitClosure(Consumer, Command):
         """
         longest = self._statistics.longest_saddle_connection_holonomy
 
-        assert longest is not None, "must not call _consume_expand() before _consume_update_statistics()"
+        assert (
+            longest is not None
+        ), "must not call _consume_expand() before _consume_update_statistics()"
 
         from flatsurf.geometry.pyflatsurf.conversion import VectorSpaceConversion
+
         longest = VectorSpaceConversion.to_pyflatsurf(longest.parent())(longest)
 
         import pyflatsurf
+
         lower_bound = pyflatsurf.flatsurf.Bound.upper(longest)
         lower_bound *= 2
 
@@ -777,12 +820,21 @@ class OrbitClosure(Consumer, Command):
             return False
 
         if isinstance(self._deform_limit, int):
-            if self._statistics_since_augmentation.directions_with_cylinders >= self._deform_limit:
-                self._report.log(self, f"Found {self._statistics_since_augmentation.directions_with_cylinders} directions with cylinders without a dimension increase. Will attempt to deform the surface to improve the situation.")
+            if (
+                self._statistics_since_augmentation.directions_with_cylinders
+                >= self._deform_limit
+            ):
+                self._report.log(
+                    self,
+                    f"Found {self._statistics_since_augmentation.directions_with_cylinders} directions with cylinders without a dimension increase. Will attempt to deform the surface to improve the situation.",
+                )
                 return True
         elif isinstance(self._deform_limit, datetime.timedelta):
             if self._statistics_since_augmentation.timedelta >= self._deform_limit:
-                self._report.log(self, f"Found {self._statistics_since_augmentation.directions_with_cylinders} directions with cylinders without a dimension increase in the past {self._statistics_since_augmentation.timedelta}. Will attempt to deform the surface to improve the situation.")
+                self._report.log(
+                    self,
+                    f"Found {self._statistics_since_augmentation.directions_with_cylinders} directions with cylinders without a dimension increase in the past {self._statistics_since_augmentation.timedelta}. Will attempt to deform the surface to improve the situation.",
+                )
                 return True
         else:
             raise NotImplementedError
@@ -825,9 +877,7 @@ class OrbitClosure(Consumer, Command):
         """
         orbit_closure = self._orbit_closure()
 
-        tangents = [
-            orbit_closure.lift(v) for v in orbit_closure.tangent_space_basis()
-        ]
+        tangents = [orbit_closure.lift(v) for v in orbit_closure.tangent_space_basis()]
 
         return tangents[:2], tangents[2:]
 
@@ -873,7 +923,9 @@ class OrbitClosure(Consumer, Command):
         parent = set(c.parent() for tangent in tangents + saf0 for c in tangent)
 
         if len(parent) != 1:
-            raise NotImplementedError("all coefficients must live in the same number field")
+            raise NotImplementedError(
+                "all coefficients must live in the same number field"
+            )
 
         # A common e-antic and SageMath parent for all vector coefficients
         renf = next(iter(parent))
@@ -885,7 +937,12 @@ class OrbitClosure(Consumer, Command):
             from sage.all import Matrix, QQ, ZZ
 
             degree = parent.degree()
-            basis = Matrix(QQ, len(tangents), len(tangents[0]) * degree, sum((parent(c).list() for tangent in tangents for c in tangent), []))
+            basis = Matrix(
+                QQ,
+                len(tangents),
+                len(tangents[0]) * degree,
+                sum((parent(c).list() for tangent in tangents for c in tangent), []),
+            )
 
             # Rescale to integer coefficients
             basis *= basis.denominator()
@@ -901,18 +958,28 @@ class OrbitClosure(Consumer, Command):
 
         # Optimize the vector by finding a vector close to it in saf0
         from sage.modules.free_module_integer import IntegerLattice
-        tangent -= IntegerLattice(to_integer_matrix(saf0)).approximate_closest_vector(tangent)
+
+        tangent -= IntegerLattice(to_integer_matrix(saf0)).approximate_closest_vector(
+            tangent
+        )
 
         # Rewrite tangent vector as an actual vector
         from sage.all import vector
         from itertools import batched
-        tangent = vector(parent(coefficients) for coefficients in batched(tangent, parent.degree()))
+
+        tangent = vector(
+            parent(coefficients) for coefficients in batched(tangent, parent.degree())
+        )
 
         # Validate result
         from sage.all import span
+
         assert tangent in span(tangents + saf0)
 
-        self._report.log(self, f"Chosen short tangent vector has roughly {len(str(tangent))/len(str(saf0[0].change_ring(parent))):.3} the height of a shortest (but ineligible) tangent vector.")
+        self._report.log(
+            self,
+            f"Chosen short tangent vector has roughly {len(str(tangent))/len(str(saf0[0].change_ring(parent))):.3} the height of a shortest (but ineligible) tangent vector.",
+        )
 
         tangent = tangent.change_ring(renf)
 
@@ -998,7 +1065,8 @@ class OrbitClosure(Consumer, Command):
         x = p * tangent
         y = q * tangent
 
-        def length2(v): return v.dot_product(v)
+        def length2(v):
+            return v.dot_product(v)
 
         # Determine the maximum shift of a vertex that would happen. (As its length squared.)
         shifts = [vector(xy) for xy in zip(x, y)]
@@ -1012,23 +1080,29 @@ class OrbitClosure(Consumer, Command):
         # of the length of the saddle connection.
         n = ZZ(RR(shortest2 / max2 / 36).sqrt().log(2).ceil())
 
-        self._report.log(self, f"Scaling short tangent vectors for deformation by {p}, {q}, and 2^{n} to scale it to the size of the surface.")
+        self._report.log(
+            self,
+            f"Scaling short tangent vectors for deformation by {p}, {q}, and 2^{n} to scale it to the size of the surface.",
+        )
 
         # Verify that we are roughly in (1/6,1/3]
-        assert shortest2 / 37 < (RR(2)**n)**2 * max2 < shortest2 / 8, f"{float(shortest2 / 37)} < {(2**n)**2 * max2} < {float(shortest2)}"
+        assert (
+            shortest2 / 37 < (RR(2) ** n) ** 2 * max2 < shortest2 / 8
+        ), f"{float(shortest2 / 37)} < {(2**n)**2 * max2} < {float(shortest2)}"
 
         # Apply the scaling to our vectors.
-        x *= ZZ(2)**n
-        y *= ZZ(2)**n
+        x *= ZZ(2) ** n
+        y *= ZZ(2) ** n
 
-        self._report.log(self, f"Tangent vectors for deformation have roughly {len(str(x) + str(y)) / len(str(tangent)):.3} the height of the short tangent vector.")
+        self._report.log(
+            self,
+            f"Tangent vectors for deformation have roughly {len(str(x) + str(y)) / len(str(tangent)):.3} the height of the short tangent vector.",
+        )
 
         x = x.change_ring(renf)
         y = y.change_ring(renf)
-        
-        return [
-            self._orbit_closure().V2(*xy).vector for xy in zip(x, y)
-        ]
+
+        return [self._orbit_closure().V2(*xy).vector for xy in zip(x, y)]
 
     def _deformation_apply_to_surface(self, deformation_vector) -> Deformation:
         r"""
@@ -1051,9 +1125,7 @@ class OrbitClosure(Consumer, Command):
             FlatTriangulationConversion,
         )
 
-        conversion = FlatTriangulationConversion.from_pyflatsurf(
-            surface
-        )
+        conversion = FlatTriangulationConversion.from_pyflatsurf(surface)
 
         return conversion.domain()
 
@@ -1107,6 +1179,7 @@ class OrbitClosure(Consumer, Command):
 
         """
         from flatsurf import GL2ROrbitClosure
+
         O = GL2ROrbitClosure(surface)
 
         label = surface.labels()[0]
@@ -1183,9 +1256,7 @@ class OrbitClosure(Consumer, Command):
 
         assert not self._deformation_is_saf0(surface)
 
-        deformation = OrbitClosureDeformation(
-            surface,
-            old=self._surface)
+        deformation = OrbitClosureDeformation(surface, old=self._surface)
 
         bindings = bindings.clone()
         bindings.forget(Surface)
@@ -1288,7 +1359,9 @@ class OrbitClosure(Consumer, Command):
 
         dimension_increase = self._consume_augment_orbit_closure(product)
 
-        self._consume_update_statistics(self._saddle_connections._current, product, dimension_increase)
+        self._consume_update_statistics(
+            self._saddle_connections._current, product, dimension_increase
+        )
 
         if self.dense:
             await self.report()
@@ -1303,6 +1376,7 @@ class OrbitClosure(Consumer, Command):
 
         if self._consume_should_deform():
             from flatsurvey.restart import Restart
+
             raise Restart(self._deformation)
 
         return "NOT_COMPLETED"

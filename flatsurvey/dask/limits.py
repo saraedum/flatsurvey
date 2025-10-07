@@ -223,6 +223,7 @@ class MemoryLimit(Limit):
         False
 
     """
+
     def __init__(self, limit: str):
         super().__init__(limit)
 

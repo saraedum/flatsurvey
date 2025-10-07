@@ -519,7 +519,10 @@ class Ngon(Surface):
             {'angles': [1, 1, 1], 'genus': 1}
 
         """
-        return {"angles": [int(a) for a in self.angles], "genus": int(self._surface().genus())}
+        return {
+            "angles": [int(a) for a in self.angles],
+            "genus": int(self._surface().genus()),
+        }
 
     def cache_predicate(self, exact, cache=None):
         r"""

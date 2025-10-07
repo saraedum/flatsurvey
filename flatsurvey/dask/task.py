@@ -168,7 +168,7 @@ class Task:
 
     """
 
-    def __init__(self, bindings: Bindings, limits: list[Limit]=[], repr="Task(…)"):
+    def __init__(self, bindings: Bindings, limits: list[Limit] = [], repr="Task(…)"):
         from pickle import dumps
 
         self._bindings = dumps(bindings)
