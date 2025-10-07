@@ -519,6 +519,7 @@ class Ngon(Surface):
             {'angles': [1, 1, 1]}
 
         """
+        # TODO: Add more here!
         return {"angles": [int(a) for a in self.angles]}
 
     def cache_predicate(self, exact, cache=None):

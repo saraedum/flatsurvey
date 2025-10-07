@@ -47,12 +47,15 @@ class Restart(Exception):
         >>> from flatsurvey.test.cli import invoke
         >>> from flatsurvey.worker import worker
 
-        >>> invoke(worker, "ngon", "-a", "1", "-a", "4", "-a", "11", "orbit-closure", "--deform", "--stale-limit", "1", "--expansions-limit", "1")
-        [OrbitClosure] dimension: 3/8...
-        [OrbitClosure] Explored ... directions with conclusion. Deforming surface...
-        [OrbitClosure] GL(2,R)-orbit closure of dimension at least 4 in H_6(10) (ambient dimension 12) (dimension: 4) (dimension_upper_bound: 8) (directions: ...) (directions_with_cylinders: ...) (dense: None)
+        >>> invoke(worker, "ngon", "-a", "1", "-a", "4", "-a", "11", "orbit-closure", "--deform-limit=0", "--limit=2")
+        [OrbitClosure] dimension: 3/8
+        [OrbitClosure] Found 0 directions with cylinders without a dimension increase. Will attempt to deform the surface to improve the situation.
+        ...
+        [OrbitClosure] GL(2,R)-orbit closure of dimension at least ... in H_6(10) ... (dense: None)
 
     """
 
     def __init__(self, create_bindings: Callable[[Bindings], Bindings]):
+        super().__init__(f"Restart requested with modified bindings")
+
         self.create_bindings = create_bindings

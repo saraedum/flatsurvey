@@ -140,6 +140,10 @@ class SaddleConnections(Producer, Command):
         connections of length at least ``lower_bound``. (Instead of normally
         taking them just by length increasing.)
 
+        See
+        https://github.com/flatsurf/flatsurf/blob/master/libflatsurf/flatsurf/saddle_connections_sample.hpp#L32
+        for details.
+
         TESTS::
 
             >>> from flatsurvey.pipeline import Bindings

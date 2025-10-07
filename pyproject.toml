@@ -41,6 +41,7 @@ sage-flatsurf = ">=0.6.0"
 alive-progress = "*"
 sympy = ">=1.14.0,<2"
 pandas = ">=2.3.3,<3"
+fpylll = ">=0.6.4,<0.7"
 
 [tool.pixi.pypi-dependencies]
 flatsurvey = { path = ".", editable = true }
