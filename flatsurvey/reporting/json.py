@@ -216,7 +216,7 @@ class Json(Reporter, Command):
         characteristics = {}
 
         if hasattr(obj, "_flatsurvey_characteristics"):
-            characteristics = obj._flatsurvey_characteristics()
+            characteristics = self._simplify(obj._flatsurvey_characteristics())
 
         characteristics.setdefault("type", type(obj).__name__)
         characteristics.setdefault("repr", repr(obj))

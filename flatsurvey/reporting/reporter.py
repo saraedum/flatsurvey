@@ -27,6 +27,9 @@ EXAMPLES::
 #  You should have received a copy of the GNU General Public License
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
+from typing import TypeVar, overload
+
+T = TypeVar('T')
 
 
 class Reporter:
@@ -215,6 +218,15 @@ class Reporter:
         ``_simplify`` methods do not know what to do about this value.
         """
         raise NotImplementedError(f"cannot represent {type(value)} in this report yet")
+
+    @overload
+    def _simplify(self, value: T) -> T: ...
+
+    @overload
+    def _simplify(self, value: dict, **kwargs) -> dict: ...
+
+    @overload
+    def _simplify(self, value: list, **kwargs) -> dict: ...
 
     def _simplify(self, *args, **kwargs):
         r"""
