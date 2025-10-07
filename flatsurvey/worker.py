@@ -236,14 +236,15 @@ class Worker:
             >>> bindings = Bindings()
             >>> bindings.define(Surface, Ngon(angles=[1, 4, 11]))
             >>> bindings.append(list[Goal], OrbitClosure)
-            >>> with bindings.scope(OrbitClosure) as scoped: scoped.define(deform=True, stale_limit=1, expansions_limit=1)
+            >>> with bindings.scope(OrbitClosure) as scoped: scoped.define(deform_limit=0, limit=32)
             >>> bindings.append(list[Reporter], Log(output="-"))
 
             >>> import asyncio
             >>> asyncio.run(Worker.work(bindings))  # doctest: +ELLIPSIS
-            [OrbitClosure] dimension: 3/8...
-            [OrbitClosure] Explored ... directions with conclusion. Deforming surface...
-            [OrbitClosure] GL(2,R)-orbit closure of dimension at least 4 in H_6(10) (ambient dimension 12) (dimension: 4) (dimension_upper_bound: 8) (directions: ...) (directions_with_cylinders: ...) (dense: None)
+            [OrbitClosure] dimension: 3/8
+            [OrbitClosure] Found 0 directions with cylinders without a dimension increase. Will attempt to deform the surface to improve the situation.
+            ...
+            [OrbitClosure] GL(2,R)-orbit closure of dimension at least ... in H_6(10) ... (dense: None)
 
         """
         from flatsurvey.restart import Restart
