@@ -1304,7 +1304,7 @@ class OrbitClosure(Consumer, Command):
 
             >>> asyncio.run(oc.report())
             >>> report.flush()  # doctest: +ELLIPSIS
-            {"surface": {"angles": [1, 3, 5], "type": "Ngon", "repr": "Ngon([1, 3, 5])"}, "orbit-closure": [{"timestamp": "...", "dimension": 6, "dimension_upper_bound": 6, "directions": 2, "directions_with_cylinders": 2, "dense": true, "value": {"type": "GL2ROrbitClosure", "repr": "GL(2,R)-orbit closure of dimension at least 6 in H_3(4) (ambient dimension 6)"}}]}
+            {"surface": {"angles": [1, 3, 5], "genus": 3, "type": "Ngon", "repr": "Ngon([1, 3, 5])"}, "orbit-closure": [{"timestamp": "...", "dimension": 6, "dimension_upper_bound": 6, "directions": 2, "directions_with_cylinders": 2, "dense": true, "stratum": "H_3(4)", "value": {"type": "GL2ROrbitClosure", "repr": "GL(2,R)-orbit closure of dimension at least 6 in H_3(4) (ambient dimension 6)"}}]}
 
         A case where an expansion happens::
 
@@ -1323,7 +1323,7 @@ class OrbitClosure(Consumer, Command):
             ...
             [Ngon([1, 3, 13])] [OrbitClosure] Found 1 directions with cylinders without a dimension increase since the last expansion. Will expand the search radius again.
             ...
-            [Ngon([1, 3, 13])] [OrbitClosure] GL(2,R)-orbit closure of dimension at least 17 in H_8(12, 2) ... (dense: True)
+            [Ngon([1, 3, 13])] [OrbitClosure] GL(2,R)-orbit closure of dimension at least 17 in H_8(12, 2) ... (dense: True) (stratum: H_8(12, 2))
             True
 
         A case where a deformation is requested::
@@ -1351,7 +1351,7 @@ class OrbitClosure(Consumer, Command):
             ...
             [OrbitClosure] dimension: 2/11
             ...
-            [OrbitClosure] GL(2,R)-orbit closure of dimension at least 11 in H_5(6, 2) ... (dense: True)
+            [OrbitClosure] GL(2,R)-orbit closure of dimension at least 11 in H_5(6, 2) ... (dense: True) (stratum: H_5(6, 2))
             True
 
         """
