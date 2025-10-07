@@ -702,7 +702,7 @@ class OrbitClosure(Consumer, Command):
 
             The downside of such a deformation is that it tends to lead to
             substantial coefficient bloat and therefore slows down all the
-            arithmetics.
+            arithmetic.
 
         EXAMPLES::
 
@@ -1008,7 +1008,7 @@ class OrbitClosure(Consumer, Command):
         shortest = self._statistics.shortest_saddle_connection_holonomy
         shortest2 = length2(shortest)
 
-        # We find a scaling factor 2^n such that the shift is withing (1/6,1/3]
+        # We find a scaling factor 2^n such that the shift is within (1/6,1/3]
         # of the length of the saddle connection.
         n = ZZ(RR(shortest2 / max2 / 36).sqrt().log(2).ceil())
 
