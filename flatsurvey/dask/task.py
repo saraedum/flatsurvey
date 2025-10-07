@@ -103,6 +103,7 @@ some log file by a reporter instead::
 
 from flatsurvey.dask.tokens import WorkerCancellationToken
 from flatsurvey.pipeline import Bindings
+from flatsurvey.dask.limits import Limit
 
 
 class Task:
@@ -167,15 +168,12 @@ class Task:
 
     """
 
-    # Globally enforced runtime limits that apply to all tasks, see dask_setup
-    # below.
-    LIMITS = []
-
-    def __init__(self, bindings: Bindings, repr="Task(…)"):
+    def __init__(self, bindings: Bindings, limits: list[Limit]=[], repr="Task(…)"):
         from pickle import dumps
 
-        self._repr = repr
         self._bindings = dumps(bindings)
+        self._limits = limits
+        self._repr = repr
 
     def __call__(self, token: WorkerCancellationToken):
         r"""
@@ -297,4 +295,4 @@ class Task:
 
         from flatsurvey.worker import Worker
 
-        return asyncio.run(Worker.work(bindings, limits=Task.LIMITS))
+        return asyncio.run(Worker.work(bindings, limits=self._limits))

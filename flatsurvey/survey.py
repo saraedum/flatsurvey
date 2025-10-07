@@ -15,12 +15,16 @@ TESTS::
       Run a survey on the `objects` until all the `goals` are reached.
     Options:
       --debug
-      --queue INTEGER   Jobs to prepare in the background for scheduling. [default:
-                        3 × cores]
-      -v, --verbose     Enable verbose message, repeat for debug message.
-      --quiet           Silence all terminal output
-      --scheduler TEXT  Path to a dask scheduler file
-      --help            Show this message and exit.
+      --mem-limit TEXT   Gracefully stop a worker's current task when the memory
+                         consumption exceeds this amount
+      --time-limit TEXT  Gracefully stop a worker's current task when the wall time
+                         elapsed exceeds this amount
+      --queue INTEGER    Jobs to prepare in the background for scheduling. [default:
+                         3 × cores]
+      -v, --verbose      Enable verbose message, repeat for debug message.
+      --quiet            Silence all terminal output
+      --scheduler TEXT   Path to a dask scheduler file
+      --help             Show this message and exit.
     Cache:
       local-cache  A readonly cache of previous results, read from local JSON...
       pickles      Provide pickle files as referenced in the caches.
@@ -87,6 +91,16 @@ IS_SURVEY_ORCHESTRATOR = False
 )
 @click.option("--debug", is_flag=True)
 @click.option(
+    "--mem-limit",
+    default=None,
+    help="Gracefully stop a worker's current task when the memory consumption exceeds this amount",
+)
+@click.option(
+    "--time-limit",
+    default=None,
+    help="Gracefully stop a worker's current task when the wall time elapsed exceeds this amount",
+)
+@click.option(
     "--queue",
     type=int,
     default=None,
@@ -109,21 +123,18 @@ IS_SURVEY_ORCHESTRATOR = False
     type=str,
     help="Path to a dask scheduler file",
 )
-def survey(debug, queue, verbose, quiet, scheduler):
+def survey(debug, mem_limit, time_limit, queue, verbose, quiet, scheduler):
     r"""
     Main command, runs a survey; specific survey objects and goals are
     registered automatically as subcommands.
     """
-    # For technical reasons, debug needs to be a parameter here. It is consumed by process() below.
-    del debug
-    # For technical reasons, queue needs to be a parameter here. It is consumed by process() below.
-    del queue
-    # For technical reasons, verbose needs to be a parameter here. It is consumed by process() below.
-    del verbose
-    # For technical reasons, quiet needs to be a parameter here. It is consumed by process() below.
-    del quiet
-    # For technical reasons, scheduler needs to be a parameter here. It is consumed by process() below.
-    del scheduler
+    del debug  # handled by process()
+    del mem_limit  # handled by process()
+    del time_limit  # handled by process()
+    del queue  # handled by process()
+    del verbose  # handled by process()
+    del quiet  # handled by process()
+    del scheduler  # handled by process()
 
 
 # Register objects and goals as subcommands of "survey".
@@ -139,7 +150,7 @@ for commands in [
 
 @survey.result_callback()
 def process(
-    subcommands, debug=False, queue=None, verbose=0, quiet=False, scheduler=None
+    subcommands, debug=False, mem_limit=None, time_limit=None, queue=None, verbose=0, quiet=False, scheduler=None
 ):
     r"""
     Run the specified subcommands of ``survey``.
@@ -172,6 +183,14 @@ def process(
         logger = logging.getLogger()
         logger.setLevel(logging.FATAL)
 
+    if mem_limit is not None:
+        from flatsurvey.dask.limits import MemoryLimit
+        mem_limit = MemoryLimit(mem_limit)
+
+    if time_limit is not None:
+        from flatsurvey.dask.limits import TimeLimit
+        time_limit = TimeLimit(time_limit)
+
     global IS_SURVEY_ORCHESTRATOR
     IS_SURVEY_ORCHESTRATOR = True
     try:
@@ -193,6 +212,8 @@ def process(
                 asyncio.new_event_loop().run_until_complete(
                     Scheduler(
                         survey_bindings=bindings.survey_bindings,
+                        mem_limit=mem_limit,
+                        time_limit=time_limit,
                         queue_limit=queue,
                         scheduler_json=scheduler,
                         progress=progress,

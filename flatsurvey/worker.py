@@ -15,10 +15,10 @@ TESTS::
       Explore a surface.
     Options:
       --debug
-      --mem-limit TEXT   Gracefully stop the worker when the memory consumption
-                         exceeds this amount
-      --time-limit TEXT  Gracefully stop the worker when the wall time elapsed
-                         exceeds this amount
+      --mem-limit TEXT   Gracefully stop the worker's current task when the memory
+                         consumption exceeds this amount
+      --time-limit TEXT  Gracefully stop the worker's current task when the wall
+                         time elapsed exceeds this amount
       -v, --verbose      Enable verbose message, repeat for debug message.
       --help             Show this message and exit.
     Cache:
@@ -82,12 +82,12 @@ from flatsurvey.ui.group import CommandWithGroups
 @click.option(
     "--mem-limit",
     default=None,
-    help="Gracefully stop the worker when the memory consumption exceeds this amount",
+    help="Gracefully stop the worker's current task when the memory consumption exceeds this amount",
 )
 @click.option(
     "--time-limit",
     default=None,
-    help="Gracefully stop the worker when the wall time elapsed exceeds this amount",
+    help="Gracefully stop the worker's current task when the wall time elapsed exceeds this amount",
 )
 @click.option(
     "--verbose",
@@ -157,12 +157,12 @@ def process(commands, debug, mem_limit, time_limit, verbose):
     if mem_limit is not None:
         from flatsurvey.dask.limits import MemoryLimit
 
-        limits.append(MemoryLimit(MemoryLimit.parse_limit(mem_limit)))
+        limits.append(MemoryLimit(mem_limit))
 
     if time_limit is not None:
         from flatsurvey.dask.limits import TimeLimit
 
-        limits.append(TimeLimit(TimeLimit.parse_limit(time_limit)))
+        limits.append(TimeLimit(time_limit))
 
     try:
         import asyncio

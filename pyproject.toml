@@ -7,7 +7,7 @@ name = "flatsurvey"
 version = "0.1.0"
 readme = "README.md"
 license = { file = "LICENSE" }
-dependencies = ["datasize", "click", "dask", "more-itertools", "orjson", "sage-flatsurf"]
+dependencies = ["datasize", "click", "dask", "more-itertools", "orjson", "sage-flatsurf", "pandas"]
 
 [project.scripts]
 flatsurvey = "flatsurvey.survey:survey"
@@ -40,6 +40,7 @@ pytest-forked = "*"
 sage-flatsurf = ">=0.6.0"
 alive-progress = "*"
 sympy = ">=1.14.0,<2"
+pandas = ">=2.3.3,<3"
 
 [tool.pixi.pypi-dependencies]
 flatsurvey = { path = ".", editable = true }

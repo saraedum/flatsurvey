@@ -52,6 +52,7 @@ import dask.distributed
 from flatsurvey.dask.tokens import SchedulerCancellationToken
 from flatsurvey.pipeline import Bindings
 from flatsurvey.ui import Progress
+from flatsurvey.dask.limits import MemoryLimit, TimeLimit
 
 logger = logging.getLogger()
 
@@ -97,7 +98,9 @@ class Scheduler:
     def __init__(
         self,
         survey_bindings: Iterator[Bindings],
-        progress: Progress | None = None,
+        mem_limit: MemoryLimit | None=None,
+        time_limit: TimeLimit | None=None,
+        progress: Progress | None=None,
         scheduler_json=None,
         queue_limit=None,
     ):
@@ -108,6 +111,8 @@ class Scheduler:
             progress = SilentProgress()
 
         self._survey_bindings = iter(survey_bindings)
+        self._memory_limit = mem_limit
+        self._time_limit = time_limit
         self._progress: Progress = progress
         self._scheduler_json = scheduler_json
         self._queue_limit = queue_limit
@@ -337,9 +342,15 @@ class Scheduler:
 
             bindings.forget(Cache)
 
+            limits = []
+            if self._time_limit is not None:
+                limits.append(self._time_limit)
+            if self._memory_limit is not None:
+                limits.append(self._memory_limit)
+
             from flatsurvey.dask.task import Task
 
-            task = Task(bindings)
+            task = Task(bindings, limits=limits)
 
             if token.cancelled:
                 return None

@@ -6,7 +6,7 @@ EXAMPLES:
 Limits can be used directly with the ``check`` method::
 
     >>> from flatsurvey.dask.limits import TimeLimit
-    >>> limit = TimeLimit(TimeLimit.parse_limit('1s'))
+    >>> limit = TimeLimit('1s')
     >>> limit.check()
     True
 
@@ -22,7 +22,7 @@ Limits can also run in the background in async workflows::
     >>> import asyncio
 
     >>> async def main():
-    ...     LimitChecker(TimeLimit(TimeLimit.parse_limit('100ms')), lambda: print("callback executed"), period=1).start()
+    ...     LimitChecker(TimeLimit('100ms'), lambda: print("callback executed"), period=1).start()
     ...     print("working...")
     ...     await asyncio.sleep(2)
     ...     print("done.")
@@ -53,6 +53,7 @@ Limits can also run in the background in async workflows::
 #  along with flatsurvey. If not, see <https://www.gnu.org/licenses/>.
 # *********************************************************************
 import logging
+import datetime
 
 logger = logging.getLogger()
 
@@ -72,7 +73,7 @@ class Limit:
         EXAMPLES::
 
             >>> from flatsurvey.dask.limits import TimeLimit
-            >>> limit = TimeLimit(TimeLimit.parse_limit('1ms'))
+            >>> limit = TimeLimit('1ms')
             >>> limit.check()
             True
 
@@ -92,7 +93,7 @@ class LimitChecker:
     This can only be used in an ``async`` environment.
     """
 
-    def __init__(self, limit, callback, period=30):
+    def __init__(self, limit, callback, period=10):
         self._limit = limit
         self._callback = callback
         self._period = period
@@ -144,13 +145,13 @@ class TimeLimit(Limit):
     A wall time limit.
     """
 
-    def __init__(self, limit):
-        super().__init__(limit)
+    def __init__(self, limit: str):
+        super().__init__(TimeLimit.parse_limit(limit))
 
         self._start = None
 
     @staticmethod
-    def parse_limit(limit):
+    def parse_limit(limit) -> datetime.timedelta:
         r"""
         Helper method to parse ``limit`` into a Python time delta.
 
@@ -173,7 +174,7 @@ class TimeLimit(Limit):
         EXAMPLES::
 
             >>> from flatsurvey.dask.limits import TimeLimit
-            >>> limit = TimeLimit(TimeLimit.parse_limit('10ms'))
+            >>> limit = TimeLimit('10ms')
 
             >>> import time
             >>> time.sleep(.01)
@@ -222,9 +223,14 @@ class MemoryLimit(Limit):
         False
 
     """
+    def __init__(self, limit: str):
+        super().__init__(limit)
+
+        # Verify that the limit is valid
+        MemoryLimit.parse_limit(limit)
 
     @staticmethod
-    def parse_limit(limit):
+    def parse_limit(limit) -> int:
         import psutil
 
         ram = psutil.virtual_memory().total
@@ -304,7 +310,7 @@ class MemoryLimit(Limit):
 
     def check(self):
         smap = MemoryLimit.memory()
-        verdict = smap["Rss"] + smap["Swap"] <= self._limit
+        verdict = smap["Rss"] + smap["Swap"] <= MemoryLimit.parse_limit(self._limit)
 
         if not verdict:
             logging.warning("memory limit exceeded")
