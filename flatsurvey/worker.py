@@ -244,7 +244,7 @@ class Worker:
             [OrbitClosure] dimension: 3/8
             [OrbitClosure] Found 0 directions with cylinders without a dimension increase. Will attempt to deform the surface to improve the situation.
             ...
-            [OrbitClosure] GL(2,R)-orbit closure of dimension at least ... in H_6(10) ... (dense: None)
+            [OrbitClosure] GL(2,R)-orbit closure of dimension at least ... in H_6(10) ... (dense: None) (stratum: H_6(10))
 
         """
         from flatsurvey.restart import Restart
