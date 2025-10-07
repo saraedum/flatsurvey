@@ -41,7 +41,7 @@ Verify that this goal works in a non-survey run::
 
     >>> invoke(worker, "ngon", "-a", "1", "-a", "2", "-a", "4", "orbit-closure")  # doctest: +ELLIPSIS
     [OrbitClosure] ...
-    [OrbitClosure] GL(2,R)-orbit closure of dimension at least 7 in H_3(3, 1) (ambient dimension 7) (dimension: 7) (dimension_upper_bound: 7) (directions: 8) (directions_with_cylinders: 8) (dense: True)
+    [OrbitClosure] GL(2,R)-orbit closure of dimension at least 7 in H_3(3, 1) (ambient dimension 7) (dimension: 7) (dimension_upper_bound: 7) (directions: 8) (directions_with_cylinders: 8) (dense: True) (stratum: H_3(3, 1))
 
 TESTS:
 
@@ -266,7 +266,7 @@ class OrbitClosure(Consumer, Command):
             >>> import asyncio
             >>> asyncio.run(goal.consume_cache())
             >>> report.flush()  # doctest: +ELLIPSIS
-            {"surface": {"angles": [1, 1, 1], "type": "Ngon", "repr": "Ngon([1, 1, 1])"}, "orbit-closure": [{"timestamp": "...", "dense": true, "cached": true, "value": null}]}
+            {"surface": {"angles": [1, 1, 1], "genus": 1, "type": "Ngon", "repr": "Ngon([1, 1, 1])"}, "orbit-closure": [{"timestamp": "...", "dense": true, "cached": true, "value": null}]}
 
 
         """
@@ -1214,7 +1214,7 @@ class OrbitClosure(Consumer, Command):
             >>> asyncio.run(oc.resolve())
             [Ngon([1, 3, 5])] [OrbitClosure] dimension: 4/6
             [Ngon([1, 3, 5])] [OrbitClosure] dimension: 6/6
-            [Ngon([1, 3, 5])] [OrbitClosure] GL(2,R)-orbit closure of dimension at least 6 in H_3(4) (ambient dimension 6) (dimension: 6) (dimension_upper_bound: 6) (directions: 2) (directions_with_cylinders: 2) (dense: True)
+            [Ngon([1, 3, 5])] [OrbitClosure] GL(2,R)-orbit closure of dimension at least 6 in H_3(4) (ambient dimension 6) (dimension: 6) (dimension_upper_bound: 6) (directions: 2) (directions_with_cylinders: 2) (dense: True) (stratum: H_3(4))
             True
 
         TESTS:
@@ -1338,6 +1338,7 @@ class OrbitClosure(Consumer, Command):
                 directions=self._statistics.directions,
                 directions_with_cylinders=self._statistics.directions_with_cylinders,
                 dense=self.dense,
+                stratum=str(self._orbit_closure().ambient_stratum()),
                 **kwargs,
             )
 

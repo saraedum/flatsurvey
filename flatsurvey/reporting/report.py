@@ -284,7 +284,7 @@ class Report(Command):
             >>> report = Report([json])
 
             >>> report.flush()
-            {"surface": {"angles": [1, 1, 1], "type": "Ngon", "repr": "Ngon([1, 1, 1])"}}
+            {"surface": {"angles": [1, 1, 1], "genus": 1, "type": "Ngon", "repr": "Ngon([1, 1, 1])"}}
 
         """
         for reporter in self._reporters:

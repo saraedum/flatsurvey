@@ -516,11 +516,10 @@ class Ngon(Surface):
         EXAMPLES::
 
             >>> Ngon((1, 1, 1))._flatsurvey_characteristics()
-            {'angles': [1, 1, 1]}
+            {'angles': [1, 1, 1], 'genus': 1}
 
         """
-        # TODO: Add more here!
-        return {"angles": [int(a) for a in self.angles]}
+        return {"angles": [int(a) for a in self.angles], "genus": int(self._surface().genus())}
 
     def cache_predicate(self, exact, cache=None):
         r"""

@@ -176,7 +176,7 @@ class Json(Reporter, Command):
             >>> import asyncio
             >>> asyncio.run(json.result("source", True))
             >>> json.flush()
-            {"surface": {"angles": [1, 1, 1], "type": "Ngon", "repr": "Ngon([1, 1, 1])"}, "source": [{"timestamp": "...", "value": true}]}
+            {"surface": {"angles": [1, 1, 1], "genus": 1, "type": "Ngon", "repr": "Ngon([1, 1, 1])"}, "source": [{"timestamp": "...", "value": true}]}
 
         """
         from datetime import datetime, timezone
@@ -250,7 +250,7 @@ class Json(Reporter, Command):
             >>> asyncio.run(json.result("source", "verdict"))
 
             >>> json.flush()  # doctest: +ELLIPSIS
-            {"surface": {"angles": [1, 1, 1], "type": "Ngon", "repr": "Ngon([1, 1, 1])"}, "source": [{"timestamp": "...", "value": "verdict"}]}
+            {"surface": {"angles": [1, 1, 1], "genus": 1, "type": "Ngon", "repr": "Ngon([1, 1, 1])"}, "source": [{"timestamp": "...", "value": "verdict"}]}
 
         """
         return value
@@ -330,7 +330,7 @@ class Json(Reporter, Command):
         Note that each result is reported individually, so the "verdict" is a list here::
 
             >>> json.flush()  # doctest: +ELLIPSIS
-            {"surface": {"angles": [1, 1, 1], "type": "Ngon", "repr": "Ngon([1, 1, 1])"}, "source": [{"timestamp": "...", "value": "verdict"}]}
+            {"surface": {"angles": [1, 1, 1], "genus": 1, "type": "Ngon", "repr": "Ngon([1, 1, 1])"}, "source": [{"timestamp": "...", "value": "verdict"}]}
 
         """
         import json

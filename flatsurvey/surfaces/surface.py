@@ -192,7 +192,7 @@ class Surface(ABC):
 
             >>> from flatsurvey.surfaces import Ngon
             >>> Ngon((1, 2, 3))._flatsurvey_characteristics()
-            {'angles': [1, 2, 3]}
+            {'angles': [1, 2, 3], 'genus': 1}
 
         """
         return {}

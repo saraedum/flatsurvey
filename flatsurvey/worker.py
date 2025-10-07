@@ -130,7 +130,7 @@ def process(commands, debug, mem_limit, time_limit, verbose):
         >>> from flatsurvey.test.cli import invoke
         >>> invoke(worker, "ngon", "-a", "1", "-a", "1", "-a", "1", "orbit-closure")
         [OrbitClosure] dimension: 2/2
-        [OrbitClosure] GL(2,R)-orbit closure of dimension at least 2 in H_1(0) (ambient dimension 2) (dimension: 2) (dimension_upper_bound: 2) (directions: 1) (directions_with_cylinders: 1) (dense: True)
+        [OrbitClosure] GL(2,R)-orbit closure of dimension at least 2 in H_1(0) (ambient dimension 2) (dimension: 2) (dimension_upper_bound: 2) (directions: 1) (directions_with_cylinders: 1) (dense: True) (stratum: H_1(0))
 
     """
     import pdb
@@ -228,7 +228,7 @@ class Worker:
             >>> import asyncio
             >>> asyncio.run(Worker.work(bindings))
             [OrbitClosure] dimension: 2/2
-            [OrbitClosure] GL(2,R)-orbit closure of dimension at least 2 in H_1(0) (ambient dimension 2) (dimension: 2) (dimension_upper_bound: 2) (directions: 1) (directions_with_cylinders: 1) (dense: True)
+            [OrbitClosure] GL(2,R)-orbit closure of dimension at least 2 in H_1(0) (ambient dimension 2) (dimension: 2) (dimension_upper_bound: 2) (directions: 1) (directions_with_cylinders: 1) (dense: True) (stratum: H_1(0))
 
         When the computation raises a restart exception, it restarts with the
         modified bindings automatically::

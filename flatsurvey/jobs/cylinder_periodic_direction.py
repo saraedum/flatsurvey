@@ -171,7 +171,7 @@ class CylinderPeriodicDirection(Consumer, Command):
             >>> import asyncio
             >>> asyncio.run(goal.consume_cache())
             >>> report.flush()  # doctest: +ELLIPSIS
-            {"surface": {"angles": [1, 1, 1], "type": "Ngon", "repr": "Ngon([1, 1, 1])"}, "cylinder-periodic-direction": [{"timestamp": "...", "cached": true, "value": true}]}
+            {"surface": {"angles": [1, 1, 1], "genus": 1, "type": "Ngon", "repr": "Ngon([1, 1, 1])"}, "cylinder-periodic-direction": [{"timestamp": "...", "cached": true, "value": true}]}
 
         """
         with self._cache.defaults({"value": None}):
