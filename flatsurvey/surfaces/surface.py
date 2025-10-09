@@ -178,6 +178,30 @@ class Surface(ABC):
 
         """
 
+    @property
+    def symmetries(self):
+        r"""
+        Return rotational symmetries of this surface as orthogonal
+        matrices.
+
+        The symmetries returned should be such that it is usually enough to
+        explore the surface in one surface and one does not gain much
+        information by exploring into the directions related by symmetry.
+
+        EXAPMLES::
+
+            >>> S = Ngon((1, 1, 1))
+            >>> S.symmetries
+            {[  -1/2  1/2*c]
+            [-1/2*c   -1/2], [1 0]
+            [0 1], [  -1/2 -1/2*c]
+            [ 1/2*c   -1/2]}
+
+        """
+        from sage.all import matrix
+
+        return {matrix([[1, 0], [0, 1]], immutable=True)}
+
     def __repr__(self):
         raise NotImplementedError(
             "to be able to log results for surfaces we need a printable representation"

@@ -131,6 +131,7 @@ from sage.misc.cachefunc import cached_method
 from flatsurvey.cache import Cache
 from flatsurvey.jobs.flow_decompositions import FlowDecompositions
 from flatsurvey.jobs.saddle_connections import SaddleConnections
+from flatsurvey.jobs.saddle_connection_orientations import SaddleConnectionOrientations
 from flatsurvey.pipeline import Bindings, Consumer, Goal
 from flatsurvey.reporting import Report
 from flatsurvey.surfaces import Deformation, Surface
@@ -173,18 +174,21 @@ class OrbitClosure(Consumer, Command):
     """
 
     DEFAULT_LIMIT = None
-    DEFAULT_STALE_LIMIT = 32
+    DEFAULT_STALE_LIMIT = 128
     DEFAULT_DEFORM_LIMIT = None
+    DEFAULT_SYMMETRIES = True
 
     def __init__(
         self,
         surface: Surface,
         flow_decompositions: FlowDecompositions,
+        saddle_connection_orientations: SaddleConnectionOrientations,
         saddle_connections: SaddleConnections,
         cache: Cache,
         limit: int | None = DEFAULT_LIMIT,
         stale_limit: int | datetime.timedelta = DEFAULT_STALE_LIMIT,
         deform_limit=DEFAULT_DEFORM_LIMIT,
+        symmetries=DEFAULT_SYMMETRIES,
         cache_only=Consumer.DEFAULT_CACHE_ONLY,
         report: Report | None = None,
     ):
@@ -196,10 +200,13 @@ class OrbitClosure(Consumer, Command):
         )
 
         self._surface = surface
+        self._flow_decompositions = flow_decompositions
+        self._saddle_connection_orientations = saddle_connection_orientations
         self._saddle_connections = saddle_connections
         self._limit = limit
         self._stale_limit = stale_limit
         self._deform_limit = deform_limit
+        self._symmetries = symmetries
         self._cache_only = cache_only
 
         self._statistics = Statistics()
@@ -306,12 +313,16 @@ class OrbitClosure(Consumer, Command):
                 surface=bindings.get(Surface),
                 report=bindings.get(Report),
                 flow_decompositions=bindings.get(FlowDecompositions),
+                saddle_connection_orientations=bindings.get(SaddleConnectionOrientations),
                 saddle_connections=bindings.get(SaddleConnections),
                 cache=bindings.get(Cache),
                 limit=scoped.get("limit", lambda: OrbitClosure.DEFAULT_LIMIT),
                 stale_limit=scoped.get("stale_limit", OrbitClosure.DEFAULT_STALE_LIMIT),
                 deform_limit=scoped.get(
                     "deform_limit", lambda: OrbitClosure.DEFAULT_DEFORM_LIMIT
+                ),
+                symmetries=scoped.get(
+                    "symmetries", OrbitClosure.DEFAULT_SYMMETRIES
                 ),
                 cache_only=scoped.get("cache_only", Consumer.DEFAULT_CACHE_ONLY),
             )
@@ -349,6 +360,11 @@ class OrbitClosure(Consumer, Command):
         default=DEFAULT_DEFORM_LIMIT,
         help="if set, deform the input surface after finding that many flow decompositions with cylinders without an increase in dimension; if not an integer, then this is parsed as a pandas timedelta and we deform after that time has passed without an improvement",
     )
+    @click.option(
+        "--no-symmetries",
+        is_flag=True,
+        help="disable preferred exploration of identical directions modulo symmetries of the surface for directions that lead to an increase in orbit closure dimension",
+    )
     @Consumer._cache_only_option
     @Bindings.click
     def click(
@@ -357,6 +373,7 @@ class OrbitClosure(Consumer, Command):
         stale_limit,
         expansions_limit,
         deform_limit,
+        no_symmetries,
         cache_only,
     ):
         r"""
@@ -394,6 +411,7 @@ class OrbitClosure(Consumer, Command):
                 stale_limit=stale_limit,
                 expansions_limit=expansions_limit,
                 deform_limit=deform_limit,
+                symmetries=not no_symmetries,
                 cache_only=cache_only,
             )
 
@@ -1371,6 +1389,12 @@ class OrbitClosure(Consumer, Command):
         if self._limit is not None and self._statistics.directions >= self._limit:
             await self.report()
             return "COMPLETED"
+
+        if self._symmetries:
+            if dimension_increase:
+                self._saddle_connection_orientations.promote_symmetries()
+            else:
+                self._saddle_connection_orientations.demote_symmetries()
 
         if self._consume_should_expand():
             self._consume_expand()

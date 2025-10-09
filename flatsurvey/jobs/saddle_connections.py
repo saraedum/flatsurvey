@@ -7,11 +7,15 @@ The saddle connections on a translation surface.
     Usage: worker saddle-connections [OPTIONS]
       Saddle connections on the surface.
     Options:
-      --bound INTEGER  stop search after all saddle connections up to that length
-                       have been processed  [default: no bound]
-      --limit INTEGER  stop search after that many saddle connections have been
-                       considered  [default: no limit]
-      --help           Show this message and exit.
+      --bound INTEGER              stop search after all saddle connections up to
+                                   that length have been processed  [default: no
+                                   bound]
+      --limit INTEGER              stop search after that many saddle connections
+                                   have been considered  [default: no limit]
+      --ignore-fundamental-domain  search in all directions and not only in a
+                                   fundamental domain modulo the symmetries of the
+                                   surface
+      --help                       Show this message and exit.
 
 """
 
@@ -50,6 +54,7 @@ class SaddleConnections(Producer, Command):
 
     DEFAULT_BOUND = None
     DEFAULT_LIMIT = None
+    DEFAULT_FUNDAMENTAL_DOMAIN = True
 
     def __init__(
         self,
@@ -57,12 +62,14 @@ class SaddleConnections(Producer, Command):
         report: Report | None = None,
         limit=DEFAULT_LIMIT,
         bound=DEFAULT_BOUND,
+        fundamental_domain=DEFAULT_FUNDAMENTAL_DOMAIN,
     ):
         super().__init__(report=report)
 
         self._surface = surface
         self._limit = limit
         self._bound = bound
+        self._fundamental_domain = fundamental_domain
 
         self._count = 0
 
@@ -99,6 +106,9 @@ class SaddleConnections(Producer, Command):
                 bound=scoped.get(
                     "bound", default=lambda: SaddleConnections.DEFAULT_BOUND
                 ),
+                fundamental_domain=scoped.get(
+                    "fundamental_domain", default=SaddleConnections.DEFAULT_FUNDAMENTAL_DOMAIN
+                )
             )
 
     @staticmethod
@@ -120,8 +130,13 @@ class SaddleConnections(Producer, Command):
         default=DEFAULT_LIMIT,
         help="stop search after that many saddle connections have been considered  [default: no limit]",
     )
+    @click.option(
+        "--ignore-fundamental-domain",
+        is_flag=True,
+        help="search in all directions and not only in a fundamental domain modulo the symmetries of the surface",
+    )
     @Bindings.click
-    def click(bindings: Bindings, bound, limit):
+    def click(bindings: Bindings, bound, limit, ignore_fundamental_domain):
         r"""
         Parse command line options into ``bindings``.
 
@@ -132,9 +147,9 @@ class SaddleConnections(Producer, Command):
 
         """
         with bindings.scope(SaddleConnections) as scoped:
-            scoped.define(bound=bound, limit=limit)
+            scoped.define(bound=bound, limit=limit, fundamental_domain=not ignore_fundamental_domain)
 
-    def randomize(self, lower_bound):
+    def randomize(self, lower_bound=0):
         r"""
         Take the saddle connections produced from a random sample of
         connections of length at least ``lower_bound``. (Instead of normally
@@ -203,15 +218,75 @@ class SaddleConnections(Producer, Command):
         self.__connections_iterator = iter(self.__connections)
 
     def _produce(self):
+        r"""
+        Find another saddle connection on this surface and record it in
+        ``_current``.
+
+        EXAMPLES:
+
+        Normally, we produce saddle connections by length but only in a
+        fundamental domain, i.e., modulo, :meth:`Surface.symmetries`::
+
+            >>> from flatsurvey.pipeline import Bindings
+            >>> from flatsurvey.test.cli import invoke_subcommand
+            >>> from flatsurvey.surfaces.ngons import Ngon
+            >>> bindings = Bindings()
+            >>> invoke_subcommand(Ngon.click, "-a", "1", "-a", "1", "-a", "1", bindings=bindings)
+            >>> invoke_subcommand(SaddleConnections.click, bindings=bindings)
+            >>> sc = SaddleConnections.create(bindings)
+
+            >>> import asyncio
+            >>> asyncio.run(sc.produce()); sc._current
+            -1
+            >>> asyncio.run(sc.produce()); sc._current
+            2
+            >>> asyncio.run(sc.produce()); sc._current
+            (3, (3*c ~ 5.1961524)) from 2 to -2
+
+        We can change this to instead sample saddle connections randomly::
+
+            >>> sc.randomize(0)
+            >>> asyncio.run(sc.produce()); sc._current
+            'NOT_EXHAUSTED'
+
+        We can only iterate over all saddle connections, even if they are
+        repeated modulo symmetries of the surface::
+
+            >>> bindings = Bindings()
+            >>> invoke_subcommand(Ngon.click, "-a", "1", "-a", "1", "-a", "1", bindings=bindings)
+            >>> invoke_subcommand(SaddleConnections.click, "--ignore-fundamental-domain", bindings=bindings)
+            >>> sc = SaddleConnections.create(bindings)
+
+            >>> asyncio.run(sc.produce()); sc._current
+            -1
+            >>> asyncio.run(sc.produce()); sc._current
+            -1
+            >>> asyncio.run(sc.produce()); sc._current
+            2
+
+        And again sample randomly without fundamental domain constraints::
+
+            >>> sc.randomize(0)
+            >>> await sc.produce()
+            'NOT_EXHAUSTED'
+
+        """
         if self.__connections_iterator is None:
-            self._reset(
-                self._surface.surface()
+            connections = (self._surface.surface()
                 .pyflatsurf()
                 .codomain()
                 .flat_triangulation()
                 .connections()
                 .byLength()
             )
+
+            if self._fundamental_domain:
+                import pyflatsurf.vector
+                V = pyflatsurf.vector.Vectors(self._surface.surface().base_ring())  # type: ignore
+                start, end = [V(v).vector for v in self._surface.fundamental_sector]  # type: ignore
+                connections = connections.sector(start, end)
+
+            self._reset(connections)
 
         assert self.__connections_iterator is not None
 

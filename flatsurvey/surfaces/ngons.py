@@ -233,7 +233,7 @@ class Ngon(Surface):
         return equivalents
 
     @property
-    def unfolding_symmetries(self):
+    def symmetries(self):
         r"""
         Return the symmetries of this polygon that are present in the unfolding
         as orthogonal matrices.
@@ -243,7 +243,7 @@ class Ngon(Surface):
         EXAMPLES::
 
             >>> S = Ngon((1, 1, 1))
-            >>> S.unfolding_symmetries
+            >>> S.symmetries
             {[  -1/2  1/2*c]
             [-1/2*c   -1/2], [1 0]
             [0 1], [  -1/2 -1/2*c]
@@ -252,7 +252,7 @@ class Ngon(Surface):
         ::
 
             >>> S = Ngon((1, 1, 2))
-            >>> S.unfolding_symmetries
+            >>> S.symmetries
             {[1 0]
             [0 1], [ 0  1]
             [-1  0], [ 0 -1]
@@ -280,6 +280,29 @@ class Ngon(Surface):
             )
 
         return symmetries
+
+    @property
+    def fundamental_sector(self):
+        r"""
+        Return a fundamental sector of the plane module the :meth:`symmetries`.
+
+        EXAMPLES::
+
+            >>> S = Ngon((1, 1, 1))
+            >>> S.fundamental_sector
+
+        ::
+
+            >>> S = Ngon((1, 1, 2))
+            >>> S.fundamental_sector
+
+        """
+        positive_rotations = [Q for Q in self.symmetries if Q[1][0] > 0]
+        minimal_rotation = max(positive_rotations, key=lambda Q: Q[0])
+
+        end = minimal_rotation.column(0)
+        begin = end.parent()((1, 0))
+        return begin, end
 
     def _reference(self):
         r"""
