@@ -15,7 +15,7 @@ number of Zorich induction steps:
     Usage: worker flow-decompositions [OPTIONS]
       Turns directions coming from saddle connections into flow decompositions.
     Options:
-      --limit INTEGER  Zorich induction steps to perform before giving up  [default: 256]
+      --limit INTEGER  Zorich induction steps to perform before giving up  [default: 64]
       --help           Show this message and exit.
 
 """
@@ -65,7 +65,7 @@ class FlowDecompositions(Processor, Command):
 
     """
 
-    DEFAULT_LIMIT = 256
+    DEFAULT_LIMIT = 64
 
     def __init__(
         self,
