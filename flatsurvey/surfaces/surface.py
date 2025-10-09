@@ -188,7 +188,7 @@ class Surface(ABC):
         explore the surface in one surface and one does not gain much
         information by exploring into the directions related by symmetry.
 
-        EXAPMLES::
+        EXAMPLES::
 
             >>> from flatsurvey.surfaces import Ngon
 
