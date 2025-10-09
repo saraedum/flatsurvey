@@ -80,7 +80,7 @@ class Producer:
             'NOT_EXHAUSTED'
 
             >>> connections._current
-            1
+            -1
 
         """
         import time

@@ -190,6 +190,8 @@ class Surface(ABC):
 
         EXAPMLES::
 
+            >>> from flatsurvey.surfaces import Ngon
+
             >>> S = Ngon((1, 1, 1))
             >>> S.symmetries
             {[  -1/2  1/2*c]
@@ -201,6 +203,37 @@ class Surface(ABC):
         from sage.all import matrix
 
         return {matrix([[1, 0], [0, 1]], immutable=True)}
+
+    @property
+    def fundamental_sector(self):
+        r"""
+        Return a fundamental sector of the plane module the :meth:`symmetries`.
+
+        EXAMPLES::
+
+            >>> from flatsurvey.surfaces import Ngon
+
+            >>> S = Ngon((1, 1, 1))
+            >>> S.fundamental_sector
+            ((1, 0), (-1/2, 1/2*c))
+
+        ::
+
+            >>> S = Ngon((1, 1, 2))
+            >>> S.fundamental_sector
+            ((1, 0), (0, 1))
+
+        """
+        positive_rotations = [Q for Q in self.symmetries if Q[1][0] > 0]
+        if not positive_rotations:
+            from sage.all import vector
+            return vector((1, 0)), vector((1, 0))
+
+        minimal_rotation = max(positive_rotations, key=lambda Q: Q[0])
+
+        end = minimal_rotation.column(0)
+        begin = end.parent()((1, 0))
+        return begin, end
 
     def __repr__(self):
         raise NotImplementedError(
@@ -215,6 +248,7 @@ class Surface(ABC):
         EXAMPLES::
 
             >>> from flatsurvey.surfaces import Ngon
+
             >>> Ngon((1, 2, 3))._flatsurvey_characteristics()
             {'angles': [1, 2, 3], 'genus': 1}
 

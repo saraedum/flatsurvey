@@ -40,7 +40,7 @@ All reported IETs are defined over a number field of degree 6::
 
     >>> iets = cache.get("undetermined-iets")
     >>> iets
-    16 cached results
+    52 cached results
     >>> iets.degree
     6
 

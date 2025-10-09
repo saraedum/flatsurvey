@@ -236,17 +236,25 @@ class SaddleConnections(Producer, Command):
             >>> sc = SaddleConnections.create(bindings)
 
             >>> import asyncio
-            >>> asyncio.run(sc.produce()); sc._current
+            >>> asyncio.run(sc.produce())
+            'NOT_EXHAUSTED'
+            >>> sc._current
             -1
-            >>> asyncio.run(sc.produce()); sc._current
+
+            >>> asyncio.run(sc.produce())
+            'NOT_EXHAUSTED'
+            >>> sc._current
             2
-            >>> asyncio.run(sc.produce()); sc._current
+
+            >>> asyncio.run(sc.produce())
+            'NOT_EXHAUSTED'
+            >>> sc._current
             (3, (3*c ~ 5.1961524)) from 2 to -2
 
         We can change this to instead sample saddle connections randomly::
 
             >>> sc.randomize(0)
-            >>> asyncio.run(sc.produce()); sc._current
+            >>> asyncio.run(sc.produce())
             'NOT_EXHAUSTED'
 
         We can only iterate over all saddle connections, even if they are
@@ -257,17 +265,25 @@ class SaddleConnections(Producer, Command):
             >>> invoke_subcommand(SaddleConnections.click, "--ignore-fundamental-domain", bindings=bindings)
             >>> sc = SaddleConnections.create(bindings)
 
-            >>> asyncio.run(sc.produce()); sc._current
+            >>> asyncio.run(sc.produce())
+            'NOT_EXHAUSTED'
+            >>> sc._current
+            1
+
+            >>> asyncio.run(sc.produce())
+            'NOT_EXHAUSTED'
+            >>> sc._current
             -1
-            >>> asyncio.run(sc.produce()); sc._current
-            -1
-            >>> asyncio.run(sc.produce()); sc._current
+
+            >>> asyncio.run(sc.produce())
+            'NOT_EXHAUSTED'
+            >>> sc._current
             2
 
         And again sample randomly without fundamental domain constraints::
 
             >>> sc.randomize(0)
-            >>> await sc.produce()
+            >>> asyncio.run(sc.produce())
             'NOT_EXHAUSTED'
 
         """

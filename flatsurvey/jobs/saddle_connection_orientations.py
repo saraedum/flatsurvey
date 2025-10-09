@@ -117,23 +117,35 @@ class SaddleConnectionOrientations(Processor, Command):
         sector by length::
 
             >>> import asyncio
-            >>> asyncio.run(sco.produce()); sco._current
+            >>> asyncio.run(sco.produce())
+            'NOT_EXHAUSTED'
+            >>> sco._current
             (0, (2*c ~ 3.4641016))
-            >>> asyncio.run(sco.produce()); sco._current
+
+            >>> asyncio.run(sco.produce())
+            'NOT_EXHAUSTED'
+            >>> sco._current
             (3, (c ~ 1.7320508))
-            >>> asyncio.run(sco.produce()); sco._current
+
+            >>> asyncio.run(sco.produce())
+            'NOT_EXHAUSTED'
+            >>> sco._current
             (3, (3*c ~ 5.1961524))
 
         However, we can request the symmetric directions of the last one next::
 
             >>> sco.promote_symmetries()
-            >>> asyncio.run(sco.produce()); sco._current
+            >>> asyncio.run(sco.produce())
+            'NOT_EXHAUSTED'
+            >>> sco._current
             (6, 0)
 
         Afterwards, it goes back to the normal iteration from before automatically::
 
-            >>> asyncio.run(sco.produce()); sco._current
-             (-3, (5*c ~ 8.6602540))
+            >>> asyncio.run(sco.produce())
+            'NOT_EXHAUSTED'
+            >>> sco._current
+            (-3, (5*c ~ 8.6602540))
 
         """
         for Q in self._saddle_connections._surface.symmetries:
@@ -169,14 +181,18 @@ class SaddleConnectionOrientations(Processor, Command):
         and get the sequence of directions without symmetries::
 
             >>> import asyncio
-            >>> asyncio.run(sco.produce()); sco._current
+            >>> asyncio.run(sco.produce())
+            'NOT_EXHAUSTED'
+            >>> sco._current
             (0, (2*c ~ 3.4641016))
 
             >>> sco.promote_symmetries()
             >>> sco.demote_symmetries()
 
             >>> import asyncio
-            >>> asyncio.run(sco.produce()); sco._current
+            >>> asyncio.run(sco.produce())
+            'NOT_EXHAUSTED'
+            >>> sco._current
             (3, (c ~ 1.7320508))
 
         """
@@ -227,7 +243,7 @@ class SaddleConnectionOrientations(Processor, Command):
             >>> surface = Ngon((1, 1, 1))
             >>> sco = SaddleConnectionOrientations(saddle_connections=SaddleConnections(surface))
 
-            >>> asyncio.run(sco.produce())  # doctest: +ELLIPSIS
+            >>> asyncio.run(sco.produce())
             'NOT_EXHAUSTED'
 
         Check that the JSON output works::

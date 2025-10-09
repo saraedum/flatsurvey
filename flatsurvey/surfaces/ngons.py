@@ -281,29 +281,6 @@ class Ngon(Surface):
 
         return symmetries
 
-    @property
-    def fundamental_sector(self):
-        r"""
-        Return a fundamental sector of the plane module the :meth:`symmetries`.
-
-        EXAMPLES::
-
-            >>> S = Ngon((1, 1, 1))
-            >>> S.fundamental_sector
-
-        ::
-
-            >>> S = Ngon((1, 1, 2))
-            >>> S.fundamental_sector
-
-        """
-        positive_rotations = [Q for Q in self.symmetries if Q[1][0] > 0]
-        minimal_rotation = max(positive_rotations, key=lambda Q: Q[0])
-
-        end = minimal_rotation.column(0)
-        begin = end.parent()((1, 0))
-        return begin, end
-
     def _reference(self):
         r"""
         Return a literature reference where exactly this ngon has been studied already.
