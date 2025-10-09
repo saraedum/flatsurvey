@@ -300,7 +300,8 @@ class SaddleConnections(Producer, Command):
                 import pyflatsurf.vector
                 V = pyflatsurf.vector.Vectors(self._surface.surface().base_ring())  # type: ignore
                 start, end = [V(v).vector for v in self._surface.fundamental_sector]  # type: ignore
-                connections = connections.sector(start, end)
+                if start != end:
+                    connections = connections.sector(start, end)
 
             self._reset(connections)
 
