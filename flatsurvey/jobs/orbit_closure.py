@@ -908,18 +908,12 @@ class OrbitClosure(Consumer, Command):
     def _deformation_small_tangent(self, tangents: list, saf0: list):
         r"""
         Return a vector of small height in the rational vector space with basis
-        ``tangents`` + ``saf0`` that is not contained in the span of ``saf0``.
+        ``tangents``.
 
         ALGORITHM:
 
         We rewrite the basis ``tangents`` as a integral basis of
-        lattice, apply the LLL algorithm to determine a short vector. Then we
-        try to make this vector even shorter by subtracting its closest vector
-        in the space spanned by ``saf0``.
-
-        Even if the LLL produced the shortest vector, there is no reason why
-        this would produce the shortest vector in the full space that is not
-        contained in ``saf0`` but works reasonably well in practice.
+        lattice, apply the LLL algorithm to determine a short vector.
 
         EXAMPLES::
 
@@ -980,13 +974,6 @@ class OrbitClosure(Consumer, Command):
         lll = to_integer_matrix(tangents).LLL()
         tangent = lll[0]
 
-        # Optimize the vector by finding a vector close to it in saf0
-        from sage.modules.free_module_integer import IntegerLattice
-
-        tangent -= IntegerLattice(to_integer_matrix(saf0)).approximate_closest_vector(
-            tangent
-        )
-
         # Rewrite tangent vector as an actual vector
         from itertools import batched
 
@@ -999,7 +986,8 @@ class OrbitClosure(Consumer, Command):
         # Validate result
         from sage.all import span
 
-        assert tangent in span(tangents + saf0)
+        assert tangent in span(tangents)
+        assert tangent not in span(saf0)
 
         self._report.log(
             self,
