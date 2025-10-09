@@ -149,15 +149,18 @@ class SaddleConnectionOrientations(Processor, Command):
 
         """
         for Q in self._saddle_connections._surface.symmetries:
-            if Q.is_one(): continue
-            if Q[0][1] < 0: continue  # ignore negative pair of each rotation
+            if Q.is_one():
+                continue
+            if Q[0][1] < 0:
+                continue  # ignore negative pair of each rotation
 
             from flatsurf.geometry.pyflatsurf.conversion import VectorSpaceConversion
-            conversion = VectorSpaceConversion.from_pyflatsurf_from_elements([self._current])
 
-            self._backlog.append(
-                conversion(Q * conversion.section(self._current))
+            conversion = VectorSpaceConversion.from_pyflatsurf_from_elements(
+                [self._current]
             )
+
+            self._backlog.append(conversion(Q * conversion.section(self._current)))
 
     def demote_symmetries(self):
         r"""

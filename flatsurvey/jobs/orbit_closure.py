@@ -319,7 +319,9 @@ class OrbitClosure(Consumer, Command):
                 surface=bindings.get(Surface),
                 report=bindings.get(Report),
                 flow_decompositions=bindings.get(FlowDecompositions),
-                saddle_connection_orientations=bindings.get(SaddleConnectionOrientations),
+                saddle_connection_orientations=bindings.get(
+                    SaddleConnectionOrientations
+                ),
                 saddle_connections=bindings.get(SaddleConnections),
                 cache=bindings.get(Cache),
                 limit=scoped.get("limit", lambda: OrbitClosure.DEFAULT_LIMIT),
@@ -327,9 +329,7 @@ class OrbitClosure(Consumer, Command):
                 deform_limit=scoped.get(
                     "deform_limit", lambda: OrbitClosure.DEFAULT_DEFORM_LIMIT
                 ),
-                symmetries=scoped.get(
-                    "symmetries", OrbitClosure.DEFAULT_SYMMETRIES
-                ),
+                symmetries=scoped.get("symmetries", OrbitClosure.DEFAULT_SYMMETRIES),
                 cache_only=scoped.get("cache_only", Consumer.DEFAULT_CACHE_ONLY),
             )
 

@@ -227,6 +227,7 @@ class Surface(ABC):
         positive_rotations = [Q for Q in self.symmetries if Q[1][0] > 0]
         if not positive_rotations:
             from sage.all import vector
+
             return vector((1, 0)), vector((1, 0))
 
         minimal_rotation = max(positive_rotations, key=lambda Q: Q[0])

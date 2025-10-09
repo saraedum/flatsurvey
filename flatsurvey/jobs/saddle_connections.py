@@ -107,8 +107,9 @@ class SaddleConnections(Producer, Command):
                     "bound", default=lambda: SaddleConnections.DEFAULT_BOUND
                 ),
                 fundamental_domain=scoped.get(
-                    "fundamental_domain", default=SaddleConnections.DEFAULT_FUNDAMENTAL_DOMAIN
-                )
+                    "fundamental_domain",
+                    default=SaddleConnections.DEFAULT_FUNDAMENTAL_DOMAIN,
+                ),
             )
 
     @staticmethod
@@ -147,7 +148,11 @@ class SaddleConnections(Producer, Command):
 
         """
         with bindings.scope(SaddleConnections) as scoped:
-            scoped.define(bound=bound, limit=limit, fundamental_domain=not ignore_fundamental_domain)
+            scoped.define(
+                bound=bound,
+                limit=limit,
+                fundamental_domain=not ignore_fundamental_domain,
+            )
 
     def randomize(self, lower_bound=0):
         r"""
@@ -288,7 +293,8 @@ class SaddleConnections(Producer, Command):
 
         """
         if self.__connections_iterator is None:
-            connections = (self._surface.surface()
+            connections = (
+                self._surface.surface()
                 .pyflatsurf()
                 .codomain()
                 .flat_triangulation()
@@ -298,6 +304,7 @@ class SaddleConnections(Producer, Command):
 
             if self._fundamental_domain:
                 import pyflatsurf.vector
+
                 V = pyflatsurf.vector.Vectors(self._surface.surface().base_ring())  # type: ignore
                 start, end = [V(v).vector for v in self._surface.fundamental_sector]  # type: ignore
                 if start != end:
