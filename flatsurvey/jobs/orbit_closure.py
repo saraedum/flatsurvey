@@ -134,8 +134,8 @@ from sage.misc.cachefunc import cached_method
 
 from flatsurvey.cache import Cache
 from flatsurvey.jobs.flow_decompositions import FlowDecompositions
-from flatsurvey.jobs.saddle_connections import SaddleConnections
 from flatsurvey.jobs.saddle_connection_orientations import SaddleConnectionOrientations
+from flatsurvey.jobs.saddle_connections import SaddleConnections
 from flatsurvey.pipeline import Bindings, Consumer, Goal
 from flatsurvey.reporting import Report
 from flatsurvey.surfaces import Deformation, Surface
